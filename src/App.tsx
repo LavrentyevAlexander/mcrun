@@ -54,6 +54,14 @@ export default function App() {
     ? data.activities.reduce((sum, a) => sum + a.min, 0)
     : 0;
 
+  const yearlyKm: Record<string, number> = {};
+  if (data) {
+    for (const a of data.activities) {
+      const year = a.date.slice(0, 4);
+      yearlyKm[year] = (yearlyKm[year] || 0) + a.km;
+    }
+  }
+
   return (
     <div className="container">
       <h1>McRun Strava Stats</h1>
@@ -92,36 +100,62 @@ export default function App() {
             </ul>
           </section>
 
-          <section className="activities">
-            <h2>
-              Runs ({data.activities.length}) &mdash; {totalKm.toFixed(2)} km,{" "}
-              {totalMin} min
-            </h2>
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Name</th>
-                    <th>Km</th>
-                    <th>Min</th>
-                    <th>Gear</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.activities.map((a, i) => (
-                    <tr key={i}>
-                      <td>{a.date}</td>
-                      <td>{a.name}</td>
-                      <td>{a.km.toFixed(2)}</td>
-                      <td>{a.min}</td>
-                      <td>{a.gear}</td>
+          <div className="main-layout">
+            <section className="activities">
+              <h2>
+                Runs ({data.activities.length}) &mdash; {totalKm.toFixed(2)} km,{" "}
+                {totalMin} min
+              </h2>
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Name</th>
+                      <th>Km</th>
+                      <th>Min</th>
+                      <th>Gear</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
+                  </thead>
+                  <tbody>
+                    {data.activities.map((a, i) => (
+                      <tr key={i}>
+                        <td>{a.date}</td>
+                        <td>{a.name}</td>
+                        <td>{a.km.toFixed(2)}</td>
+                        <td>{a.min}</td>
+                        <td>{a.gear}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            {Object.keys(yearlyKm).length > 0 && (
+              <section className="yearly-summary">
+                <h2>Yearly Km</h2>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Year</th>
+                      <th>Km</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.entries(yearlyKm)
+                      .sort(([a], [b]) => a.localeCompare(b))
+                      .map(([year, km]) => (
+                        <tr key={year}>
+                          <td>{year}</td>
+                          <td>{km.toFixed(2)}</td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </section>
+            )}
+          </div>
         </>
       )}
     </div>
