@@ -68,8 +68,8 @@ button:hover:not(:disabled) {
 .gear-summary ul {
   list-style: none;
   display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
+  flex-direction: column;
+  gap: 0.4rem;
 }
 
 .table-wrap {

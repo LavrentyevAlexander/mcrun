@@ -26,12 +26,15 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  async function load() {
+  async function fetchStats(date?: string) {
     setLoading(true);
     setError("");
     setData(null);
     try {
-      const res = await fetch(`/api/stats?after_date=${afterDate}`);
+      const url = date
+        ? `/api/stats?after_date=${date}`
+        : "/api/stats?after_date=1970-01-01";
+      const res = await fetch(url);
       const json: StatsResponse = await res.json();
       if (!res.ok || json.error) {
         throw new Error(json.error || `HTTP ${res.status}`);
@@ -64,8 +67,11 @@ export default function App() {
             onChange={(e) => setAfterDate(e.target.value)}
           />
         </label>
-        <button onClick={load} disabled={loading}>
+        <button onClick={() => fetchStats(afterDate)} disabled={loading}>
           {loading ? "Loading…" : "Load"}
+        </button>
+        <button onClick={() => fetchStats()} disabled={loading}>
+          All time
         </button>
       </div>
 
@@ -76,11 +82,13 @@ export default function App() {
           <section className="gear-summary">
             <h2>Gear Summary</h2>
             <ul>
-              {Object.entries(data.gear_summary).map(([name, km]) => (
-                <li key={name}>
-                  <strong>{name}</strong>: {km.toFixed(2)} km
-                </li>
-              ))}
+              {Object.entries(data.gear_summary)
+                .sort(([, a], [, b]) => b - a)
+                .map(([name, km]) => (
+                  <li key={name}>
+                    <strong>{name}</strong> — {km.toFixed(2)} km
+                  </li>
+                ))}
             </ul>
           </section>
 
