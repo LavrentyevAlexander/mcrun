@@ -85,13 +85,17 @@ class handler(BaseHTTPRequestHandler):
                 if gear_id and gear_id not in gear_names:
                     gear_names[gear_id] = get_gear_name(token, gear_id)
 
+                # Count all activities with gear for gear summary
+                if gear_id:
+                    gear_name = gear_names.get(gear_id, gear_id)
+                    gear_km[gear_name] += act["distance"] / 1000
+
+                # Only include runs in the table
                 if act.get("type") != "Run" or not gear_id:
                     continue
 
                 distance_km = act["distance"] / 1000
                 duration_min = act["moving_time"] // 60
-                gear_name = gear_names.get(gear_id, gear_id)
-                gear_km[gear_name] += distance_km
 
                 rows.append(
                     {
@@ -99,7 +103,7 @@ class handler(BaseHTTPRequestHandler):
                         "name": act["name"],
                         "km": round(distance_km, 2),
                         "min": duration_min,
-                        "gear": gear_name,
+                        "gear": gear_names.get(gear_id, gear_id),
                     }
                 )
 
