@@ -97,6 +97,11 @@ th {
   font-weight: 600;
 }
 
+td:first-child,
+th:first-child {
+  white-space: nowrap;
+}
+
 tbody tr:hover {
   background: #fff8f5;
 }

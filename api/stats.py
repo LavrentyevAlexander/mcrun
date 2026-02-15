@@ -85,8 +85,8 @@ class handler(BaseHTTPRequestHandler):
                 if gear_id and gear_id not in gear_names:
                     gear_names[gear_id] = get_gear_name(token, gear_id)
 
-                # Count all activities with gear for gear summary
-                if gear_id:
+                # Count all activities with shoes for gear summary (skip bikes: id starts with "b")
+                if gear_id and not gear_id.startswith("b"):
                     gear_name = gear_names.get(gear_id, gear_id)
                     gear_km[gear_name] += act["distance"] / 1000
 
