@@ -35,6 +35,20 @@ h2 {
   font-size: 1rem;
 }
 
+.controls input[type="date"]:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.all-time-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+}
+
 button {
   padding: 0.5rem 1.2rem;
   background: #fc4c02;
@@ -59,18 +73,49 @@ button:hover:not(:disabled) {
   margin-bottom: 1rem;
 }
 
-.gear-summary {
-  background: #fff;
-  border-radius: 8px;
-  padding: 1rem 1.5rem;
+/* Tabs */
+.tabs {
+  display: flex;
+  border-bottom: 2px solid #eee;
   margin-bottom: 1.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  gap: 0;
 }
 
-.gear-summary table {
-  width: 100%;
+.tab {
+  background: transparent;
+  color: #666;
+  border: none;
+  border-bottom: 3px solid transparent;
+  border-radius: 0;
+  padding: 0.6rem 1.5rem;
+  margin-bottom: -2px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: color 0.15s;
 }
 
+.tab:hover:not(:disabled) {
+  background: transparent;
+  color: #333;
+}
+
+.tab.active {
+  color: #fc4c02;
+  border-bottom-color: #fc4c02;
+  font-weight: 600;
+}
+
+.tab-content {
+  min-height: 200px;
+}
+
+.runs-summary {
+  color: #666;
+  margin-bottom: 0.75rem;
+  font-size: 0.95rem;
+}
+
+/* Tables */
 .table-wrap {
   overflow-x: auto;
 }
@@ -105,55 +150,38 @@ tbody tr:hover {
   background: #fff8f5;
 }
 
-.main-layout {
-  display: flex;
-  gap: 1.5rem;
-  align-items: flex-start;
-}
-
-.activities {
-  flex: 1;
-  min-width: 0;
-}
-
-.yearly-summary {
-  flex-shrink: 0;
-  width: 160px;
-}
-
-.yearly-summary table {
-  width: 100%;
-}
-
+/* Mobile */
 @media (max-width: 600px) {
-  .main-layout {
-    flex-direction: column;
+  .controls {
+    flex-wrap: wrap;
   }
 
-  .yearly-summary {
-    width: 100%;
+  .tab {
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
   }
 
-  .activities table thead {
+  /* Runs table → cards on mobile */
+  .table-wrap table thead {
     display: none;
   }
 
-  .activities table,
-  .activities tbody,
-  .activities tr,
-  .activities td {
+  .table-wrap table,
+  .table-wrap tbody,
+  .table-wrap tr,
+  .table-wrap td {
     display: block;
     width: 100%;
   }
 
-  .activities tr {
+  .table-wrap tr {
     border: 1px solid #eee;
     border-radius: 8px;
     margin-bottom: 0.75rem;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   }
 
-  .activities td {
+  .table-wrap td {
     display: flex;
     justify-content: space-between;
     padding: 0.5rem 1rem;
@@ -161,18 +189,14 @@ tbody tr:hover {
     text-align: right;
   }
 
-  .activities td:last-child {
+  .table-wrap td:last-child {
     border-bottom: none;
   }
 
-  .activities td::before {
+  .table-wrap td::before {
     content: attr(data-label);
     font-weight: 600;
     color: #666;
     text-align: left;
-  }
-
-  .controls {
-    flex-wrap: wrap;
   }
 }
