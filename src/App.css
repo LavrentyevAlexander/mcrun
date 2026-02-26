@@ -125,3 +125,55 @@ tbody tr:hover {
 .yearly-summary table {
   width: 100%;
 }
+
+@media (max-width: 600px) {
+  .main-layout {
+    flex-direction: column;
+  }
+
+  .yearly-summary {
+    width: 100%;
+  }
+
+  .activities table thead {
+    display: none;
+  }
+
+  .activities table,
+  .activities tbody,
+  .activities tr,
+  .activities td {
+    display: block;
+    width: 100%;
+  }
+
+  .activities tr {
+    border: 1px solid #eee;
+    border-radius: 8px;
+    margin-bottom: 0.75rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  }
+
+  .activities td {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid #f0f0f0;
+    text-align: right;
+  }
+
+  .activities td:last-child {
+    border-bottom: none;
+  }
+
+  .activities td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #666;
+    text-align: left;
+  }
+
+  .controls {
+    flex-wrap: wrap;
+  }
+}
