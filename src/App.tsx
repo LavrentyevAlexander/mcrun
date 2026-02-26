@@ -129,51 +129,54 @@ export default function App() {
 
           <div className="tab-content">
             {activeTab === "gear" && (
-              <table>
-                <thead>
-                  <tr>
-                    <th>Shoe</th>
-                    <th>Period km</th>
-                    <th>Total km</th>
-                    <th>Wear</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Object.entries(data.gear_summary)
-                    .sort(([, a], [, b]) => b.km - a.km)
-                    .map(([name, info]) => {
-                      const wear = info.limit_km
-                        ? Math.round((info.total_km / info.limit_km) * 100)
-                        : null;
-                      const wearColor =
-                        wear === null
-                          ? undefined
-                          : wear < 50
-                          ? "#2e7d32"
-                          : wear < 70
-                          ? "#f9a825"
-                          : wear < 80
-                          ? "#e65100"
-                          : "#c62828";
-                      return (
-                        <tr key={name}>
-                          <td>{name}</td>
-                          <td>{info.km.toFixed(2)}</td>
-                          <td>{info.total_km.toFixed(2)}</td>
-                          <td
-                            style={
-                              wearColor
-                                ? { color: wearColor, fontWeight: 600 }
-                                : {}
-                            }
-                          >
-                            {wear !== null ? `${wear}%` : "—"}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                </tbody>
-              </table>
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Shoe</th>
+                      <th>Period km</th>
+                      <th>Total km</th>
+                      <th>Wear</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.entries(data.gear_summary)
+                      .sort(([, a], [, b]) => b.km - a.km)
+                      .map(([name, info]) => {
+                        const wear = info.limit_km
+                          ? Math.round((info.total_km / info.limit_km) * 100)
+                          : null;
+                        const wearColor =
+                          wear === null
+                            ? undefined
+                            : wear < 50
+                            ? "#2e7d32"
+                            : wear < 70
+                            ? "#f9a825"
+                            : wear < 80
+                            ? "#e65100"
+                            : "#c62828";
+                        return (
+                          <tr key={name}>
+                            <td data-label="">{name}</td>
+                            <td data-label="Period km">{info.km.toFixed(2)}</td>
+                            <td data-label="Total km">{info.total_km.toFixed(2)}</td>
+                            <td
+                              data-label="Wear"
+                              style={
+                                wearColor
+                                  ? { color: wearColor, fontWeight: 600 }
+                                  : {}
+                              }
+                            >
+                              {wear !== null ? `${wear}%` : "—"}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                </table>
+              </div>
             )}
 
             {activeTab === "runs" && (
