@@ -158,6 +158,14 @@ tbody tr:hover {
     flex-wrap: wrap;
   }
 
+  .controls label:first-child {
+    width: 100%;
+  }
+
+  .controls input[type="date"] {
+    flex: 1;
+  }
+
   .tab {
     padding: 0.6rem 1rem;
     font-size: 0.9rem;
