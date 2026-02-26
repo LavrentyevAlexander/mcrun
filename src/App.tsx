@@ -1,5 +1,6 @@
 import { useState } from "react";
 import "./App.css";
+import logo from "../icon.png";
 
 interface Activity {
   date: string;
@@ -64,7 +65,7 @@ export default function App() {
 
   return (
     <div className="container">
-      <img src="/icon.png" alt="McRun" className="logo" />
+      <img src={logo} alt="McRun" className="logo" />
 
       <div className="controls">
         <label>
