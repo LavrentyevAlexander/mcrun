@@ -64,7 +64,7 @@ export default function App() {
 
   return (
     <div className="container">
-      <h1>McRun Strava Stats</h1>
+      <img src="/icon.png" alt="McRun" className="logo" />
 
       <div className="controls">
         <label>

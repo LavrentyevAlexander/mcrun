@@ -4,8 +4,10 @@
   padding: 0 1rem;
 }
 
-h1 {
+.logo {
+  height: 64px;
   margin-bottom: 1.5rem;
+  display: block;
 }
 
 h2 {
