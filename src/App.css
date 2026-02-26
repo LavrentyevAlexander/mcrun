@@ -67,11 +67,8 @@ button:hover:not(:disabled) {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.gear-summary ul {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
+.gear-summary table {
+  width: 100%;
 }
 
 .table-wrap {

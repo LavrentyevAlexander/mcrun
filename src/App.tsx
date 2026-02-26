@@ -10,9 +10,15 @@ interface Activity {
   gear: string;
 }
 
+interface GearInfo {
+  km: number;
+  total_km: number;
+  limit_km: number | null;
+}
+
 interface StatsResponse {
   activities: Activity[];
-  gear_summary: Record<string, number>;
+  gear_summary: Record<string, GearInfo>;
   error?: string;
 }
 
@@ -90,15 +96,52 @@ export default function App() {
         <>
           <section className="gear-summary">
             <h2>Gear Summary</h2>
-            <ul>
-              {Object.entries(data.gear_summary)
-                .sort(([, a], [, b]) => b - a)
-                .map(([name, km]) => (
-                  <li key={name}>
-                    <strong>{name}</strong> — {km.toFixed(2)} km
-                  </li>
-                ))}
-            </ul>
+            <table>
+              <thead>
+                <tr>
+                  <th>Shoe</th>
+                  <th>Period km</th>
+                  <th>Total km</th>
+                  <th>Wear</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(data.gear_summary)
+                  .sort(([, a], [, b]) => b.km - a.km)
+                  .map(([name, info]) => {
+                    const wear =
+                      info.limit_km
+                        ? Math.round((info.total_km / info.limit_km) * 100)
+                        : null;
+                    const wearColor =
+                      wear === null
+                        ? undefined
+                        : wear < 50
+                        ? "#2e7d32"
+                        : wear < 70
+                        ? "#f9a825"
+                        : wear < 80
+                        ? "#e65100"
+                        : "#c62828";
+                    return (
+                      <tr key={name}>
+                        <td>{name}</td>
+                        <td>{info.km.toFixed(2)}</td>
+                        <td>{info.total_km.toFixed(2)}</td>
+                        <td
+                          style={
+                            wearColor
+                              ? { color: wearColor, fontWeight: 600 }
+                              : {}
+                          }
+                        >
+                          {wear !== null ? `${wear}%` : "—"}
+                        </td>
+                      </tr>
+                    );
+                  })}
+              </tbody>
+            </table>
           </section>
 
           <div className="main-layout">

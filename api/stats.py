@@ -53,14 +53,24 @@ def get_activities(access_token, after_date=None):
     return activities
 
 
-def get_gear_name(access_token, gear_id):
+GEAR_LIMITS_PATH = os.path.join(os.path.dirname(__file__), "gear_limits.json")
+try:
+    with open(GEAR_LIMITS_PATH) as _f:
+        GEAR_LIMITS = json.load(_f)
+except (FileNotFoundError, json.JSONDecodeError):
+    GEAR_LIMITS = {}
+
+
+def get_gear_info(access_token, gear_id):
+    """Returns (name, total_km_alltime)"""
     resp = requests.get(
         f"https://www.strava.com/api/v3/gear/{gear_id}",
         headers={"Authorization": f"Bearer {access_token}"},
     )
     if resp.status_code == 200:
-        return resp.json().get("name", gear_id)
-    return gear_id
+        data = resp.json()
+        return data.get("name", gear_id), data.get("distance", 0) / 1000
+    return gear_id, 0
 
 
 class handler(BaseHTTPRequestHandler):
@@ -76,14 +86,17 @@ class handler(BaseHTTPRequestHandler):
             token = get_access_token()
             activities = get_activities(token, after_date=after_date)
 
-            gear_names = {}
-            gear_km = defaultdict(float)
+            gear_names = {}       # gear_id -> name
+            gear_total_km = {}    # gear_id -> all-time km from Strava
+            gear_km = defaultdict(float)  # gear_name -> km in selected period
             rows = []
 
             for act in activities:
                 gear_id = act.get("gear_id")
                 if gear_id and gear_id not in gear_names:
-                    gear_names[gear_id] = get_gear_name(token, gear_id)
+                    name, total_km = get_gear_info(token, gear_id)
+                    gear_names[gear_id] = name
+                    gear_total_km[gear_id] = total_km
 
                 # Count all activities with shoes for gear summary (skip bikes: id starts with "b")
                 if gear_id and not gear_id.startswith("b"):
@@ -107,7 +120,15 @@ class handler(BaseHTTPRequestHandler):
                     }
                 )
 
-            gear_summary = {name: round(km, 2) for name, km in gear_km.items()}
+            name_to_gid = {name: gid for gid, name in gear_names.items()}
+            gear_summary = {
+                name: {
+                    "km": round(km, 2),
+                    "total_km": round(gear_total_km.get(name_to_gid.get(name), 0), 2),
+                    "limit_km": GEAR_LIMITS.get(name),
+                }
+                for name, km in gear_km.items()
+            }
 
             body = json.dumps({"activities": rows, "gear_summary": gear_summary})
             self.send_response(200)
