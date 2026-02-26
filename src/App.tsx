@@ -120,11 +120,11 @@ export default function App() {
                   <tbody>
                     {data.activities.map((a, i) => (
                       <tr key={i}>
-                        <td>{a.date}</td>
-                        <td>{a.name}</td>
-                        <td>{a.km.toFixed(2)}</td>
-                        <td>{a.min}</td>
-                        <td>{a.gear}</td>
+                        <td data-label="Date">{a.date}</td>
+                        <td data-label="Name">{a.name}</td>
+                        <td data-label="Km">{a.km.toFixed(2)}</td>
+                        <td data-label="Min">{a.min}</td>
+                        <td data-label="Gear">{a.gear}</td>
                       </tr>
                     ))}
                   </tbody>
