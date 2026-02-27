@@ -9,3 +9,4 @@ lambda_build
 lambda_package.zip
 *.tsbuildinfo
 .idea
+.env*.local
