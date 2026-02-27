@@ -10,10 +10,6 @@
   display: block;
 }
 
-h2 {
-  margin-bottom: 0.75rem;
-}
-
 .controls {
   display: flex;
   gap: 1rem;
