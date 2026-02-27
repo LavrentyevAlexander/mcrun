@@ -158,8 +158,8 @@ export default function App() {
                         return (
                           <tr key={name}>
                             <td data-label="">{name}</td>
-                            <td data-label="Period km">{info.km.toFixed(2)}</td>
-                            <td data-label="Total km">{info.total_km.toFixed(2)}</td>
+                            <td data-label="Period, km">{info.km.toFixed(2)}</td>
+                            <td data-label="Total, km">{info.total_km.toFixed(2)}</td>
                             <td
                               data-label="Wear"
                               style={
