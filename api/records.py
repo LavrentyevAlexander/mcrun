@@ -1,6 +1,7 @@
 import json
 import os
 from http.server import BaseHTTPRequestHandler
+from urllib.parse import parse_qs, urlparse
 
 import garminconnect
 
@@ -69,8 +70,19 @@ def closest_label(distance_m):
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
+            query = parse_qs(urlparse(self.path).query)
+            debug = query.get("debug", ["0"])[0] == "1"
+
             client = get_garmin_client()
             prs = client.get_personal_record()
+
+            if debug:
+                body = json.dumps(prs[:5])  # return first 5 raw objects
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(body.encode())
+                return
 
             results = []
             for pr in prs:
