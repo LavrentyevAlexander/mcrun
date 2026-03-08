@@ -34,7 +34,7 @@ def get_garmin_client():
 
 
 def format_seconds(total_sec):
-    total_sec = int(total_sec)
+    total_sec = round(total_sec)
     h = total_sec // 3600
     m = (total_sec % 3600) // 60
     s = total_sec % 60
