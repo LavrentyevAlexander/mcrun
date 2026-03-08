@@ -20,6 +20,15 @@ interface GearInfo {
   limit_km: number | null;
 }
 
+interface GarminRecord {
+  label: string;
+  distance_m: number;
+  time: string;
+  pace: string;
+  date: string;
+  activity_id: number;
+}
+
 interface StatsResponse {
   activities: Activity[];
   gear_summary: Record<string, GearInfo>;
@@ -28,21 +37,6 @@ interface StatsResponse {
 
 type Tab = "gear" | "runs" | "yearly" | "records";
 
-const RECORD_DISTANCES = [
-  { label: "400 m",          min: 0.37,  max: 0.43  },
-  { label: "1/2 mile",       min: 0.77,  max: 0.84  },
-  { label: "1 km",           min: 0.95,  max: 1.05  },
-  { label: "1 mile",         min: 1.55,  max: 1.67  },
-  { label: "2 miles",        min: 3.07,  max: 3.37  },
-  { label: "5 km",           min: 4.75,  max: 5.25  },
-  { label: "10 km",          min: 9.5,   max: 10.5  },
-  { label: "15 km",          min: 14.25, max: 15.74 },
-  { label: "10 miles",       min: 15.75, max: 16.5  },
-  { label: "20 km",          min: 19.0,  max: 20.49 },
-  { label: "Half marathon",  min: 20.5,  max: 21.8  },
-  { label: "30 km",          min: 28.5,  max: 31.5  },
-  { label: "Marathon",       min: 41.5,  max: 43.0  },
-];
 
 function formatDuration(totalSec: number): string {
   const h = Math.floor(totalSec / 3600);
@@ -64,6 +58,24 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState<Tab>("gear");
+  const [records, setRecords] = useState<GarminRecord[] | null>(null);
+  const [recordsLoading, setRecordsLoading] = useState(false);
+
+  async function fetchRecords() {
+    setRecordsLoading(true);
+    try {
+      const res = await fetch("/api/records");
+      const json = await res.json();
+      if (!res.ok || json.error) {
+        throw new Error(json.error || `HTTP ${res.status}`);
+      }
+      setRecords(json);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Unknown error");
+    } finally {
+      setRecordsLoading(false);
+    }
+  }
 
   async function fetchStats() {
     setLoading(true);
@@ -102,20 +114,6 @@ export default function App() {
   const sortedActivities = data
     ? [...data.activities].sort((a, b) => b.date.localeCompare(a.date))
     : [];
-
-  const records = RECORD_DISTANCES.map(({ label, min, max }) => {
-    const candidates = data
-      ? data.activities.filter((a) => a.km >= min && a.km <= max)
-      : [];
-    if (candidates.length === 0) return { label, best: null, count: 0 };
-    // Best = lowest pace in sec/km (fastest run)
-    const best = candidates.reduce((a, b) => {
-      const paceA = a.km > 0 ? a.elapsed_sec / a.km : Infinity;
-      const paceB = b.km > 0 ? b.elapsed_sec / b.km : Infinity;
-      return paceA <= paceB ? a : b;
-    });
-    return { label, best, count: candidates.length };
-  });
 
   return (
     <div className="container">
@@ -169,7 +167,10 @@ export default function App() {
             </button>
             <button
               className={`tab${activeTab === "records" ? " active" : ""}`}
-              onClick={() => setActiveTab("records")}
+              onClick={() => {
+                setActiveTab("records");
+                if (!records && !recordsLoading) fetchRecords();
+              }}
             >
               Records
             </button>
@@ -277,42 +278,29 @@ export default function App() {
 
             {activeTab === "records" && (
               <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Distance</th>
-                      <th>Candidates</th>
-                      <th>Time</th>
-                      <th>Actual km</th>
-                      <th>Pace / min/km</th>
-                      <th>Date</th>
-                      <th>Run</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {records.map(({ label, best, count }) => (
-                      <tr key={label}>
-                        <td>{label}</td>
-                        <td>{count}</td>
-                        <td>{best ? formatDuration(best.elapsed_sec) : "—"}</td>
-                        <td>{best ? best.km.toFixed(2) : "—"}</td>
-                        <td>{best?.avg_pace ?? "—"}</td>
-                        <td>{best?.date ?? "—"}</td>
-                        <td>
-                          {best ? (
-                            <a
-                              href={`https://www.strava.com/activities/${best.strava_id}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              {best.name}
-                            </a>
-                          ) : "—"}
-                        </td>
+                {recordsLoading && <p>Loading…</p>}
+                {!recordsLoading && records && (
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Distance</th>
+                        <th>Time</th>
+                        <th>Pace / min/km</th>
+                        <th>Date</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {records.map((r) => (
+                        <tr key={r.label}>
+                          <td data-label="Distance">{r.label}</td>
+                          <td data-label="Time">{r.time}</td>
+                          <td data-label="Pace / min/km">{r.pace}</td>
+                          <td data-label="Date">{r.date}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
               </div>
             )}
 
