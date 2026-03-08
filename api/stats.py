@@ -120,6 +120,8 @@ class handler(BaseHTTPRequestHandler):
 
                 avg_hr = act.get("average_heartrate")
                 elevation = act.get("total_elevation_gain")
+                suffer_score = act.get("suffer_score")
+                calories = act.get("calories")
 
                 rows.append(
                     {
@@ -131,6 +133,8 @@ class handler(BaseHTTPRequestHandler):
                         "avg_pace": avg_pace,
                         "avg_hr": round(avg_hr) if avg_hr is not None else None,
                         "elevation": round(elevation) if elevation is not None else None,
+                        "relative_effort": suffer_score,
+                        "calories": round(calories) if calories is not None else None,
                         "gear": gear_names.get(gear_id, gear_id),
                     }
                 )

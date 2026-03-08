@@ -10,6 +10,8 @@ interface Activity {
   avg_pace: string | null;
   avg_hr: number | null;
   elevation: number | null;
+  relative_effort: number | null;
+  calories: number | null;
   gear: string;
 }
 
@@ -193,11 +195,13 @@ export default function App() {
                       <tr>
                         <th>Date</th>
                         <th>Name</th>
-                        <th>Km</th>
-                        <th>Min</th>
-                        <th>Pace</th>
-                        <th>HR</th>
-                        <th>Elev</th>
+                        <th>Dist / km</th>
+                        <th>Time / min</th>
+                        <th>Pace / min/km</th>
+                        <th>HR / bpm</th>
+                        <th>Elev / m</th>
+                        <th>Effort</th>
+                        <th>Cal / kcal</th>
                         <th>Gear</th>
                       </tr>
                     </thead>
@@ -214,11 +218,13 @@ export default function App() {
                               {a.name}
                             </a>
                           </td>
-                          <td data-label="Km">{a.km.toFixed(2)}</td>
-                          <td data-label="Min">{a.min}</td>
-                          <td data-label="Pace">{a.avg_pace ?? "—"}</td>
-                          <td data-label="HR">{a.avg_hr ?? "—"}</td>
-                          <td data-label="Elev">{a.elevation != null ? `${a.elevation} m` : "—"}</td>
+                          <td data-label="Dist / km">{a.km.toFixed(2)}</td>
+                          <td data-label="Time / min">{a.min}</td>
+                          <td data-label="Pace / min/km">{a.avg_pace ?? "—"}</td>
+                          <td data-label="HR / bpm">{a.avg_hr ?? "—"}</td>
+                          <td data-label="Elev / m">{a.elevation ?? "—"}</td>
+                          <td data-label="Effort">{a.relative_effort ?? "—"}</td>
+                          <td data-label="Cal / kcal">{a.calories ?? "—"}</td>
                           <td data-label="Gear">{a.gear}</td>
                         </tr>
                       ))}
