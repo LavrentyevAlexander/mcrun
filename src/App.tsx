@@ -26,7 +26,21 @@ interface StatsResponse {
   error?: string;
 }
 
-type Tab = "gear" | "runs" | "yearly";
+type Tab = "gear" | "runs" | "yearly" | "records";
+
+const RECORD_DISTANCES = [
+  { label: "1 km",           min: 0.95,  max: 1.05  },
+  { label: "5 km",           min: 4.75,  max: 5.25  },
+  { label: "10 km",          min: 9.5,   max: 10.5  },
+  { label: "Half marathon",  min: 20.5,  max: 21.8  },
+  { label: "Marathon",       min: 41.5,  max: 43.0  },
+];
+
+function formatTime(totalMinutes: number): string {
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  return h > 0 ? `${h}:${String(m).padStart(2, "0")}` : `${m}:00`;
+}
 
 function defaultDate(): string {
   const now = new Date();
@@ -79,6 +93,20 @@ export default function App() {
     ? [...data.activities].sort((a, b) => b.date.localeCompare(a.date))
     : [];
 
+  const records = RECORD_DISTANCES.map(({ label, min, max }) => {
+    const candidates = data
+      ? data.activities.filter((a) => a.km >= min && a.km <= max)
+      : [];
+    if (candidates.length === 0) return { label, best: null };
+    // Best = lowest pace (fastest run)
+    const best = candidates.reduce((a, b) => {
+      const paceA = a.km > 0 ? a.min / a.km : Infinity;
+      const paceB = b.km > 0 ? b.min / b.km : Infinity;
+      return paceA <= paceB ? a : b;
+    });
+    return { label, best };
+  });
+
   return (
     <div className="container">
       <img src="/logo.png" alt="McRun" className="logo" />
@@ -128,6 +156,12 @@ export default function App() {
               onClick={() => setActiveTab("yearly")}
             >
               Yearly
+            </button>
+            <button
+              className={`tab${activeTab === "records" ? " active" : ""}`}
+              onClick={() => setActiveTab("records")}
+            >
+              Records
             </button>
           </div>
 
@@ -229,6 +263,43 @@ export default function App() {
                   </table>
                 </div>
               </>
+            )}
+
+            {activeTab === "records" && (
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Distance</th>
+                      <th>Time</th>
+                      <th>Pace / min/km</th>
+                      <th>Date</th>
+                      <th>Run</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {records.map(({ label, best }) => (
+                      <tr key={label}>
+                        <td>{label}</td>
+                        <td>{best ? formatTime(best.min) : "—"}</td>
+                        <td>{best?.avg_pace ?? "—"}</td>
+                        <td>{best?.date ?? "—"}</td>
+                        <td>
+                          {best ? (
+                            <a
+                              href={`https://www.strava.com/activities/${best.strava_id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              {best.name}
+                            </a>
+                          ) : "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
 
             {activeTab === "yearly" && (
