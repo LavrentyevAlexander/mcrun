@@ -10,10 +10,6 @@
   display: block;
 }
 
-h2 {
-  margin-bottom: 0.75rem;
-}
-
 .controls {
   display: flex;
   gap: 1rem;
@@ -134,18 +130,12 @@ td {
   padding: 0.6rem 1rem;
   text-align: left;
   border-bottom: 1px solid #eee;
+  white-space: nowrap;
 }
 
 th {
   background: #fafafa;
   font-weight: 600;
-}
-
-td:first-child,
-th:first-child,
-td:last-child,
-th:last-child {
-  white-space: nowrap;
 }
 
 tbody tr:hover {

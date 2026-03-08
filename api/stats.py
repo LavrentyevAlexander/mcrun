@@ -73,6 +73,7 @@ def get_gear_info(access_token, gear_id):
     return gear_id, 0
 
 
+
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
@@ -108,14 +109,31 @@ class handler(BaseHTTPRequestHandler):
                     continue
 
                 distance_km = act["distance"] / 1000
-                duration_min = act["moving_time"] // 60
+                elapsed_sec = act["moving_time"]
+
+                # Average pace in seconds per km
+                avg_pace = None
+                if distance_km > 0:
+                    pace_sec_per_km = act["moving_time"] / distance_km
+                    pace_min = int(pace_sec_per_km // 60)
+                    pace_sec = int(pace_sec_per_km % 60)
+                    avg_pace = f"{pace_min}:{pace_sec:02d}"
+
+                avg_hr = act.get("average_heartrate")
+                elevation = act.get("total_elevation_gain")
+                suffer_score = act.get("suffer_score")
 
                 rows.append(
                     {
                         "date": act["start_date_local"][:10],
                         "name": act["name"],
+                        "strava_id": act["id"],
                         "km": round(distance_km, 2),
-                        "min": duration_min,
+                        "elapsed_sec": elapsed_sec,
+                        "avg_pace": avg_pace,
+                        "avg_hr": round(avg_hr) if avg_hr is not None else None,
+                        "elevation": round(elevation) if elevation is not None else None,
+                        "relative_effort": suffer_score,
                         "gear": gear_names.get(gear_id, gear_id),
                     }
                 )

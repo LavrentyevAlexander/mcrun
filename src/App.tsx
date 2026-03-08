@@ -1,12 +1,16 @@
 import { useState } from "react";
 import "./App.css";
-import logo from "../icon.png";
 
 interface Activity {
   date: string;
   name: string;
+  strava_id: number;
   km: number;
-  min: number;
+  elapsed_sec: number;
+  avg_pace: string | null;
+  avg_hr: number | null;
+  elevation: number | null;
+  relative_effort: number | null;
   gear: string;
 }
 
@@ -16,13 +20,32 @@ interface GearInfo {
   limit_km: number | null;
 }
 
+interface GarminRecord {
+  label: string;
+  distance_m: number;
+  time: string;
+  pace: string;
+  date: string;
+  activity_id: number;
+  activity_name: string;
+}
+
 interface StatsResponse {
   activities: Activity[];
   gear_summary: Record<string, GearInfo>;
   error?: string;
 }
 
-type Tab = "gear" | "runs" | "yearly";
+type Tab = "gear" | "runs" | "yearly" | "records";
+
+
+function formatDuration(totalSec: number): string {
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  if (h > 0) return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
 
 function defaultDate(): string {
   const now = new Date();
@@ -36,6 +59,24 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState<Tab>("gear");
+  const [records, setRecords] = useState<GarminRecord[] | null>(null);
+  const [recordsLoading, setRecordsLoading] = useState(false);
+
+  async function fetchRecords() {
+    setRecordsLoading(true);
+    try {
+      const res = await fetch("/api/records");
+      const json = await res.json();
+      if (!res.ok || json.error) {
+        throw new Error(json.error || `HTTP ${res.status}`);
+      }
+      setRecords(json);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Unknown error");
+    } finally {
+      setRecordsLoading(false);
+    }
+  }
 
   async function fetchStats() {
     setLoading(true);
@@ -59,8 +100,8 @@ export default function App() {
   const totalKm = data
     ? data.activities.reduce((sum, a) => sum + a.km, 0)
     : 0;
-  const totalMin = data
-    ? data.activities.reduce((sum, a) => sum + a.min, 0)
+  const totalSec = data
+    ? data.activities.reduce((sum, a) => sum + a.elapsed_sec, 0)
     : 0;
 
   const yearlyKm: Record<string, number> = {};
@@ -77,7 +118,7 @@ export default function App() {
 
   return (
     <div className="container">
-      <img src={logo} alt="McRun" className="logo" />
+      <img src="/logo.png" alt="McRun" className="logo" />
 
       <div className="controls">
         <label>
@@ -125,6 +166,15 @@ export default function App() {
             >
               Yearly
             </button>
+            <button
+              className={`tab${activeTab === "records" ? " active" : ""}`}
+              onClick={() => {
+                setActiveTab("records");
+                if (!records && !recordsLoading) fetchRecords();
+              }}
+            >
+              Records
+            </button>
           </div>
 
           <div className="tab-content">
@@ -159,8 +209,8 @@ export default function App() {
                         return (
                           <tr key={name}>
                             <td data-label="">{name}</td>
-                            <td data-label="Period km">{info.km.toFixed(2)}</td>
-                            <td data-label="Total km">{info.total_km.toFixed(2)}</td>
+                            <td data-label="Period, km">{info.km.toFixed(2)}</td>
+                            <td data-label="Total, km">{info.total_km.toFixed(2)}</td>
                             <td
                               data-label="Wear"
                               style={
@@ -182,7 +232,7 @@ export default function App() {
             {activeTab === "runs" && (
               <>
                 <p className="runs-summary">
-                  {totalKm.toFixed(2)} km &mdash; {totalMin} min
+                  {totalKm.toFixed(2)} km &mdash; {formatDuration(totalSec)}
                 </p>
                 <div className="table-wrap">
                   <table>
@@ -190,8 +240,12 @@ export default function App() {
                       <tr>
                         <th>Date</th>
                         <th>Name</th>
-                        <th>Km</th>
-                        <th>Min</th>
+                        <th>Dist / km</th>
+                        <th>Time</th>
+                        <th>Pace / min/km</th>
+                        <th>HR / bpm</th>
+                        <th>Elev / m</th>
+                        <th>Effort</th>
                         <th>Gear</th>
                       </tr>
                     </thead>
@@ -199,9 +253,21 @@ export default function App() {
                       {sortedActivities.map((a, i) => (
                         <tr key={i}>
                           <td data-label="Date">{a.date}</td>
-                          <td data-label="Name">{a.name}</td>
-                          <td data-label="Km">{a.km.toFixed(2)}</td>
-                          <td data-label="Min">{a.min}</td>
+                          <td data-label="Name">
+                            <a
+                              href={`https://www.strava.com/activities/${a.strava_id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              {a.name}
+                            </a>
+                          </td>
+                          <td data-label="Dist / km">{a.km.toFixed(2)}</td>
+                          <td data-label="Time">{formatDuration(a.elapsed_sec)}</td>
+                          <td data-label="Pace / min/km">{a.avg_pace ?? "—"}</td>
+                          <td data-label="HR / bpm">{a.avg_hr ?? "—"}</td>
+                          <td data-label="Elev / m">{a.elevation ?? "—"}</td>
+                          <td data-label="Effort">{a.relative_effort ?? "—"}</td>
                           <td data-label="Gear">{a.gear}</td>
                         </tr>
                       ))}
@@ -209,6 +275,44 @@ export default function App() {
                   </table>
                 </div>
               </>
+            )}
+
+            {activeTab === "records" && (
+              <div className="table-wrap">
+                {recordsLoading && <p>Loading…</p>}
+                {!recordsLoading && records && (
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Distance</th>
+                        <th>Time</th>
+                        <th>Pace / min/km</th>
+                        <th>Date</th>
+                        <th>Activity</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {records.map((r) => (
+                        <tr key={r.label}>
+                          <td data-label="Distance">{r.label}</td>
+                          <td data-label="Time">{r.time}</td>
+                          <td data-label="Pace / min/km">{r.pace}</td>
+                          <td data-label="Date">{r.date}</td>
+                          <td data-label="Activity">
+                            <a
+                              href={`https://connect.garmin.com/modern/activity/${r.activity_id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              {r.activity_name || "Garmin"}
+                            </a>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
             )}
 
             {activeTab === "yearly" && (
