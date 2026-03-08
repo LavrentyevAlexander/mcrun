@@ -107,14 +107,14 @@ export default function App() {
     const candidates = data
       ? data.activities.filter((a) => a.km >= min && a.km <= max)
       : [];
-    if (candidates.length === 0) return { label, best: null };
+    if (candidates.length === 0) return { label, best: null, count: 0 };
     // Best = lowest pace in sec/km (fastest run)
     const best = candidates.reduce((a, b) => {
       const paceA = a.km > 0 ? a.elapsed_sec / a.km : Infinity;
       const paceB = b.km > 0 ? b.elapsed_sec / b.km : Infinity;
       return paceA <= paceB ? a : b;
     });
-    return { label, best };
+    return { label, best, count: candidates.length };
   });
 
   return (
@@ -281,17 +281,21 @@ export default function App() {
                   <thead>
                     <tr>
                       <th>Distance</th>
+                      <th>Candidates</th>
                       <th>Time</th>
+                      <th>Actual km</th>
                       <th>Pace / min/km</th>
                       <th>Date</th>
                       <th>Run</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {records.map(({ label, best }) => (
+                    {records.map(({ label, best, count }) => (
                       <tr key={label}>
                         <td>{label}</td>
+                        <td>{count}</td>
                         <td>{best ? formatDuration(best.elapsed_sec) : "—"}</td>
+                        <td>{best ? best.km.toFixed(2) : "—"}</td>
                         <td>{best?.avg_pace ?? "—"}</td>
                         <td>{best?.date ?? "—"}</td>
                         <td>
