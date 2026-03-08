@@ -6,6 +6,9 @@ interface Activity {
   name: string;
   km: number;
   min: number;
+  avg_pace: string | null;
+  avg_hr: number | null;
+  elevation: number | null;
   gear: string;
 }
 
@@ -191,6 +194,9 @@ export default function App() {
                         <th>Name</th>
                         <th>Km</th>
                         <th>Min</th>
+                        <th>Pace</th>
+                        <th>HR</th>
+                        <th>Elev</th>
                         <th>Gear</th>
                       </tr>
                     </thead>
@@ -201,6 +207,9 @@ export default function App() {
                           <td data-label="Name">{a.name}</td>
                           <td data-label="Km">{a.km.toFixed(2)}</td>
                           <td data-label="Min">{a.min}</td>
+                          <td data-label="Pace">{a.avg_pace ?? "—"}</td>
+                          <td data-label="HR">{a.avg_hr ?? "—"}</td>
+                          <td data-label="Elev">{a.elevation != null ? `${a.elevation} m` : "—"}</td>
                           <td data-label="Gear">{a.gear}</td>
                         </tr>
                       ))}
