@@ -11,7 +11,6 @@ interface Activity {
   avg_hr: number | null;
   elevation: number | null;
   relative_effort: number | null;
-  calories: number | null;
   gear: string;
 }
 
@@ -201,7 +200,6 @@ export default function App() {
                         <th>HR / bpm</th>
                         <th>Elev / m</th>
                         <th>Effort</th>
-                        <th>Cal / kcal</th>
                         <th>Gear</th>
                       </tr>
                     </thead>
@@ -224,7 +222,6 @@ export default function App() {
                           <td data-label="HR / bpm">{a.avg_hr ?? "—"}</td>
                           <td data-label="Elev / m">{a.elevation ?? "—"}</td>
                           <td data-label="Effort">{a.relative_effort ?? "—"}</td>
-                          <td data-label="Cal / kcal">{a.calories ?? "—"}</td>
                           <td data-label="Gear">{a.gear}</td>
                         </tr>
                       ))}

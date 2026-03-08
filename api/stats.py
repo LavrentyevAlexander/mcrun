@@ -73,17 +73,6 @@ def get_gear_info(access_token, gear_id):
     return gear_id, 0
 
 
-def get_activity_calories(access_token, activity_id):
-    """Returns calories from the detailed activity endpoint (not in summary list)."""
-    resp = requests.get(
-        f"https://www.strava.com/api/v3/activities/{activity_id}",
-        headers={"Authorization": f"Bearer {access_token}"},
-    )
-    if resp.status_code == 200:
-        cal = resp.json().get("calories")
-        return round(cal) if cal is not None else None
-    return None
-
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -133,7 +122,6 @@ class handler(BaseHTTPRequestHandler):
                 avg_hr = act.get("average_heartrate")
                 elevation = act.get("total_elevation_gain")
                 suffer_score = act.get("suffer_score")
-                calories = get_activity_calories(token, act["id"])
 
                 rows.append(
                     {
@@ -146,7 +134,6 @@ class handler(BaseHTTPRequestHandler):
                         "avg_hr": round(avg_hr) if avg_hr is not None else None,
                         "elevation": round(elevation) if elevation is not None else None,
                         "relative_effort": suffer_score,
-                        "calories": round(calories) if calories is not None else None,
                         "gear": gear_names.get(gear_id, gear_id),
                     }
                 )
