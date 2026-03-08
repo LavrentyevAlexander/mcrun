@@ -9,20 +9,14 @@ GARMIN_EMAIL = os.environ.get("GARMIN_EMAIL")
 GARMIN_PASSWORD = os.environ.get("GARMIN_PASSWORD")
 GARMIN_TOTP_SECRET = os.environ.get("GARMIN_TOTP_SECRET")
 
-DISTANCE_LABELS = {
-    400: "400 m",
-    804: "1/2 mile",
-    1000: "1 km",
-    1609: "1 mile",
-    3219: "2 miles",
-    5000: "5 km",
-    10000: "10 km",
-    15000: "15 km",
-    16093: "10 miles",
-    20000: "20 km",
-    21097: "Half marathon",
-    30000: "30 km",
-    42195: "Marathon",
+# typeId → (label, distance_m)
+TYPE_ID_MAP = {
+    1: ("1 km", 1000),
+    2: ("1 mile", 1609),
+    3: ("5 km", 5000),
+    4: ("10 km", 10000),
+    5: ("Half marathon", 21097),
+    6: ("Marathon", 42195),
 }
 
 
@@ -58,15 +52,6 @@ def format_pace(distance_m, total_sec):
     return f"{m}:{s:02d}"
 
 
-def closest_label(distance_m):
-    if not distance_m:
-        return None
-    best = min(DISTANCE_LABELS.keys(), key=lambda d: abs(d - distance_m))
-    if abs(best - distance_m) / best < 0.05:
-        return DISTANCE_LABELS[best], best
-    return None
-
-
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
@@ -77,7 +62,7 @@ class handler(BaseHTTPRequestHandler):
             prs = client.get_personal_record()
 
             if debug:
-                body = json.dumps(prs[:5])  # return first 5 raw objects
+                body = json.dumps(prs)
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json")
                 self.end_headers()
@@ -89,20 +74,19 @@ class handler(BaseHTTPRequestHandler):
                 if pr.get("activityType") != "running":
                     continue
 
-                distance_m = pr.get("value")
-                match = closest_label(distance_m)
-                if not match:
+                type_info = TYPE_ID_MAP.get(pr.get("typeId"))
+                if not type_info:
                     continue
-                label, canonical_m = match
 
-                duration_sec = pr.get("duration")
-                date_raw = pr.get("startTimeLocal") or pr.get("startTimeGMT") or ""
+                label, distance_m = type_info
+                duration_sec = pr.get("value")
+                date_raw = pr.get("actStartDateTimeInGMTFormatted") or ""
                 date = date_raw[:10] if date_raw else "—"
                 activity_id = pr.get("activityId") or 0
 
                 results.append({
                     "label": label,
-                    "distance_m": canonical_m,
+                    "distance_m": distance_m,
                     "time": format_seconds(duration_sec) if duration_sec else "—",
                     "pace": format_pace(distance_m, duration_sec),
                     "date": date,
