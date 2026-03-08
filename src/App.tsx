@@ -4,6 +4,7 @@ import "./App.css";
 interface Activity {
   date: string;
   name: string;
+  strava_id: number;
   km: number;
   min: number;
   avg_pace: string | null;
@@ -204,7 +205,15 @@ export default function App() {
                       {sortedActivities.map((a, i) => (
                         <tr key={i}>
                           <td data-label="Date">{a.date}</td>
-                          <td data-label="Name">{a.name}</td>
+                          <td data-label="Name">
+                            <a
+                              href={`https://www.strava.com/activities/${a.strava_id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              {a.name}
+                            </a>
+                          </td>
                           <td data-label="Km">{a.km.toFixed(2)}</td>
                           <td data-label="Min">{a.min}</td>
                           <td data-label="Pace">{a.avg_pace ?? "—"}</td>

@@ -125,6 +125,7 @@ class handler(BaseHTTPRequestHandler):
                     {
                         "date": act["start_date_local"][:10],
                         "name": act["name"],
+                        "strava_id": act["id"],
                         "km": round(distance_km, 2),
                         "min": duration_min,
                         "avg_pace": avg_pace,
