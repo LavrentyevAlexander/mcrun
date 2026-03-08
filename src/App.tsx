@@ -27,6 +27,7 @@ interface GarminRecord {
   pace: string;
   date: string;
   activity_id: number;
+  activity_name: string;
 }
 
 interface StatsResponse {
@@ -303,7 +304,7 @@ export default function App() {
                               target="_blank"
                               rel="noopener noreferrer"
                             >
-                              Garmin
+                              {r.activity_name || "Garmin"}
                             </a>
                           </td>
                         </tr>

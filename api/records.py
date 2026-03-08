@@ -91,6 +91,7 @@ class handler(BaseHTTPRequestHandler):
                     "pace": format_pace(distance_m, duration_sec),
                     "date": date,
                     "activity_id": activity_id,
+                    "activity_name": pr.get("activityName") or "",
                 })
 
             results.sort(key=lambda r: r["distance_m"])
