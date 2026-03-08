@@ -116,6 +116,36 @@ export default function App() {
     ? [...data.activities].sort((a, b) => b.date.localeCompare(a.date))
     : [];
 
+  // Rolling 28-day average effort (excluding the run itself)
+  const effortAvgMap = new Map<number, number | null>();
+  if (data) {
+    const withEffort = data.activities
+      .filter((a) => a.relative_effort !== null)
+      .map((a) => ({ date: a.date, effort: a.relative_effort as number, strava_id: a.strava_id }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    for (const act of withEffort) {
+      const d = new Date(act.date);
+      const cutoff = new Date(d);
+      cutoff.setDate(cutoff.getDate() - 28);
+      const window = withEffort.filter(
+        (x) => x.strava_id !== act.strava_id && x.date > cutoff.toISOString().slice(0, 10) && x.date < act.date
+      );
+      effortAvgMap.set(act.strava_id, window.length >= 2 ? window.reduce((s, x) => s + x.effort, 0) / window.length : null);
+    }
+  }
+
+  function effortColor(effort: number | null, avg: number | null): string | undefined {
+    if (effort === null || avg === null) return undefined;
+    const pct = (effort - avg) / avg * 100;
+    if (pct <= -30) return "#1565c0";       // blue — very easy
+    if (pct <= -15) return "#42a5f5";       // light blue — easy
+    if (pct < 15) return undefined;          // neutral
+    if (pct < 35) return "#f9a825";         // yellow — somewhat hard
+    if (pct < 55) return "#e65100";         // orange — hard
+    return "#c62828";                        // red — very hard
+  }
+
   return (
     <div className="container">
       <img src="/logo.png" alt="McRun" className="logo" />
@@ -267,7 +297,15 @@ export default function App() {
                           <td data-label="Pace / min/km">{a.avg_pace ?? "—"}</td>
                           <td data-label="HR / bpm">{a.avg_hr ?? "—"}</td>
                           <td data-label="Elev / m">{a.elevation ?? "—"}</td>
-                          <td data-label="Effort">{a.relative_effort ?? "—"}</td>
+                          <td
+                            data-label="Effort"
+                            style={{
+                              color: effortColor(a.relative_effort, effortAvgMap.get(a.strava_id) ?? null),
+                              fontWeight: effortColor(a.relative_effort, effortAvgMap.get(a.strava_id) ?? null) ? 600 : undefined,
+                            }}
+                          >
+                            {a.relative_effort ?? "—"}
+                          </td>
                           <td data-label="Gear">{a.gear}</td>
                         </tr>
                       ))}
