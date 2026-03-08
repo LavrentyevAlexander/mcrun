@@ -6,7 +6,7 @@ interface Activity {
   name: string;
   strava_id: number;
   km: number;
-  min: number;
+  elapsed_sec: number;
   avg_pace: string | null;
   avg_hr: number | null;
   elevation: number | null;
@@ -29,17 +29,27 @@ interface StatsResponse {
 type Tab = "gear" | "runs" | "yearly" | "records";
 
 const RECORD_DISTANCES = [
+  { label: "400 m",          min: 0.37,  max: 0.43  },
+  { label: "1/2 mile",       min: 0.77,  max: 0.84  },
   { label: "1 km",           min: 0.95,  max: 1.05  },
+  { label: "1 mile",         min: 1.55,  max: 1.67  },
+  { label: "2 miles",        min: 3.07,  max: 3.37  },
   { label: "5 km",           min: 4.75,  max: 5.25  },
   { label: "10 km",          min: 9.5,   max: 10.5  },
+  { label: "15 km",          min: 14.25, max: 15.74 },
+  { label: "10 miles",       min: 15.75, max: 16.5  },
+  { label: "20 km",          min: 19.0,  max: 20.49 },
   { label: "Half marathon",  min: 20.5,  max: 21.8  },
+  { label: "30 km",          min: 28.5,  max: 31.5  },
   { label: "Marathon",       min: 41.5,  max: 43.0  },
 ];
 
-function formatTime(totalMinutes: number): string {
-  const h = Math.floor(totalMinutes / 60);
-  const m = totalMinutes % 60;
-  return h > 0 ? `${h}:${String(m).padStart(2, "0")}` : `${m}:00`;
+function formatDuration(totalSec: number): string {
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  if (h > 0) return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  return `${m}:${String(s).padStart(2, "0")}`;
 }
 
 function defaultDate(): string {
@@ -77,8 +87,8 @@ export default function App() {
   const totalKm = data
     ? data.activities.reduce((sum, a) => sum + a.km, 0)
     : 0;
-  const totalMin = data
-    ? data.activities.reduce((sum, a) => sum + a.min, 0)
+  const totalSec = data
+    ? data.activities.reduce((sum, a) => sum + a.elapsed_sec, 0)
     : 0;
 
   const yearlyKm: Record<string, number> = {};
@@ -98,10 +108,10 @@ export default function App() {
       ? data.activities.filter((a) => a.km >= min && a.km <= max)
       : [];
     if (candidates.length === 0) return { label, best: null };
-    // Best = lowest pace (fastest run)
+    // Best = lowest pace in sec/km (fastest run)
     const best = candidates.reduce((a, b) => {
-      const paceA = a.km > 0 ? a.min / a.km : Infinity;
-      const paceB = b.km > 0 ? b.min / b.km : Infinity;
+      const paceA = a.km > 0 ? a.elapsed_sec / a.km : Infinity;
+      const paceB = b.km > 0 ? b.elapsed_sec / b.km : Infinity;
       return paceA <= paceB ? a : b;
     });
     return { label, best };
@@ -220,7 +230,7 @@ export default function App() {
             {activeTab === "runs" && (
               <>
                 <p className="runs-summary">
-                  {totalKm.toFixed(2)} km &mdash; {totalMin} min
+                  {totalKm.toFixed(2)} km &mdash; {formatDuration(totalSec)}
                 </p>
                 <div className="table-wrap">
                   <table>
@@ -229,7 +239,7 @@ export default function App() {
                         <th>Date</th>
                         <th>Name</th>
                         <th>Dist / km</th>
-                        <th>Time / min</th>
+                        <th>Time</th>
                         <th>Pace / min/km</th>
                         <th>HR / bpm</th>
                         <th>Elev / m</th>
@@ -251,7 +261,7 @@ export default function App() {
                             </a>
                           </td>
                           <td data-label="Dist / km">{a.km.toFixed(2)}</td>
-                          <td data-label="Time / min">{a.min}</td>
+                          <td data-label="Time">{formatDuration(a.elapsed_sec)}</td>
                           <td data-label="Pace / min/km">{a.avg_pace ?? "—"}</td>
                           <td data-label="HR / bpm">{a.avg_hr ?? "—"}</td>
                           <td data-label="Elev / m">{a.elevation ?? "—"}</td>
@@ -281,7 +291,7 @@ export default function App() {
                     {records.map(({ label, best }) => (
                       <tr key={label}>
                         <td>{label}</td>
-                        <td>{best ? formatTime(best.min) : "—"}</td>
+                        <td>{best ? formatDuration(best.elapsed_sec) : "—"}</td>
                         <td>{best?.avg_pace ?? "—"}</td>
                         <td>{best?.date ?? "—"}</td>
                         <td>

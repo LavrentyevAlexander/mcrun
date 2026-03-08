@@ -109,7 +109,7 @@ class handler(BaseHTTPRequestHandler):
                     continue
 
                 distance_km = act["distance"] / 1000
-                duration_min = act["moving_time"] // 60
+                elapsed_sec = act["moving_time"]
 
                 # Average pace in seconds per km
                 avg_pace = None
@@ -129,7 +129,7 @@ class handler(BaseHTTPRequestHandler):
                         "name": act["name"],
                         "strava_id": act["id"],
                         "km": round(distance_km, 2),
-                        "min": duration_min,
+                        "elapsed_sec": elapsed_sec,
                         "avg_pace": avg_pace,
                         "avg_hr": round(avg_hr) if avg_hr is not None else None,
                         "elevation": round(elevation) if elevation is not None else None,
