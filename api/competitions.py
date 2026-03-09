@@ -5,11 +5,13 @@ from http.server import BaseHTTPRequestHandler
 import psycopg2
 import psycopg2.extras
 
-POSTGRES_URL = os.environ.get("POSTGRES_URL")
+POSTGRES_URL = os.environ.get("POSTGRES_URL_NON_POOLING") or os.environ.get("POSTGRES_URL")
 
 
 def get_conn():
-    return psycopg2.connect(POSTGRES_URL, sslmode="require")
+    if not POSTGRES_URL:
+        raise RuntimeError("POSTGRES_URL is not set")
+    return psycopg2.connect(POSTGRES_URL)
 
 
 class handler(BaseHTTPRequestHandler):
