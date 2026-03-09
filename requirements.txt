@@ -1,3 +1,4 @@
 requests
 garminconnect
 pyotp
+psycopg2-binary

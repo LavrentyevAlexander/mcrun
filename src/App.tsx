@@ -36,7 +36,17 @@ interface StatsResponse {
   error?: string;
 }
 
-type Tab = "gear" | "runs" | "yearly" | "records";
+interface Competition {
+  id: number;
+  competition: string;
+  date: string;
+  distance: string;
+  time: string;
+  rank: string;
+  link: string | null;
+}
+
+type Tab = "gear" | "runs" | "yearly" | "records" | "competitions";
 
 
 function formatDuration(totalSec: number): string {
@@ -61,6 +71,46 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>("gear");
   const [records, setRecords] = useState<GarminRecord[] | null>(null);
   const [recordsLoading, setRecordsLoading] = useState(false);
+  const [competitions, setCompetitions] = useState<Competition[] | null>(null);
+  const [competitionsLoading, setCompetitionsLoading] = useState(false);
+  const [addForm, setAddForm] = useState({ competition: "", date: "", distance: "", time: "", rank: "", link: "" });
+  const [addLoading, setAddLoading] = useState(false);
+  const [addError, setAddError] = useState("");
+
+  async function fetchCompetitions() {
+    setCompetitionsLoading(true);
+    try {
+      const res = await fetch("/api/competitions");
+      const json = await res.json();
+      if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
+      setCompetitions(json);
+    } catch (e: unknown) {
+      setAddError(e instanceof Error ? e.message : "Unknown error");
+    } finally {
+      setCompetitionsLoading(false);
+    }
+  }
+
+  async function addCompetition(e: React.FormEvent) {
+    e.preventDefault();
+    setAddLoading(true);
+    setAddError("");
+    try {
+      const res = await fetch("/api/competitions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(addForm),
+      });
+      const json = await res.json();
+      if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
+      setCompetitions((prev) => [...(prev ?? []), json]);
+      setAddForm({ competition: "", date: "", distance: "", time: "", rank: "", link: "" });
+    } catch (e: unknown) {
+      setAddError(e instanceof Error ? e.message : "Unknown error");
+    } finally {
+      setAddLoading(false);
+    }
+  }
 
   async function fetchRecords() {
     setRecordsLoading(true);
@@ -204,6 +254,15 @@ export default function App() {
               }}
             >
               Records
+            </button>
+            <button
+              className={`tab${activeTab === "competitions" ? " active" : ""}`}
+              onClick={() => {
+                setActiveTab("competitions");
+                if (!competitions && !competitionsLoading) fetchCompetitions();
+              }}
+            >
+              Competitions
             </button>
           </div>
 
@@ -350,6 +409,59 @@ export default function App() {
                     </tbody>
                   </table>
                 )}
+              </div>
+            )}
+
+            {activeTab === "competitions" && (
+              <div>
+                {competitionsLoading && <p>Loading…</p>}
+                {!competitionsLoading && competitions && (
+                  <div className="table-wrap">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>#</th>
+                          <th>Competition</th>
+                          <th>Date</th>
+                          <th>Distance</th>
+                          <th>Time</th>
+                          <th>Rank</th>
+                          <th>Results</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {competitions.map((c, i) => (
+                          <tr key={c.id}>
+                            <td data-label="#">{i + 1}</td>
+                            <td data-label="Competition">{c.competition}</td>
+                            <td data-label="Date">{c.date}</td>
+                            <td data-label="Distance">{c.distance}</td>
+                            <td data-label="Time">{c.time}</td>
+                            <td data-label="Rank">{c.rank}</td>
+                            <td data-label="Results">
+                              {c.link ? (
+                                <a href={c.link} target="_blank" rel="noopener noreferrer">link</a>
+                              ) : "—"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+                <details style={{ marginTop: "1.5rem" }}>
+                  <summary style={{ cursor: "pointer", marginBottom: "0.75rem" }}>Add competition</summary>
+                  <form onSubmit={addCompetition} style={{ display: "flex", flexDirection: "column", gap: "0.5rem", maxWidth: 420 }}>
+                    <input placeholder="Competition name" required value={addForm.competition} onChange={(e) => setAddForm((f) => ({ ...f, competition: e.target.value }))} />
+                    <input type="date" required value={addForm.date} onChange={(e) => setAddForm((f) => ({ ...f, date: e.target.value }))} />
+                    <input placeholder="Distance (e.g. 10 km)" required value={addForm.distance} onChange={(e) => setAddForm((f) => ({ ...f, distance: e.target.value }))} />
+                    <input placeholder="Time (e.g. 0:58:34)" required value={addForm.time} onChange={(e) => setAddForm((f) => ({ ...f, time: e.target.value }))} />
+                    <input placeholder="Rank (e.g. 136 (191))" required value={addForm.rank} onChange={(e) => setAddForm((f) => ({ ...f, rank: e.target.value }))} />
+                    <input placeholder="Link (optional)" value={addForm.link} onChange={(e) => setAddForm((f) => ({ ...f, link: e.target.value }))} />
+                    {addError && <p className="error">{addError}</p>}
+                    <button type="submit" disabled={addLoading}>{addLoading ? "Saving…" : "Add"}</button>
+                  </form>
+                </details>
               </div>
             )}
 
