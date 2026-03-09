@@ -5,7 +5,7 @@ from http.server import BaseHTTPRequestHandler
 import psycopg2
 import psycopg2.extras
 
-POSTGRES_URL = os.environ.get("POSTGRES_URL_NON_POOLING") or os.environ.get("POSTGRES_URL")
+POSTGRES_URL = os.environ.get("mcrun_db_POSTGRES_URL_NON_POOLING") or os.environ.get("mcrun_db_POSTGRES_URL")
 
 
 def get_conn():
