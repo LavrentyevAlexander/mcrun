@@ -68,6 +68,21 @@ function formatDuration(totalSec: number): string {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
+function friendlyError(msg: string): string {
+  const m = msg.toLowerCase();
+  if (m.includes("token expired") || m.includes("exp") && m.includes("<"))
+    return "Session expired. Please sign in again.";
+  if (m.includes("unauthorized") || m.includes("forbidden"))
+    return "Access denied.";
+  if (m.includes("429") || m.includes("rate limit") || m.includes("too many requests"))
+    return "Strava rate limit reached. Please try again in 15 minutes.";
+  if (m.includes("postgres") || m.includes("database") || m.includes("socket"))
+    return "Database connection error. Please try again later.";
+  if (m.includes("failed to fetch") || m.includes("networkerror") || m.includes("load failed"))
+    return "Network error. Check your connection and try again.";
+  return msg;
+}
+
 function defaultDate(): string {
   const now = new Date();
   return `${now.getFullYear()}-01-01`;
@@ -120,7 +135,7 @@ export default function App() {
       if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
       setAllTimeData(json);
     } catch (e: unknown) {
-      setAllTimeError(e instanceof Error ? e.message : "Unknown error");
+      setAllTimeError(e instanceof Error ? friendlyError(e.message) : "Unknown error");
     } finally {
       setAllTimeLoading(false);
     }
@@ -137,7 +152,7 @@ export default function App() {
       if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
       setRunsData(json);
     } catch (e: unknown) {
-      setRunsError(e instanceof Error ? e.message : "Unknown error");
+      setRunsError(e instanceof Error ? friendlyError(e.message) : "Unknown error");
     } finally {
       setRunsLoading(false);
     }
@@ -151,7 +166,7 @@ export default function App() {
       if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
       setRecords(json);
     } catch (e: unknown) {
-      setAllTimeError(e instanceof Error ? e.message : "Unknown error");
+      setAllTimeError(e instanceof Error ? friendlyError(e.message) : "Unknown error");
     } finally {
       setRecordsLoading(false);
     }
@@ -181,12 +196,12 @@ export default function App() {
       const json = await res.json();
       if (res.status === 401 || res.status === 403) {
         handleLogout();
-        throw new Error("Session expired, please sign in again");
+        throw new Error("Session expired. Please sign in again.");
       }
       if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
       setCompetitions(json);
     } catch (e: unknown) {
-      setAddError(e instanceof Error ? e.message : "Unknown error");
+      setAddError(e instanceof Error ? friendlyError(e.message) : "Unknown error");
     } finally {
       setCompetitionsLoading(false);
     }
@@ -210,7 +225,7 @@ export default function App() {
       setCompetitions((prev) => [...(prev ?? []), json]);
       setAddForm({ competition: "", date: "", distance: "", time: "", rank: "", link: "" });
     } catch (e: unknown) {
-      setAddError(e instanceof Error ? e.message : "Unknown error");
+      setAddError(e instanceof Error ? friendlyError(e.message) : "Unknown error");
     } finally {
       setAddLoading(false);
     }
@@ -232,7 +247,7 @@ export default function App() {
       setCompetitions((prev) => prev?.map((c) => c.id === id ? json : c) ?? null);
       setEditingId(null);
     } catch (e: unknown) {
-      setAddError(e instanceof Error ? e.message : "Unknown error");
+      setAddError(e instanceof Error ? friendlyError(e.message) : "Unknown error");
     }
   }
 
