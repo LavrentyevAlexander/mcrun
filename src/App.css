@@ -8,8 +8,8 @@
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   display: flex;
   align-items: center;
+  justify-content: center;
   padding: 0 2rem;
-  gap: 2rem;
 }
 
 .navbar .logo {
@@ -17,6 +17,8 @@
   margin: 0.65rem 0;
   display: block;
   flex-shrink: 0;
+  position: absolute;
+  left: 2rem;
 }
 
 .nav-tabs {
@@ -130,7 +132,6 @@ button:hover:not(:disabled) {
 
 /* ── Tab content ── */
 .tab-content {
-  min-height: calc(100vh - 60px);
   animation: fadeIn 0.2s ease;
 }
 
@@ -201,8 +202,7 @@ tbody tr:hover {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: calc(100vh - 60px);
-  padding: 2rem 1rem;
+  padding: 4rem 1rem;
   gap: 1.5rem;
 }
 
@@ -246,7 +246,8 @@ tbody tr:hover {
   border: none;
   padding: 0.5rem;
   cursor: pointer;
-  margin-left: auto;
+  position: absolute;
+  right: 1rem;
 }
 
 .hamburger span {
