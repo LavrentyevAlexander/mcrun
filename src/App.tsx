@@ -332,8 +332,10 @@ export default function App() {
           {/* ── HOME ── */}
           {activeTab === "home" && (
             <div className="home">
-              <img src="/logo.png" alt="McRun" className="home-photo" />
-              <p className="home-text">Hi, I’m Sasha, and I like running.</p>
+              <div className="home-card">
+                <img src="/logo.png" alt="McRun" className="home-photo" />
+                <p className="home-text">Hi, I’m Sasha, and I like running.</p>
+              </div>
             </div>
           )}
 
