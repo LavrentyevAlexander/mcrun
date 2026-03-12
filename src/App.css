@@ -38,6 +38,13 @@
   transition: color 0.15s;
 }
 
+.nav-tab,
+.drawer-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
 .nav-tab:hover:not(:disabled) {
   background: transparent;
   color: #333;

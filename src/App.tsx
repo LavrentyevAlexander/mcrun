@@ -1,6 +1,17 @@
 import { useState, useEffect } from "react";
 import { GoogleLogin, googleLogout } from "@react-oauth/google";
+import { FaHouse, FaPersonRunning, FaCalendarDays, FaTrophy, FaBolt } from "react-icons/fa6";
+import { GiRunningShoe } from "react-icons/gi";
 import "./App.css";
+
+const TAB_META: Record<string, { label: string; icon: React.ReactNode }> = {
+  home:         { label: "Home",           icon: <FaHouse /> },
+  runs:         { label: "Run History",    icon: <FaPersonRunning /> },
+  yearly:       { label: "Yearly Mileage", icon: <FaCalendarDays /> },
+  gear:         { label: "Gear",           icon: <GiRunningShoe /> },
+  competitions: { label: "Competitions",   icon: <FaTrophy /> },
+  records:      { label: "Records",        icon: <FaBolt /> },
+};
 
 interface Activity {
   date: string;
@@ -283,12 +294,8 @@ export default function App() {
                 if (tab === "competitions" && googleCredential && !competitions && !competitionsLoading) fetchCompetitions();
               }}
             >
-              {tab === "home" && "Home"}
-              {tab === "runs" && "Runs"}
-              {tab === "yearly" && "Yearly"}
-              {tab === "gear" && "Gear"}
-              {tab === "competitions" && "Competitions"}
-              {tab === "records" && "Records"}
+              {TAB_META[tab].icon}
+              {TAB_META[tab].label}
             </button>
           ))}
         </div>
@@ -311,12 +318,8 @@ export default function App() {
                   if (tab === "competitions" && googleCredential && !competitions && !competitionsLoading) fetchCompetitions();
                 }}
               >
-                {tab === "home" && "Home"}
-                {tab === "runs" && "Runs"}
-                {tab === "yearly" && "Yearly"}
-                {tab === "gear" && "Gear"}
-                {tab === "competitions" && "Competitions"}
-                {tab === "records" && "Records"}
+                {TAB_META[tab].icon}
+                {TAB_META[tab].label}
               </button>
             ))}
           </div>
