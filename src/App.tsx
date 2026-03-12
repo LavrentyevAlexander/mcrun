@@ -47,7 +47,7 @@ interface Competition {
   link: string | null;
 }
 
-type Tab = "gear" | "runs" | "yearly" | "records" | "competitions";
+type Tab = "home" | "runs" | "yearly" | "gear" | "competitions" | "records";
 
 function formatDuration(totalSec: number): string {
   const h = Math.floor(totalSec / 3600);
@@ -63,7 +63,7 @@ function defaultDate(): string {
 }
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<Tab>("gear");
+  const [activeTab, setActiveTab] = useState<Tab>("home");
 
   // All-time data: Gear + Yearly
   const [allTimeData, setAllTimeData] = useState<StatsResponse | null>(null);
@@ -250,7 +250,7 @@ export default function App() {
       <nav className="navbar">
         <img src="/logo.png" alt="McRun" className="logo" />
         <div className="nav-tabs">
-          {(["gear", "runs", "yearly", "records", "competitions"] as Tab[]).map((tab) => (
+          {(["home", "runs", "yearly", "gear", "competitions", "records"] as Tab[]).map((tab) => (
             <button
               key={tab}
               className={`nav-tab${activeTab === tab ? " active" : ""}`}
@@ -260,11 +260,12 @@ export default function App() {
                 if (tab === "competitions" && googleCredential && !competitions && !competitionsLoading) fetchCompetitions();
               }}
             >
-              {tab === "gear" && "Gear"}
+              {tab === "home" && "Home"}
               {tab === "runs" && "Runs"}
               {tab === "yearly" && "Yearly"}
-              {tab === "records" && "Records"}
+              {tab === "gear" && "Gear"}
               {tab === "competitions" && "Competitions"}
+              {tab === "records" && "Records"}
             </button>
           ))}
         </div>
@@ -272,6 +273,14 @@ export default function App() {
 
       <div className="container">
         <div className="tab-content">
+
+          {/* ── HOME ── */}
+          {activeTab === "home" && (
+            <div className="home">
+              <img src="/me.jpg" alt="Саша" className="home-photo" />
+              <p className="home-text">Привет, я Саша, и я бегаю.</p>
+            </div>
+          )}
 
           {/* ── GEAR ── */}
           {activeTab === "gear" && (
