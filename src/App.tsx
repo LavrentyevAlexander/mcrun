@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { GoogleLogin, googleLogout } from "@react-oauth/google";
 import "./App.css";
 
 interface Activity {
@@ -71,17 +72,41 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>("gear");
   const [records, setRecords] = useState<GarminRecord[] | null>(null);
   const [recordsLoading, setRecordsLoading] = useState(false);
+  const [googleCredential, setGoogleCredential] = useState<string | null>(
+    () => localStorage.getItem("google_credential")
+  );
   const [competitions, setCompetitions] = useState<Competition[] | null>(null);
   const [competitionsLoading, setCompetitionsLoading] = useState(false);
   const [addForm, setAddForm] = useState({ competition: "", date: "", distance: "", time: "", rank: "", link: "" });
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError] = useState("");
 
-  async function fetchCompetitions() {
+  function handleGoogleSuccess(credentialResponse: { credential?: string }) {
+    const token = credentialResponse.credential ?? null;
+    setGoogleCredential(token);
+    if (token) localStorage.setItem("google_credential", token);
+    if (!competitions && !competitionsLoading) fetchCompetitions(token);
+  }
+
+  function handleLogout() {
+    googleLogout();
+    setGoogleCredential(null);
+    setCompetitions(null);
+    localStorage.removeItem("google_credential");
+  }
+
+  async function fetchCompetitions(token?: string | null) {
+    const t = token ?? googleCredential;
     setCompetitionsLoading(true);
     try {
-      const res = await fetch("/api/competitions");
+      const res = await fetch("/api/competitions", {
+        headers: { Authorization: `Bearer ${t}` },
+      });
       const json = await res.json();
+      if (res.status === 401 || res.status === 403) {
+        handleLogout();
+        throw new Error("Session expired, please sign in again");
+      }
       if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
       setCompetitions(json);
     } catch (e: unknown) {
@@ -98,7 +123,10 @@ export default function App() {
     try {
       const res = await fetch("/api/competitions", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${googleCredential}`,
+        },
         body: JSON.stringify(addForm),
       });
       const json = await res.json();
@@ -259,7 +287,7 @@ export default function App() {
               className={`tab${activeTab === "competitions" ? " active" : ""}`}
               onClick={() => {
                 setActiveTab("competitions");
-                if (!competitions && !competitionsLoading) fetchCompetitions();
+                if (googleCredential && !competitions && !competitionsLoading) fetchCompetitions();
               }}
             >
               Competitions
@@ -414,54 +442,69 @@ export default function App() {
 
             {activeTab === "competitions" && (
               <div>
-                {competitionsLoading && <p>Loading…</p>}
-                {!competitionsLoading && competitions && (
-                  <div className="table-wrap">
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>#</th>
-                          <th>Competition</th>
-                          <th>Date</th>
-                          <th>Distance</th>
-                          <th>Time</th>
-                          <th>Rank</th>
-                          <th>Results</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {competitions.map((c, i) => (
-                          <tr key={c.id}>
-                            <td data-label="#">{i + 1}</td>
-                            <td data-label="Competition">{c.competition}</td>
-                            <td data-label="Date">{c.date}</td>
-                            <td data-label="Distance">{c.distance}</td>
-                            <td data-label="Time">{c.time}</td>
-                            <td data-label="Rank">{c.rank}</td>
-                            <td data-label="Results">
-                              {c.link ? (
-                                <a href={c.link} target="_blank" rel="noopener noreferrer">link</a>
-                              ) : "—"}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                {!googleCredential ? (
+                  <div style={{ textAlign: "center", padding: "2rem" }}>
+                    <p style={{ marginBottom: "1rem" }}>Sign in to view competitions</p>
+                    <GoogleLogin
+                      onSuccess={handleGoogleSuccess}
+                      onError={() => setAddError("Google sign-in failed")}
+                    />
                   </div>
-                )}
-                <details style={{ marginTop: "1.5rem" }}>
-                  <summary style={{ cursor: "pointer", marginBottom: "0.75rem" }}>Add competition</summary>
-                  <form onSubmit={addCompetition} style={{ display: "flex", flexDirection: "column", gap: "0.5rem", maxWidth: 420 }}>
-                    <input placeholder="Competition name" required value={addForm.competition} onChange={(e) => setAddForm((f) => ({ ...f, competition: e.target.value }))} />
-                    <input type="date" required value={addForm.date} onChange={(e) => setAddForm((f) => ({ ...f, date: e.target.value }))} />
-                    <input placeholder="Distance (e.g. 10 km)" required value={addForm.distance} onChange={(e) => setAddForm((f) => ({ ...f, distance: e.target.value }))} />
-                    <input placeholder="Time (e.g. 0:58:34)" required value={addForm.time} onChange={(e) => setAddForm((f) => ({ ...f, time: e.target.value }))} />
-                    <input placeholder="Rank (e.g. 136 (191))" required value={addForm.rank} onChange={(e) => setAddForm((f) => ({ ...f, rank: e.target.value }))} />
-                    <input placeholder="Link (optional)" value={addForm.link} onChange={(e) => setAddForm((f) => ({ ...f, link: e.target.value }))} />
+                ) : (
+                  <>
+                    <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "0.75rem" }}>
+                      <button onClick={handleLogout} style={{ fontSize: "0.8rem" }}>Sign out</button>
+                    </div>
+                    {competitionsLoading && <p>Loading…</p>}
                     {addError && <p className="error">{addError}</p>}
-                    <button type="submit" disabled={addLoading}>{addLoading ? "Saving…" : "Add"}</button>
-                  </form>
-                </details>
+                    {!competitionsLoading && competitions && (
+                      <div className="table-wrap">
+                        <table>
+                          <thead>
+                            <tr>
+                              <th>#</th>
+                              <th>Competition</th>
+                              <th>Date</th>
+                              <th>Distance</th>
+                              <th>Time</th>
+                              <th>Rank</th>
+                              <th>Results</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {competitions.map((c, i) => (
+                              <tr key={c.id}>
+                                <td data-label="#">{i + 1}</td>
+                                <td data-label="Competition">{c.competition}</td>
+                                <td data-label="Date">{c.date}</td>
+                                <td data-label="Distance">{c.distance}</td>
+                                <td data-label="Time">{c.time ?? "—"}</td>
+                                <td data-label="Rank">{c.rank ?? "—"}</td>
+                                <td data-label="Results">
+                                  {c.link ? (
+                                    <a href={c.link} target="_blank" rel="noopener noreferrer">link</a>
+                                  ) : "—"}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                    <details style={{ marginTop: "1.5rem" }}>
+                      <summary style={{ cursor: "pointer", marginBottom: "0.75rem" }}>Add competition</summary>
+                      <form onSubmit={addCompetition} style={{ display: "flex", flexDirection: "column", gap: "0.5rem", maxWidth: 420 }}>
+                        <input placeholder="Competition name" required value={addForm.competition} onChange={(e) => setAddForm((f) => ({ ...f, competition: e.target.value }))} />
+                        <input type="date" required value={addForm.date} onChange={(e) => setAddForm((f) => ({ ...f, date: e.target.value }))} />
+                        <input placeholder="Distance (e.g. 10 km)" required value={addForm.distance} onChange={(e) => setAddForm((f) => ({ ...f, distance: e.target.value }))} />
+                        <input placeholder="Time (e.g. 0:58:34)" value={addForm.time} onChange={(e) => setAddForm((f) => ({ ...f, time: e.target.value }))} />
+                        <input placeholder="Rank (e.g. 136 (191))" value={addForm.rank} onChange={(e) => setAddForm((f) => ({ ...f, rank: e.target.value }))} />
+                        <input placeholder="Link (optional)" value={addForm.link} onChange={(e) => setAddForm((f) => ({ ...f, link: e.target.value }))} />
+                        <button type="submit" disabled={addLoading}>{addLoading ? "Saving…" : "Add"}</button>
+                      </form>
+                    </details>
+                  </>
+                )}
               </div>
             )}
 
