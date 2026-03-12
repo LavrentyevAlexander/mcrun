@@ -1,20 +1,71 @@
+/* ── Navbar ── */
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  padding: 0 2rem;
+  gap: 2rem;
+}
+
+.navbar .logo {
+  height: 40px;
+  margin: 0.65rem 0;
+  display: block;
+  flex-shrink: 0;
+}
+
+.nav-tabs {
+  display: flex;
+  gap: 0;
+  flex: 1;
+}
+
+.nav-tab {
+  background: transparent;
+  color: #666;
+  border: none;
+  border-bottom: 3px solid transparent;
+  border-radius: 0;
+  padding: 0.75rem 1.4rem;
+  margin-bottom: -1px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.nav-tab:hover:not(:disabled) {
+  background: transparent;
+  color: #333;
+}
+
+.nav-tab.active {
+  color: #fc4c02;
+  border-bottom-color: #fc4c02;
+  font-weight: 600;
+}
+
+/* ── Page container ── */
 .container {
   max-width: 1100px;
   margin: 2rem auto;
   padding: 0 1rem;
 }
 
-.logo {
-  height: 64px;
-  margin-bottom: 1.5rem;
-  display: block;
-}
-
+/* ── Controls (Runs tab) ── */
 .controls {
   display: flex;
   gap: 1rem;
   align-items: center;
   margin-bottom: 1.5rem;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .controls label {
@@ -45,6 +96,7 @@
   user-select: none;
 }
 
+/* ── Buttons ── */
 button {
   padding: 0.5rem 1.2rem;
   background: #fc4c02;
@@ -64,43 +116,13 @@ button:hover:not(:disabled) {
   background: #e04400;
 }
 
+/* ── Error ── */
 .error {
   color: #d32f2f;
   margin-bottom: 1rem;
 }
 
-/* Tabs */
-.tabs {
-  display: flex;
-  border-bottom: 2px solid #eee;
-  margin-bottom: 1.5rem;
-  gap: 0;
-}
-
-.tab {
-  background: transparent;
-  color: #666;
-  border: none;
-  border-bottom: 3px solid transparent;
-  border-radius: 0;
-  padding: 0.6rem 1.5rem;
-  margin-bottom: -2px;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: color 0.15s;
-}
-
-.tab:hover:not(:disabled) {
-  background: transparent;
-  color: #333;
-}
-
-.tab.active {
-  color: #fc4c02;
-  border-bottom-color: #fc4c02;
-  font-weight: 600;
-}
-
+/* ── Tab content ── */
 .tab-content {
   min-height: 200px;
 }
@@ -111,7 +133,7 @@ button:hover:not(:disabled) {
   font-size: 0.95rem;
 }
 
-/* Tables */
+/* ── Tables ── */
 .table-wrap {
   overflow-x: auto;
 }
@@ -119,10 +141,10 @@ button:hover:not(:disabled) {
 table {
   width: 100%;
   border-collapse: collapse;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.95);
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
 }
 
 th,
@@ -134,7 +156,7 @@ td {
 }
 
 th {
-  background: #fafafa;
+  background: rgba(250, 250, 250, 0.98);
   font-weight: 600;
 }
 
@@ -142,8 +164,40 @@ tbody tr:hover {
   background: #fff8f5;
 }
 
-/* Mobile */
+/* ── Loading placeholder ── */
+.loading-box {
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 8px;
+  padding: 2rem;
+  text-align: center;
+  color: #666;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* ── Mobile ── */
 @media (max-width: 600px) {
+  .navbar {
+    padding: 0 1rem;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .navbar .logo {
+    height: 32px;
+  }
+
+  .nav-tabs {
+    width: 100%;
+    overflow-x: auto;
+    border-top: 1px solid #eee;
+  }
+
+  .nav-tab {
+    padding: 0.6rem 1rem;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+  }
+
   .controls {
     flex-wrap: wrap;
   }
@@ -154,11 +208,6 @@ tbody tr:hover {
 
   .controls input[type="date"] {
     flex: 1;
-  }
-
-  .tab {
-    padding: 0.6rem 1rem;
-    font-size: 0.9rem;
   }
 
   /* Runs table → cards on mobile */
@@ -200,7 +249,6 @@ tbody tr:hover {
     text-align: left;
   }
 
-  /* Shoe name row acts as card header */
   .table-wrap td[data-label=""] {
     font-weight: 600;
     font-size: 1rem;
