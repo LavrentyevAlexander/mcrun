@@ -91,6 +91,8 @@ export default function App() {
   const [addForm, setAddForm] = useState({ competition: "", date: "", distance: "", time: "", rank: "", link: "" });
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError] = useState("");
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editForm, setEditForm] = useState({ competition: "", date: "", distance: "", time: "", rank: "", link: "" });
 
   // Auto-fetch all-time data on mount
   useEffect(() => {
@@ -200,6 +202,26 @@ export default function App() {
       setAddError(e instanceof Error ? e.message : "Unknown error");
     } finally {
       setAddLoading(false);
+    }
+  }
+
+  async function saveEdit(id: number) {
+    setAddError("");
+    try {
+      const res = await fetch("/api/competitions", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${googleCredential}`,
+        },
+        body: JSON.stringify({ id, ...editForm }),
+      });
+      const json = await res.json();
+      if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
+      setCompetitions((prev) => prev?.map((c) => c.id === id ? json : c) ?? null);
+      setEditingId(null);
+    } catch (e: unknown) {
+      setAddError(e instanceof Error ? e.message : "Unknown error");
     }
   }
 
@@ -530,10 +552,25 @@ export default function App() {
                             <th>Time</th>
                             <th>Rank</th>
                             <th>Results</th>
+                            <th></th>
                           </tr>
                         </thead>
                         <tbody>
-                          {competitions.map((c, i) => (
+                          {competitions.map((c, i) => editingId === c.id ? (
+                            <tr key={c.id}>
+                              <td>{i + 1}</td>
+                              <td><input value={editForm.competition} onChange={(e) => setEditForm((f) => ({ ...f, competition: e.target.value }))} style={{ width: "100%" }} /></td>
+                              <td><input type="date" value={editForm.date} onChange={(e) => setEditForm((f) => ({ ...f, date: e.target.value }))} /></td>
+                              <td><input value={editForm.distance} onChange={(e) => setEditForm((f) => ({ ...f, distance: e.target.value }))} style={{ width: 80 }} /></td>
+                              <td><input value={editForm.time} onChange={(e) => setEditForm((f) => ({ ...f, time: e.target.value }))} style={{ width: 80 }} /></td>
+                              <td><input value={editForm.rank} onChange={(e) => setEditForm((f) => ({ ...f, rank: e.target.value }))} style={{ width: 90 }} /></td>
+                              <td><input value={editForm.link} onChange={(e) => setEditForm((f) => ({ ...f, link: e.target.value }))} style={{ width: 120 }} /></td>
+                              <td style={{ display: "flex", gap: "0.4rem" }}>
+                                <button onClick={() => saveEdit(c.id)} style={{ padding: "0.25rem 0.6rem", fontSize: "0.8rem" }}>Save</button>
+                                <button onClick={() => setEditingId(null)} style={{ padding: "0.25rem 0.6rem", fontSize: "0.8rem", background: "#888" }}>✕</button>
+                              </td>
+                            </tr>
+                          ) : (
                             <tr key={c.id}>
                               <td data-label="#">{i + 1}</td>
                               <td data-label="Competition">{c.competition}</td>
@@ -545,6 +582,12 @@ export default function App() {
                                 {c.link ? (
                                   <a href={c.link} target="_blank" rel="noopener noreferrer">link</a>
                                 ) : "—"}
+                              </td>
+                              <td>
+                                <button
+                                  onClick={() => { setEditingId(c.id); setEditForm({ competition: c.competition, date: c.date, distance: c.distance, time: c.time ?? "", rank: c.rank ?? "", link: c.link ?? "" }); }}
+                                  style={{ padding: "0.25rem 0.6rem", fontSize: "0.8rem", background: "transparent", color: "#888", border: "1px solid #ddd" }}
+                                >✎</button>
                               </td>
                             </tr>
                           ))}

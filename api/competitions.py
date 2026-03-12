@@ -88,3 +88,40 @@ class handler(BaseHTTPRequestHandler):
             send_json(self, 400, {"error": f"Missing field: {e}"})
         except Exception as e:
             send_json(self, 500, {"error": str(e)})
+
+    def do_PATCH(self):
+        try:
+            verify_token(self.headers)
+
+            length = int(self.headers.get("Content-Length", 0))
+            payload = json.loads(self.rfile.read(length))
+
+            record_id = payload["id"]
+            competition = payload["competition"]
+            date = payload["date"]
+            distance = payload["distance"]
+            time = payload.get("time") or None
+            rank = payload.get("rank") or None
+            link = payload.get("link") or None
+
+            with get_conn() as conn:
+                with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+                    cur.execute(
+                        "UPDATE competitions SET competition=%s, date=%s, distance=%s, time=%s, rank=%s, link=%s "
+                        "WHERE id=%s RETURNING id, competition, date::text, distance, time, rank, link",
+                        (competition, date, distance, time, rank, link, record_id),
+                    )
+                    row = cur.fetchone()
+                    if not row:
+                        raise KeyError("Record not found")
+                    row = dict(row)
+                conn.commit()
+
+            send_json(self, 200, row)
+
+        except PermissionError as e:
+            send_json(self, 401, {"error": str(e)})
+        except KeyError as e:
+            send_json(self, 404, {"error": str(e)})
+        except Exception as e:
+            send_json(self, 500, {"error": str(e)})
