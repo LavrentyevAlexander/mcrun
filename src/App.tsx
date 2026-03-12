@@ -64,6 +64,7 @@ function defaultDate(): string {
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>("home");
+  const [menuOpen, setMenuOpen] = useState(false);
 
   // All-time data: Gear + Yearly
   const [allTimeData, setAllTimeData] = useState<StatsResponse | null>(null);
@@ -269,7 +270,36 @@ export default function App() {
             </button>
           ))}
         </div>
+        <button className="hamburger" onClick={() => setMenuOpen(true)} aria-label="Open menu">
+          <span /><span /><span />
+        </button>
       </nav>
+
+      {menuOpen && (
+        <div className="drawer-overlay" onClick={() => setMenuOpen(false)}>
+          <div className="drawer" onClick={(e) => e.stopPropagation()}>
+            {(["home", "runs", "yearly", "gear", "competitions", "records"] as Tab[]).map((tab) => (
+              <button
+                key={tab}
+                className={`drawer-item${activeTab === tab ? " active" : ""}`}
+                onClick={() => {
+                  setActiveTab(tab);
+                  setMenuOpen(false);
+                  if (tab === "records" && !records && !recordsLoading) fetchRecords();
+                  if (tab === "competitions" && googleCredential && !competitions && !competitionsLoading) fetchCompetitions();
+                }}
+              >
+                {tab === "home" && "Home"}
+                {tab === "runs" && "Runs"}
+                {tab === "yearly" && "Yearly"}
+                {tab === "gear" && "Gear"}
+                {tab === "competitions" && "Competitions"}
+                {tab === "records" && "Records"}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="container">
         <div className="tab-content">
