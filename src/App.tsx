@@ -327,7 +327,7 @@ export default function App() {
       )}
 
       <div className="container">
-        <div className="tab-content">
+        <div className="tab-content" key={activeTab}>
 
           {/* ── HOME ── */}
           {activeTab === "home" && (

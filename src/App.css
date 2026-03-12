@@ -53,7 +53,6 @@
 .nav-tab.active {
   color: #fc4c02;
   border-bottom-color: #fc4c02;
-  font-weight: 600;
 }
 
 /* ── Page container ── */
@@ -131,7 +130,31 @@ button:hover:not(:disabled) {
 
 /* ── Tab content ── */
 .tab-content {
-  min-height: 200px;
+  min-height: calc(100vh - 60px);
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+
+@keyframes fadeInOverlay {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.drawer-overlay {
+  animation: fadeInOverlay 0.2s ease;
+}
+
+.drawer {
+  animation: slideInRight 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .runs-summary {
@@ -280,7 +303,6 @@ tbody tr:hover {
 .drawer-item.active {
   color: #fc4c02;
   border-left-color: #fc4c02;
-  font-weight: 600;
   background: rgba(252, 76, 2, 0.05);
 }
 
