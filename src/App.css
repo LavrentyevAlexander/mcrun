@@ -3,28 +3,31 @@
   position: sticky;
   top: 0;
   z-index: 100;
+  height: 56px;
   background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 2rem;
 }
 
 .navbar .logo {
-  height: 40px;
-  margin: 0.65rem 0;
+  height: 36px;
   display: block;
-  flex-shrink: 0;
   position: absolute;
-  left: 2rem;
+  left: 1.5rem;
 }
 
 .nav-tabs {
   display: flex;
-  gap: 0;
-  flex: 1;
+}
+
+.nav-tab,
+.drawer-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 .nav-tab {
@@ -33,18 +36,12 @@
   border: none;
   border-bottom: 3px solid transparent;
   border-radius: 0;
-  padding: 0.75rem 1.4rem;
+  padding: 0 1.2rem;
+  height: 56px;
   margin-bottom: -1px;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   cursor: pointer;
   transition: color 0.15s;
-}
-
-.nav-tab,
-.drawer-item {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
 }
 
 .nav-tab:hover:not(:disabled) {
@@ -55,6 +52,34 @@
 .nav-tab.active {
   color: #fc4c02;
   border-bottom-color: #fc4c02;
+}
+
+/* ── Hamburger ── */
+.hamburger {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  border: none;
+  width: 44px;
+  height: 44px;
+  cursor: pointer;
+  position: absolute;
+  right: 0.75rem;
+}
+
+.hamburger span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: #888;
+  border-radius: 2px;
+}
+
+.hamburger:hover:not(:disabled) {
+  background: transparent;
 }
 
 /* ── Page container ── */
@@ -130,11 +155,7 @@ button:hover:not(:disabled) {
   margin-bottom: 1rem;
 }
 
-/* ── Tab content ── */
-.tab-content {
-  animation: fadeIn 0.2s ease;
-}
-
+/* ── Animations ── */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -150,12 +171,9 @@ button:hover:not(:disabled) {
   to   { opacity: 1; }
 }
 
-.drawer-overlay {
-  animation: fadeInOverlay 0.2s ease;
-}
-
-.drawer {
-  animation: slideInRight 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+/* ── Tab content ── */
+.tab-content {
+  animation: fadeIn 0.2s ease;
 }
 
 .runs-summary {
@@ -202,7 +220,8 @@ tbody tr:hover {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 4rem 1rem;
+  min-height: calc(100vh - 56px);
+  padding: 2rem 1rem;
   gap: 1.5rem;
 }
 
@@ -236,38 +255,13 @@ tbody tr:hover {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
-/* ── Hamburger ── */
-.hamburger {
-  display: none;
-  flex-direction: column;
-  justify-content: center;
-  gap: 5px;
-  background: transparent;
-  border: none;
-  padding: 0.5rem;
-  cursor: pointer;
-  position: absolute;
-  right: 1rem;
-}
-
-.hamburger span {
-  display: block;
-  width: 22px;
-  height: 2px;
-  background: #888;
-  border-radius: 2px;
-}
-
-.hamburger:hover:not(:disabled) {
-  background: transparent;
-}
-
 /* ── Drawer ── */
 .drawer-overlay {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.35);
   z-index: 200;
+  animation: fadeInOverlay 0.2s ease;
 }
 
 .drawer {
@@ -282,6 +276,7 @@ tbody tr:hover {
   flex-direction: column;
   padding: 1.5rem 0;
   box-shadow: -2px 0 12px rgba(0, 0, 0, 0.15);
+  animation: slideInRight 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .drawer-item {
@@ -309,20 +304,16 @@ tbody tr:hover {
 
 /* ── Mobile ── */
 @media (max-width: 600px) {
-  .navbar {
-    padding: 0 1rem;
-  }
-
-  .navbar .logo {
-    height: 32px;
-  }
-
   .nav-tabs {
     display: none;
   }
 
   .hamburger {
     display: flex;
+  }
+
+  .container {
+    margin: 1rem auto;
   }
 
   .controls {
