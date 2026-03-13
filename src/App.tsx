@@ -349,7 +349,7 @@ export default function App() {
             <div className="home">
               <div className="home-card">
                 <img src="/logo.png" alt="McRun" className="home-photo" />
-                <p className="home-text">Hi, I’m Sasha, and I like running.</p>
+                <p className="home-text">“Pain is inevitable. Suffering is optional.” Haruki Murakami</p>
               </div>
             </div>
           )}
