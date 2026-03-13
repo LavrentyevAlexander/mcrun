@@ -92,8 +92,8 @@ function YearlyChart({ data }: { data: Record<string, number> }) {
   const entries = Object.entries(data).sort(([a], [b]) => a.localeCompare(b));
   if (entries.length === 0) return null;
 
-  const W = 600, H = 280;
-  const PAD = { top: 36, right: 40, bottom: 36, left: 56 };
+  const W = 620, H = 320;
+  const PAD = { top: 28, right: 40, bottom: 64, left: 72 };
   const plotW = W - PAD.left - PAD.right;
   const plotH = H - PAD.top - PAD.bottom;
 
@@ -103,6 +103,7 @@ function YearlyChart({ data }: { data: Record<string, number> }) {
   const toX = (i: number) => PAD.left + (entries.length > 1 ? (i / (entries.length - 1)) * plotW : plotW / 2);
   const toY = (km: number) => PAD.top + plotH - (km / yMax) * plotH;
 
+  const axisBottom = PAD.top + plotH;
   const points = entries.map(([year, km], i) => ({ year, km, x: toX(i), y: toY(km) }));
   const polyline = points.map(p => `${p.x},${p.y}`).join(" ");
 
@@ -114,22 +115,79 @@ function YearlyChart({ data }: { data: Record<string, number> }) {
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="yearly-chart">
+      <defs>
+        {/* Arrowhead pointing right (X axis) */}
+        <marker id="arr-x" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#ccc" />
+        </marker>
+        {/* Arrowhead pointing up (Y axis) */}
+        <marker id="arr-y" markerWidth="8" markerHeight="8" refX="3" refY="1" orient="auto">
+          <path d="M0,6 L3,0 L6,6 z" fill="#ccc" />
+        </marker>
+      </defs>
+
+      {/* Grid lines + Y tick labels */}
       {gridLines.map(({ km, y }) => (
         <g key={km}>
-          <line x1={PAD.left} y1={y} x2={W - PAD.right} y2={y} stroke="#ebebeb" strokeWidth="1" />
-          <text x={PAD.left - 8} y={y} textAnchor="end" dominantBaseline="middle" fontSize="11" fill="#bbb">
+          <line x1={PAD.left} y1={y} x2={W - PAD.right} y2={y}
+            stroke={km === 0 ? "transparent" : "#e8e8e8"} strokeWidth="1" strokeDasharray={km === 0 ? undefined : "4 3"} />
+          <text x={PAD.left - 10} y={y} textAnchor="end" dominantBaseline="middle" fontSize="11" fill="#aaa">
             {km}
           </text>
         </g>
       ))}
-      <polyline points={polyline} fill="none" stroke="#fc4c02" strokeWidth="2.5" strokeLinejoin="round" />
+
+      {/* Y axis */}
+      <line
+        x1={PAD.left} y1={axisBottom}
+        x2={PAD.left} y2={PAD.top - 8}
+        stroke="#ccc" strokeWidth="1.5"
+        markerEnd="url(#arr-y)"
+      />
+      {/* X axis */}
+      <line
+        x1={PAD.left} y1={axisBottom}
+        x2={W - PAD.right + 8} y2={axisBottom}
+        stroke="#ccc" strokeWidth="1.5"
+        markerEnd="url(#arr-x)"
+      />
+
+      {/* Y axis label */}
+      <text
+        transform={`rotate(-90)`}
+        x={-(PAD.top + plotH / 2)}
+        y={18}
+        textAnchor="middle"
+        fontSize="12"
+        fill="#aaa"
+      >
+        km
+      </text>
+
+      {/* X axis label */}
+      <text
+        x={PAD.left + plotW / 2}
+        y={H - 8}
+        textAnchor="middle"
+        fontSize="12"
+        fill="#aaa"
+      >
+        Year
+      </text>
+
+      {/* Data line */}
+      <polyline points={polyline} fill="none" stroke="#fc4c02" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+
+      {/* Data points + labels */}
       {points.map(({ year, km, x, y }) => (
         <g key={year}>
           <circle cx={x} cy={y} r="5" fill="#fc4c02" />
           <text x={x} y={y - 13} textAnchor="middle" fontSize="12" fontWeight="600" fill="#555">
             {Math.round(km)}
           </text>
-          <text x={x} y={H - PAD.bottom + 16} textAnchor="middle" fontSize="11" fill="#aaa">
+          {/* X tick */}
+          <line x1={x} y1={axisBottom} x2={x} y2={axisBottom + 4} stroke="#ccc" strokeWidth="1" />
+          <text x={x} y={axisBottom + 18} textAnchor="middle" fontSize="11" fill="#aaa">
             {year}
           </text>
         </g>
@@ -455,7 +513,7 @@ export default function App() {
                   {syncError && <p className="profile-error">{syncError}</p>}
                   {(["strava", "garmin"] as const).map((src) => (
                     <button key={src} className="profile-action" disabled={syncLoading[src]}
-                      onClick={() => { triggerSync(src); setProfileOpen(false); }}>
+                      onClick={() => triggerSync(src)}>
                       <FaArrowsRotate className={syncLoading[src] ? "spin" : ""} />
                       <span>{syncLabel(src)}</span>
                     </button>
@@ -507,7 +565,7 @@ export default function App() {
                 {syncError && <p className="profile-error" style={{ padding: "0 1.5rem" }}>{syncError}</p>}
                 {(["strava", "garmin"] as const).map((src) => (
                   <button key={src} className="drawer-item" disabled={syncLoading[src]}
-                    onClick={() => { triggerSync(src); setMenuOpen(false); }}>
+                    onClick={() => triggerSync(src)}>
                     <FaArrowsRotate className={syncLoading[src] ? "spin" : ""} />
                     {syncLabel(src)}
                   </button>
