@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { GoogleLogin, googleLogout } from "@react-oauth/google";
 import { FaHouse, FaPersonRunning, FaCalendarDays, FaTrophy, FaBolt, FaUser, FaArrowsRotate, FaRightFromBracket } from "react-icons/fa6";
 import { GiRunningShoe } from "react-icons/gi";
@@ -399,16 +399,6 @@ export default function App() {
   const NAV_TABS = (["home", "runs", "yearly", "gear", "records"] as Tab[]);
 
   const [gearTooltip, setGearTooltip] = useState<{ name: string; imageUrl: string; top: number; left: number } | null>(null);
-  const [runnerEscaping, setRunnerEscaping] = useState(false);
-  const [runnerRect, setRunnerRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
-  const photoRef = useRef<HTMLImageElement>(null);
-
-  function handlePhotoClick() {
-    if (runnerEscaping || !photoRef.current) return;
-    const r = photoRef.current.getBoundingClientRect();
-    setRunnerRect({ top: r.top, left: r.left, width: r.width, height: r.height });
-    setRunnerEscaping(true);
-  }
 
   function goTab(tab: Tab) {
     setActiveTab(tab);
@@ -549,13 +539,7 @@ export default function App() {
           {activeTab === "home" && (
             <div className="home">
               <div className="home-card">
-                <img
-                  ref={photoRef}
-                  src="/logo.png"
-                  alt="McRun"
-                  className={`home-photo${runnerEscaping ? " home-photo--hidden" : ""}`}
-                  onClick={handlePhotoClick}
-                />
+                <img src="/logo.png" alt="McRun" className="home-photo" />
                 <blockquote className="home-quote">
                   <p className="home-quote-text">&ldquo;Pain is inevitable.<br />Suffering is optional.&rdquo;</p>
                   <footer className="home-quote-author">&mdash; Haruki Murakami</footer>
@@ -845,17 +829,7 @@ export default function App() {
         </div>
       </div>
 
-      {runnerEscaping && runnerRect && (
-        <img
-          src="/runner_color_run_away.gif"
-          alt=""
-          className="runner-escape-main"
-          style={{ top: runnerRect.top, left: runnerRect.left, width: runnerRect.width, height: runnerRect.height }}
-          onAnimationEnd={() => { setRunnerEscaping(false); setRunnerRect(null); }}
-        />
-      )}
-
-      <footer className="site-footer">
+<footer className="site-footer">
         &copy; 2026 McWay.
       </footer>
     </>

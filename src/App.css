@@ -108,31 +108,13 @@
   white-space: nowrap;
 }
 
-/* ── Runner escape animation ── */
+/* ── Home photo hover ── */
 .home-photo {
-  cursor: pointer;
-  transition: transform 0.15s ease;
+  transition: transform 0.2s ease;
 }
 
 .home-photo:hover {
-  transform: scale(1.03);
-}
-
-.home-photo--hidden {
-  visibility: hidden;
-}
-
-.runner-escape-main {
-  position: fixed;
-  z-index: 500;
-  pointer-events: none;
-  border-radius: 24px;
-  animation: runAway 1.8s linear forwards;
-}
-
-@keyframes runAway {
-  0%   { transform: translateX(0); }
-  100% { transform: translateX(110vw); }
+  transform: scale(1.04);
 }
 
 /* ── Navbar logo link ── */
