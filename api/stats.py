@@ -51,17 +51,10 @@ class handler(BaseHTTPRequestHandler):
 
                     cur.execute(
                         """
-                        SELECT g.name,
-                               g.total_km,
-                               g.limit_km,
-                               COALESCE(
-                                   SUM(a.distance_km) FILTER (WHERE a.date >= %s), 0
-                               ) AS period_km
-                        FROM gear g
-                        LEFT JOIN activities a ON a.gear_id = g.id
-                        GROUP BY g.id
-                        """,
-                        (after_date,),
+                        SELECT name, total_km, limit_km
+                        FROM gear
+                        ORDER BY total_km DESC
+                        """
                     )
                     gear_rows = cur.fetchall()
 
@@ -87,7 +80,6 @@ class handler(BaseHTTPRequestHandler):
 
             gear_summary = {
                 g["name"]: {
-                    "km": round(float(g["period_km"]), 2),
                     "total_km": round(float(g["total_km"] or 0), 2),
                     "limit_km": g["limit_km"],
                 }

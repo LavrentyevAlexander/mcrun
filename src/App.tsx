@@ -27,7 +27,6 @@ interface Activity {
 }
 
 interface GearInfo {
-  km: number;
   total_km: number;
   limit_km: number | null;
 }
@@ -434,14 +433,13 @@ export default function App() {
                     <thead>
                       <tr>
                         <th>Shoe</th>
-                        <th>Period km</th>
                         <th>Total km</th>
                         <th>Wear</th>
                       </tr>
                     </thead>
                     <tbody>
                       {Object.entries(allTimeData.gear_summary)
-                        .sort(([, a], [, b]) => b.km - a.km)
+                        .sort(([, a], [, b]) => b.total_km - a.total_km)
                         .map(([name, info]) => {
                           const wear = info.limit_km ? Math.round((info.total_km / info.limit_km) * 100) : null;
                           const wearColor = wear === null ? undefined
@@ -452,7 +450,6 @@ export default function App() {
                           return (
                             <tr key={name}>
                               <td data-label="">{name}</td>
-                              <td data-label="Period, km">{info.km.toFixed(2)}</td>
                               <td data-label="Total, km">{info.total_km.toFixed(2)}</td>
                               <td data-label="Wear" style={wearColor ? { color: wearColor, fontWeight: 600 } : {}}>
                                 {wear !== null ? `${wear}%` : "—"}
