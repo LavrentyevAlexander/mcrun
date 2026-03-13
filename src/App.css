@@ -104,6 +104,14 @@
   white-space: nowrap;
 }
 
+/* ── Footer ── */
+.site-footer {
+  text-align: center;
+  padding: 1.5rem 1rem;
+  font-size: 0.82rem;
+  color: #bbb;
+}
+
 /* ── Gear image tooltip ── */
 .gear-tooltip {
   position: fixed;
@@ -597,6 +605,62 @@ tbody tr:hover {
   }
 
   .table-wrap td[data-label=""] {
+    font-weight: 600;
+    font-size: 1rem;
+    background: #fafafa;
+    border-bottom: 2px solid #eee;
+    justify-content: flex-start;
+  }
+
+  /* Compact tables (Gear, Records) → cards on mobile */
+  .table-compact {
+    width: 100%;
+  }
+
+  .table-compact table thead {
+    display: none;
+  }
+
+  .table-compact table,
+  .table-compact tbody,
+  .table-compact tr,
+  .table-compact td {
+    display: block;
+    width: 100%;
+  }
+
+  .table-compact tr {
+    border: 1px solid #eee;
+    border-radius: 8px;
+    margin-bottom: 0.75rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  }
+
+  .table-compact td {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid #f0f0f0;
+    text-align: right;
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  .table-compact td:last-child {
+    border-bottom: none;
+  }
+
+  .table-compact td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #666;
+    text-align: left;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-right: 0.5rem;
+  }
+
+  .table-compact td[data-label=""] {
     font-weight: 600;
     font-size: 1rem;
     background: #fafafa;

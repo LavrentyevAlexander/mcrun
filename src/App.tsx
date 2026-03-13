@@ -828,6 +828,10 @@ export default function App() {
 
         </div>
       </div>
+
+      <footer className="site-footer">
+        &copy; 2026 McWay.
+      </footer>
     </>
   );
 }
