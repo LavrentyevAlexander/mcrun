@@ -84,9 +84,24 @@
 
 /* ── Page container ── */
 .container {
-  max-width: 1100px;
+  max-width: 1400px;
   margin: 2rem auto;
   padding: 0 1rem;
+}
+
+/* ── Compact tables (Gear, Yearly) ── */
+.table-compact {
+  width: auto;
+}
+
+.table-compact table {
+  width: auto;
+  min-width: unset;
+}
+
+.table-compact th,
+.table-compact td {
+  white-space: nowrap;
 }
 
 /* ── Controls (Runs tab) ── */
@@ -292,6 +307,14 @@ tbody tr:hover {
 .profile-btn.active {
   background: rgba(252, 76, 2, 0.08);
   color: #fc4c02;
+}
+
+.profile-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
 }
 
 .profile-overlay {

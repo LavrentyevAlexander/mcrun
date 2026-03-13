@@ -87,6 +87,14 @@ function defaultDate(): string {
   return `${now.getFullYear()}-01-01`;
 }
 
+function decodeJwt(token: string): { picture?: string; name?: string } {
+  try {
+    return JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+  } catch {
+    return {};
+  }
+}
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>("home");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -125,10 +133,13 @@ export default function App() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState({ competition: "", date: "", distance: "", time: "", rank: "", link: "" });
 
-  // Auto-fetch all-time data and sync status on mount
+  // Preload all data on mount
   useEffect(() => {
     fetchAllTime();
     fetchSyncStatus();
+    fetchRuns();
+    fetchRecords();
+    if (googleCredential) fetchCompetitions();
   }, []);
 
   async function fetchSyncStatus() {
@@ -370,13 +381,20 @@ export default function App() {
 
         {/* Profile button — desktop */}
         <div className="profile-wrap">
-          <button
-            className={`profile-btn${profileOpen ? " active" : ""}`}
-            onClick={() => setProfileOpen((o) => !o)}
-            aria-label="Account"
-          >
-            <FaUser />
-          </button>
+          {(() => {
+            const avatar = googleCredential ? decodeJwt(googleCredential).picture : null;
+            return (
+              <button
+                className={`profile-btn${profileOpen ? " active" : ""}`}
+                onClick={() => setProfileOpen((o) => !o)}
+                aria-label="Account"
+              >
+                {avatar
+                  ? <img src={avatar} className="profile-avatar" alt="profile" referrerPolicy="no-referrer" />
+                  : <FaUser />}
+              </button>
+            );
+          })()}
           {profileOpen && (
             <div className="profile-dropdown">
               {googleCredential ? (
@@ -483,7 +501,7 @@ export default function App() {
               {allTimeError && <p className="error">{allTimeError}</p>}
               {allTimeLoading && <div className="loading-box">Loading…</div>}
               {!allTimeLoading && allTimeData && (
-                <div className="table-wrap">
+                <div className="table-compact">
                   <table>
                     <thead>
                       <tr>
@@ -606,6 +624,7 @@ export default function App() {
               {allTimeError && <p className="error">{allTimeError}</p>}
               {allTimeLoading && <div className="loading-box">Loading…</div>}
               {!allTimeLoading && allTimeData && (
+                <div className="table-compact">
                 <table>
                   <thead>
                     <tr>
@@ -624,6 +643,7 @@ export default function App() {
                       ))}
                   </tbody>
                 </table>
+                </div>
               )}
             </>
           )}
