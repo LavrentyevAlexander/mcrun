@@ -279,12 +279,18 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  overflow: hidden; /* prevent Google button from escaping drawer */
 }
 
 .drawer-login p {
   margin: 0;
   font-size: 0.85rem;
   color: #888;
+}
+
+/* Clip Google iframe to drawer width */
+.drawer-login iframe {
+  max-width: 100% !important;
 }
 
 .drawer-signout {
@@ -595,6 +601,33 @@ tbody tr:hover {
 
 .spin {
   animation: spin 1s linear infinite;
+}
+
+/* ════════════════════════════════════════
+   Mobile — home fits in one screen (< 768px)
+   ════════════════════════════════════════ */
+@media (max-width: 767px) {
+  .home {
+    padding: 0.5rem var(--container-pad);
+    gap: 0.75rem;
+  }
+
+  .home-photo {
+    max-height: 38vh;
+    object-fit: contain;
+  }
+
+  .home-quote {
+    padding: 0.6rem 1rem;
+  }
+
+  .home-quote-text {
+    font-size: 1rem;
+  }
+
+  .home-quote-author {
+    font-size: 0.82rem;
+  }
 }
 
 /* ════════════════════════════════════════
