@@ -350,7 +350,7 @@ export default function App() {
               <div className="home-card">
                 <img src="/logo.png" alt="McRun" className="home-photo" />
                 <blockquote className="home-quote">
-                  <p className="home-quote-text">&ldquo;Pain is inevitable. Suffering is optional.&rdquo;</p>
+                  <p className="home-quote-text">&ldquo;Pain is inevitable.<br />Suffering is optional.&rdquo;</p>
                   <footer className="home-quote-author">&mdash; Haruki Murakami</footer>
                 </blockquote>
               </div>
