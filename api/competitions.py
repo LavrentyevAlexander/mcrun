@@ -1,5 +1,9 @@
-from http.server import BaseHTTPRequestHandler
+import os
+import sys
+sys.path.insert(0, os.path.dirname(__file__))
+
 import json
+from http.server import BaseHTTPRequestHandler
 
 import psycopg2.extras
 

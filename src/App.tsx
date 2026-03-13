@@ -149,7 +149,8 @@ export default function App() {
         method: "POST",
         headers: { Authorization: `Bearer ${googleCredential}` },
       });
-      const json = await res.json();
+      let json: { error?: string; synced?: number } = {};
+      try { json = await res.json(); } catch { /* non-JSON response */ }
       if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
       await fetchSyncStatus();
       // Refresh data after sync

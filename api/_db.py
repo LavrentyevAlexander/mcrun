@@ -1,10 +1,12 @@
 import json
 import os
+import sys
+
+# Ensure api/ directory is in path so _db is importable from any subdirectory
+sys.path.insert(0, os.path.dirname(__file__))
 
 import psycopg2
 import psycopg2.extras
-from google.auth.transport import requests as google_requests
-from google.oauth2 import id_token
 
 POSTGRES_URL = os.environ.get("mcrun_db_POSTGRES_URL_NON_POOLING") or os.environ.get("mcrun_db_POSTGRES_URL")
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
@@ -18,6 +20,10 @@ def get_conn():
 
 
 def verify_token(headers):
+    # Lazy import to avoid module-level failures if google-auth is slow to load
+    from google.auth.transport import requests as google_requests
+    from google.oauth2 import id_token
+
     auth = headers.get("Authorization", "")
     if not auth.startswith("Bearer "):
         raise PermissionError("Unauthorized")
