@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { GoogleLogin, googleLogout } from "@react-oauth/google";
-import { FaHouse, FaPersonRunning, FaCalendarDays, FaTrophy, FaBolt } from "react-icons/fa6";
+import { FaHouse, FaPersonRunning, FaCalendarDays, FaTrophy, FaBolt, FaUser, FaArrowsRotate, FaRightFromBracket } from "react-icons/fa6";
 import { GiRunningShoe } from "react-icons/gi";
 import "./App.css";
 
@@ -90,6 +90,7 @@ function defaultDate(): string {
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>("home");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   // All-time data: Gear + Yearly
   const [allTimeData, setAllTimeData] = useState<StatsResponse | null>(null);
@@ -333,49 +334,129 @@ export default function App() {
     return "#c62828";
   }
 
+  const NAV_TABS = (["home", "runs", "yearly", "gear", "records"] as Tab[]);
+
+  function goTab(tab: Tab) {
+    setActiveTab(tab);
+    if (tab === "records" && !records && !recordsLoading) fetchRecords();
+    if (tab === "competitions" && googleCredential && !competitions && !competitionsLoading) fetchCompetitions();
+  }
+
+  function syncLabel(src: "strava" | "garmin") {
+    const s = syncStatus[src];
+    if (syncLoading[src]) return "Syncing\u2026";
+    if (!s) return `Sync ${src.charAt(0).toUpperCase() + src.slice(1)}`;
+    if (s.status === "error") return `Sync ${src.charAt(0).toUpperCase() + src.slice(1)} \u2014 Error`;
+    const ago = s.finished_at ? new Date(s.finished_at).toLocaleString() : "";
+    return `Sync ${src.charAt(0).toUpperCase() + src.slice(1)}${ago ? ` \u00b7 ${ago}` : ""}`;
+  }
+
   return (
     <>
       <nav className="navbar">
         <img src="/logo.png" alt="McRun" className="logo" />
         <div className="nav-tabs">
-          {(["home", "runs", "yearly", "gear", "competitions", "records"] as Tab[]).map((tab) => (
+          {NAV_TABS.map((tab) => (
             <button
               key={tab}
               className={`nav-tab${activeTab === tab ? " active" : ""}`}
-              onClick={() => {
-                setActiveTab(tab);
-                if (tab === "records" && !records && !recordsLoading) fetchRecords();
-                if (tab === "competitions" && googleCredential && !competitions && !competitionsLoading) fetchCompetitions();
-              }}
+              onClick={() => goTab(tab)}
             >
               {TAB_META[tab].icon}
               {TAB_META[tab].label}
             </button>
           ))}
         </div>
+
+        {/* Profile button — desktop */}
+        <div className="profile-wrap">
+          <button
+            className={`profile-btn${profileOpen ? " active" : ""}`}
+            onClick={() => setProfileOpen((o) => !o)}
+            aria-label="Account"
+          >
+            <FaUser />
+          </button>
+          {profileOpen && (
+            <div className="profile-dropdown">
+              {googleCredential ? (
+                <>
+                  {syncError && <p className="profile-error">{syncError}</p>}
+                  {(["strava", "garmin"] as const).map((src) => (
+                    <button key={src} className="profile-action" disabled={syncLoading[src]}
+                      onClick={() => { triggerSync(src); setProfileOpen(false); }}>
+                      <FaArrowsRotate className={syncLoading[src] ? "spin" : ""} />
+                      <span>{syncLabel(src)}</span>
+                    </button>
+                  ))}
+                  <div className="profile-divider" />
+                  <button className="profile-action" onClick={() => { goTab("competitions"); setProfileOpen(false); }}>
+                    <FaTrophy /><span>Competitions</span>
+                  </button>
+                  <div className="profile-divider" />
+                  <button className="profile-action profile-signout" onClick={() => { handleLogout(); setProfileOpen(false); }}>
+                    <FaRightFromBracket /><span>Sign out</span>
+                  </button>
+                </>
+              ) : (
+                <div className="profile-login">
+                  <p>Sign in to sync data</p>
+                  <GoogleLogin onSuccess={handleGoogleSuccess} onError={() => setSyncError("Google sign-in failed")} />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         <button className="hamburger" onClick={() => setMenuOpen(true)} aria-label="Open menu">
           <span /><span /><span />
         </button>
       </nav>
 
+      {profileOpen && <div className="profile-overlay" onClick={() => setProfileOpen(false)} />}
+
       {menuOpen && (
         <div className="drawer-overlay" onClick={() => setMenuOpen(false)}>
           <div className="drawer" onClick={(e) => e.stopPropagation()}>
-            {(["home", "runs", "yearly", "gear", "competitions", "records"] as Tab[]).map((tab) => (
+            {NAV_TABS.map((tab) => (
               <button
                 key={tab}
                 className={`drawer-item${activeTab === tab ? " active" : ""}`}
-                onClick={() => {
-                  setActiveTab(tab);
-                  setMenuOpen(false);
-                  if (tab === "records" && !records && !recordsLoading) fetchRecords();
-                  if (tab === "competitions" && googleCredential && !competitions && !competitionsLoading) fetchCompetitions();
-                }}
+                onClick={() => { goTab(tab); setMenuOpen(false); }}
               >
                 {TAB_META[tab].icon}
                 {TAB_META[tab].label}
               </button>
             ))}
+
+            <div className="drawer-divider" />
+
+            {googleCredential ? (
+              <>
+                {syncError && <p className="profile-error" style={{ padding: "0 1.5rem" }}>{syncError}</p>}
+                {(["strava", "garmin"] as const).map((src) => (
+                  <button key={src} className="drawer-item" disabled={syncLoading[src]}
+                    onClick={() => { triggerSync(src); setMenuOpen(false); }}>
+                    <FaArrowsRotate className={syncLoading[src] ? "spin" : ""} />
+                    {syncLabel(src)}
+                  </button>
+                ))}
+                <button
+                  className={`drawer-item${activeTab === "competitions" ? " active" : ""}`}
+                  onClick={() => { goTab("competitions"); setMenuOpen(false); }}
+                >
+                  <FaTrophy />Competitions
+                </button>
+                <button className="drawer-item drawer-signout" onClick={() => { handleLogout(); setMenuOpen(false); }}>
+                  <FaRightFromBracket />Sign out
+                </button>
+              </>
+            ) : (
+              <div className="drawer-login">
+                <p>Sign in to sync data</p>
+                <GoogleLogin onSuccess={(c) => { handleGoogleSuccess(c); setMenuOpen(false); }} onError={() => setSyncError("Google sign-in failed")} />
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -392,32 +473,6 @@ export default function App() {
                   <p className="home-quote-text">&ldquo;Pain is inevitable.<br />Suffering is optional.&rdquo;</p>
                   <footer className="home-quote-author">&mdash; Haruki Murakami</footer>
                 </blockquote>
-                {googleCredential && (
-                  <div className="sync-panel">
-                    {syncError && <p className="error" style={{ marginBottom: "0.5rem" }}>{syncError}</p>}
-                    {(["strava", "garmin"] as const).map((src) => {
-                      const s = syncStatus[src];
-                      return (
-                        <div key={src} className="sync-row">
-                          <button
-                            className="sync-btn"
-                            onClick={() => triggerSync(src)}
-                            disabled={syncLoading[src]}
-                          >
-                            {syncLoading[src] ? "Syncing…" : `Sync ${src.charAt(0).toUpperCase() + src.slice(1)}`}
-                          </button>
-                          <span className="sync-info">
-                            {s ? (
-                              s.status === "error"
-                                ? <span style={{ color: "#d32f2f" }}>Error</span>
-                                : <>{s.records_synced} records &middot; {s.finished_at ? new Date(s.finished_at).toLocaleString() : ""}</>
-                            ) : "never synced"}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
               </div>
             </div>
           )}

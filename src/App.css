@@ -264,32 +264,140 @@ tbody tr:hover {
   letter-spacing: 0.03em;
 }
 
-/* ── Sync panel ── */
-.sync-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  background: rgba(255, 255, 255, 0.6);
-  border-radius: 16px;
-}
-
-.sync-row {
+/* ── Profile button & dropdown ── */
+.profile-wrap {
+  position: absolute;
+  right: 4rem;
   display: flex;
   align-items: center;
+}
+
+.profile-btn {
+  background: transparent;
+  border: none;
+  color: #888;
+  padding: 0.4rem;
+  font-size: 1rem;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+
+.profile-btn:hover:not(:disabled),
+.profile-btn.active {
+  background: rgba(252, 76, 2, 0.08);
+  color: #fc4c02;
+}
+
+.profile-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+}
+
+.profile-dropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  min-width: 220px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  padding: 0.4rem 0;
+  z-index: 100;
+}
+
+.profile-action {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  color: #333;
+  font-size: 0.9rem;
+  padding: 0.6rem 1rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.profile-action:hover:not(:disabled) {
+  background: #f5f5f5;
+  color: #333;
+}
+
+.profile-action:disabled {
+  opacity: 0.6;
+}
+
+.profile-signout {
+  color: #888;
+}
+
+.profile-divider {
+  height: 1px;
+  background: #eee;
+  margin: 0.3rem 0;
+}
+
+.profile-login {
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.profile-login p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #888;
+}
+
+.profile-error {
+  color: #d32f2f;
+  font-size: 0.82rem;
+  padding: 0 1rem;
+  margin: 0.25rem 0;
+}
+
+/* ── Drawer auth section ── */
+.drawer-divider {
+  height: 1px;
+  background: #eee;
+  margin: 0.5rem 0;
+}
+
+.drawer-login {
+  padding: 1rem 1.5rem;
+  display: flex;
+  flex-direction: column;
   gap: 0.75rem;
 }
 
-.sync-btn {
-  padding: 0.35rem 0.9rem;
+.drawer-login p {
+  margin: 0;
   font-size: 0.85rem;
-  white-space: nowrap;
-  flex-shrink: 0;
+  color: #888;
 }
 
-.sync-info {
-  font-size: 0.8rem;
+.drawer-signout {
   color: #888;
+}
+
+/* ── Spin animation for sync icon ── */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
 }
 
 /* ── Loading placeholder ── */
@@ -352,6 +460,10 @@ tbody tr:hover {
 /* ── Mobile ── */
 @media (max-width: 600px) {
   .nav-tabs {
+    display: none;
+  }
+
+  .profile-wrap {
     display: none;
   }
 
