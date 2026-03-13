@@ -89,19 +89,31 @@
   padding: 0 1rem;
 }
 
-/* ── Compact tables (Gear, Yearly) ── */
+/* ── Compact tables (Gear, Records) ── */
 .table-compact {
   width: auto;
+  margin: 0 auto;
 }
 
 .table-compact table {
   width: auto;
-  min-width: unset;
 }
 
 .table-compact th,
 .table-compact td {
   white-space: nowrap;
+}
+
+/* ── Yearly chart ── */
+.yearly-chart-wrap {
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.yearly-chart {
+  width: 100%;
+  display: block;
+  overflow: visible;
 }
 
 /* ── Controls (Runs tab) ── */

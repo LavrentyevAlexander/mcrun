@@ -87,6 +87,56 @@ function defaultDate(): string {
   return `${now.getFullYear()}-01-01`;
 }
 
+function YearlyChart({ data }: { data: Record<string, number> }) {
+  const entries = Object.entries(data).sort(([a], [b]) => a.localeCompare(b));
+  if (entries.length === 0) return null;
+
+  const W = 600, H = 280;
+  const PAD = { top: 36, right: 40, bottom: 36, left: 56 };
+  const plotW = W - PAD.left - PAD.right;
+  const plotH = H - PAD.top - PAD.bottom;
+
+  const maxKm = Math.max(...entries.map(([, km]) => km));
+  const yMax = Math.ceil(maxKm / 500) * 500 || 500;
+
+  const toX = (i: number) => PAD.left + (entries.length > 1 ? (i / (entries.length - 1)) * plotW : plotW / 2);
+  const toY = (km: number) => PAD.top + plotH - (km / yMax) * plotH;
+
+  const points = entries.map(([year, km], i) => ({ year, km, x: toX(i), y: toY(km) }));
+  const polyline = points.map(p => `${p.x},${p.y}`).join(" ");
+
+  const gridSteps = 5;
+  const gridLines = Array.from({ length: gridSteps + 1 }, (_, i) => {
+    const km = Math.round((yMax / gridSteps) * i);
+    return { km, y: toY(km) };
+  });
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="yearly-chart">
+      {gridLines.map(({ km, y }) => (
+        <g key={km}>
+          <line x1={PAD.left} y1={y} x2={W - PAD.right} y2={y} stroke="#ebebeb" strokeWidth="1" />
+          <text x={PAD.left - 8} y={y} textAnchor="end" dominantBaseline="middle" fontSize="11" fill="#bbb">
+            {km}
+          </text>
+        </g>
+      ))}
+      <polyline points={polyline} fill="none" stroke="#fc4c02" strokeWidth="2.5" strokeLinejoin="round" />
+      {points.map(({ year, km, x, y }) => (
+        <g key={year}>
+          <circle cx={x} cy={y} r="5" fill="#fc4c02" />
+          <text x={x} y={y - 13} textAnchor="middle" fontSize="12" fontWeight="600" fill="#555">
+            {Math.round(km)}
+          </text>
+          <text x={x} y={H - PAD.bottom + 16} textAnchor="middle" fontSize="11" fill="#aaa">
+            {year}
+          </text>
+        </g>
+      ))}
+    </svg>
+  );
+}
+
 function decodeJwt(token: string): { picture?: string; name?: string } {
   try {
     return JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
@@ -624,25 +674,8 @@ export default function App() {
               {allTimeError && <p className="error">{allTimeError}</p>}
               {allTimeLoading && <div className="loading-box">Loading…</div>}
               {!allTimeLoading && allTimeData && (
-                <div className="table-compact">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Year</th>
-                      <th>Km</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {Object.entries(yearlyKm)
-                      .sort(([a], [b]) => b.localeCompare(a))
-                      .map(([year, km]) => (
-                        <tr key={year}>
-                          <td>{year}</td>
-                          <td>{km.toFixed(2)}</td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
+                <div className="yearly-chart-wrap">
+                  <YearlyChart data={yearlyKm} />
                 </div>
               )}
             </>
@@ -650,7 +683,7 @@ export default function App() {
 
           {/* ── RECORDS ── */}
           {activeTab === "records" && (
-            <div className="table-wrap">
+            <div className="table-compact">
               {recordsLoading && <div className="loading-box">Loading…</div>}
               {!recordsLoading && records && (
                 <table>
