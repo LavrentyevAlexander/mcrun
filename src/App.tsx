@@ -126,7 +126,7 @@ function YearlyChart({ data }: { data: Record<string, number> }) {
         </marker>
       </defs>
 
-      {/* Grid lines + Y tick labels */}
+      {/* Horizontal grid lines + Y tick labels */}
       {gridLines.map(({ km, y }) => (
         <g key={km}>
           <line x1={PAD.left} y1={y} x2={W - PAD.right} y2={y}
@@ -135,6 +135,14 @@ function YearlyChart({ data }: { data: Record<string, number> }) {
             {km}
           </text>
         </g>
+      ))}
+
+      {/* Vertical grid lines at each data point */}
+      {points.map(({ year, x }) => (
+        <line key={`vg-${year}`}
+          x1={x} y1={PAD.top} x2={x} y2={axisBottom}
+          stroke="#e8e8e8" strokeWidth="1" strokeDasharray="4 3"
+        />
       ))}
 
       {/* Y axis */}
