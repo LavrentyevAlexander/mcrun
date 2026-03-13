@@ -118,24 +118,26 @@
   transform: scale(1.03);
 }
 
-.home-photo--clicked {
-  opacity: 0.5;
+.home-photo--hidden {
+  visibility: hidden;
 }
 
-.runner-escape {
+.runner-escape-main {
   position: fixed;
-  bottom: 0;
-  left: 0;
-  height: 110px;
-  width: auto;
   z-index: 500;
   pointer-events: none;
-  animation: runAway 2s linear forwards;
+  border-radius: 24px;
+  animation: runAway 1.8s linear forwards;
 }
 
 @keyframes runAway {
-  from { transform: translateX(-60px); }
-  to   { transform: translateX(110vw); }
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(110vw); }
+}
+
+/* ── Navbar logo link ── */
+.logo--link {
+  cursor: pointer;
 }
 
 /* ── Footer ── */
