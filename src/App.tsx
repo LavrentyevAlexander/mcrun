@@ -108,6 +108,11 @@ export default function App() {
   const [records, setRecords] = useState<GarminRecord[] | null>(null);
   const [recordsLoading, setRecordsLoading] = useState(false);
 
+  // Sync
+  const [syncStatus, setSyncStatus] = useState<Record<string, { status: string; records_synced: number | null; finished_at: string | null }>>({});
+  const [syncLoading, setSyncLoading] = useState<Record<string, boolean>>({});
+  const [syncError, setSyncError] = useState("");
+
   // Competitions
   const [googleCredential, setGoogleCredential] = useState<string | null>(
     () => localStorage.getItem("google_credential")
@@ -120,10 +125,43 @@ export default function App() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState({ competition: "", date: "", distance: "", time: "", rank: "", link: "" });
 
-  // Auto-fetch all-time data on mount
+  // Auto-fetch all-time data and sync status on mount
   useEffect(() => {
     fetchAllTime();
+    fetchSyncStatus();
   }, []);
+
+  async function fetchSyncStatus() {
+    try {
+      const res = await fetch("/api/sync_status");
+      if (res.ok) setSyncStatus(await res.json());
+    } catch {
+      // non-critical
+    }
+  }
+
+  async function triggerSync(source: "strava" | "garmin") {
+    if (!googleCredential) return;
+    setSyncLoading((s) => ({ ...s, [source]: true }));
+    setSyncError("");
+    try {
+      const res = await fetch(`/api/sync_${source}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${googleCredential}` },
+      });
+      const json = await res.json();
+      if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
+      await fetchSyncStatus();
+      // Refresh data after sync
+      fetchAllTime();
+      if (source === "strava") { setRunsData(null); }
+      if (source === "garmin") { setRecords(null); }
+    } catch (e: unknown) {
+      setSyncError(e instanceof Error ? friendlyError(e.message) : "Sync failed");
+    } finally {
+      setSyncLoading((s) => ({ ...s, [source]: false }));
+    }
+  }
 
   async function fetchAllTime() {
     if (allTimeLoading) return;
@@ -353,6 +391,32 @@ export default function App() {
                   <p className="home-quote-text">&ldquo;Pain is inevitable.<br />Suffering is optional.&rdquo;</p>
                   <footer className="home-quote-author">&mdash; Haruki Murakami</footer>
                 </blockquote>
+                {googleCredential && (
+                  <div className="sync-panel">
+                    {syncError && <p className="error" style={{ marginBottom: "0.5rem" }}>{syncError}</p>}
+                    {(["strava", "garmin"] as const).map((src) => {
+                      const s = syncStatus[src];
+                      return (
+                        <div key={src} className="sync-row">
+                          <button
+                            className="sync-btn"
+                            onClick={() => triggerSync(src)}
+                            disabled={syncLoading[src]}
+                          >
+                            {syncLoading[src] ? "Syncing…" : `Sync ${src.charAt(0).toUpperCase() + src.slice(1)}`}
+                          </button>
+                          <span className="sync-info">
+                            {s ? (
+                              s.status === "error"
+                                ? <span style={{ color: "#d32f2f" }}>Error</span>
+                                : <>{s.records_synced} records &middot; {s.finished_at ? new Date(s.finished_at).toLocaleString() : ""}</>
+                            ) : "never synced"}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           )}

@@ -264,6 +264,34 @@ tbody tr:hover {
   letter-spacing: 0.03em;
 }
 
+/* ── Sync panel ── */
+.sync-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 16px;
+}
+
+.sync-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.sync-btn {
+  padding: 0.35rem 0.9rem;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.sync-info {
+  font-size: 0.8rem;
+  color: #888;
+}
+
 /* ── Loading placeholder ── */
 .loading-box {
   background: rgba(255, 255, 255, 0.85);
