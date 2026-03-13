@@ -29,6 +29,7 @@ interface Activity {
 interface GearInfo {
   total_km: number;
   limit_km: number | null;
+  image_url: string | null;
 }
 
 interface GarminRecord {
@@ -397,6 +398,8 @@ export default function App() {
 
   const NAV_TABS = (["home", "runs", "yearly", "gear", "records"] as Tab[]);
 
+  const [gearTooltip, setGearTooltip] = useState<{ name: string; imageUrl: string; top: number; left: number } | null>(null);
+
   function goTab(tab: Tab) {
     setActiveTab(tab);
     if (tab === "records" && !records && !recordsLoading) fetchRecords();
@@ -571,7 +574,15 @@ export default function App() {
                             : wear < 80 ? "#e65100"
                             : "#c62828";
                           return (
-                            <tr key={name}>
+                            <tr
+                              key={name}
+                              onMouseEnter={info.image_url ? (e) => {
+                                const r = e.currentTarget.getBoundingClientRect();
+                                setGearTooltip({ name, imageUrl: info.image_url!, top: r.top, left: r.right + 12 });
+                              } : undefined}
+                              onMouseLeave={info.image_url ? () => setGearTooltip(null) : undefined}
+                              style={info.image_url ? { cursor: "default" } : undefined}
+                            >
                               <td data-label="">{name}</td>
                               <td data-label="Total, km">{info.total_km.toFixed(2)}</td>
                               <td data-label="Wear" style={wearColor ? { color: wearColor, fontWeight: 600 } : {}}>
@@ -582,6 +593,15 @@ export default function App() {
                         })}
                     </tbody>
                   </table>
+                </div>
+              )}
+              {gearTooltip && (
+                <div
+                  className="gear-tooltip"
+                  style={{ top: gearTooltip.top, left: gearTooltip.left }}
+                >
+                  <img src={gearTooltip.imageUrl} alt={gearTooltip.name} />
+                  <span>{gearTooltip.name}</span>
                 </div>
               )}
             </>

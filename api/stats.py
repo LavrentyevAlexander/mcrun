@@ -51,7 +51,7 @@ class handler(BaseHTTPRequestHandler):
 
                     cur.execute(
                         """
-                        SELECT name, total_km, limit_km
+                        SELECT name, total_km, limit_km, image_url
                         FROM gear
                         ORDER BY total_km DESC
                         """
@@ -82,6 +82,7 @@ class handler(BaseHTTPRequestHandler):
                 g["name"]: {
                     "total_km": round(float(g["total_km"] or 0), 2),
                     "limit_km": g["limit_km"],
+                    "image_url": g["image_url"],
                 }
                 for g in gear_rows
             }
