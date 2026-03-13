@@ -151,6 +151,7 @@ export default function App() {
       });
       let json: { error?: string; synced?: number } = {};
       try { json = await res.json(); } catch { /* non-JSON response */ }
+      if (res.status === 401 || res.status === 403) { handleLogout(); throw new Error("Session expired. Please sign in again."); }
       if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
       await fetchSyncStatus();
       // Refresh data after sync
