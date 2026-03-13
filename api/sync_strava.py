@@ -59,6 +59,21 @@ def fetch_gear(token, gear_id):
     return gear_id, 0.0
 
 
+def fetch_all_athlete_shoes(token):
+    """Returns list of (strava_id, name, total_km) for all shoes from athlete profile."""
+    resp = requests.get(
+        "https://www.strava.com/api/v3/athlete",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    if resp.status_code != 200:
+        return []
+    shoes = resp.json().get("shoes", [])
+    return [
+        (s["id"], s.get("name", s["id"]), round(s.get("distance", 0) / 1000, 2))
+        for s in shoes
+    ]
+
+
 class handler(BaseHTTPRequestHandler):
     def do_POST(self):
         started_at = datetime.now(timezone.utc)
@@ -84,8 +99,10 @@ class handler(BaseHTTPRequestHandler):
 
             activities = fetch_all_activities(token, after_timestamp=after_ts)
 
-            # Collect unique running gear ids
-            gear_ids = {
+            # All shoes from athlete profile (includes shoes with 0 activities)
+            athlete_shoes = fetch_all_athlete_shoes(token)
+            # Also collect gear ids referenced in fetched activities (for db_id lookup)
+            activity_gear_ids = {
                 a["gear_id"]
                 for a in activities
                 if a.get("gear_id") and not a["gear_id"].startswith("b")
@@ -93,9 +110,25 @@ class handler(BaseHTTPRequestHandler):
 
             with get_conn() as conn:
                 with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-                    # Upsert gear
+                    # Upsert all athlete shoes (complete list, not just from activities)
                     gear_db_ids = {}
-                    for gid in gear_ids:
+                    for gid, name, total_km in athlete_shoes:
+                        cur.execute(
+                            """
+                            INSERT INTO gear (strava_id, name, total_km, synced_at)
+                            VALUES (%s, %s, %s, NOW())
+                            ON CONFLICT (strava_id) DO UPDATE
+                                SET name      = EXCLUDED.name,
+                                    total_km  = EXCLUDED.total_km,
+                                    synced_at = EXCLUDED.synced_at
+                            RETURNING id
+                            """,
+                            (gid, name, total_km),
+                        )
+                        gear_db_ids[gid] = cur.fetchone()["id"]
+
+                    # For any activity gear not covered by athlete profile, fetch individually
+                    for gid in activity_gear_ids - {s[0] for s in athlete_shoes}:
                         name, total_km = fetch_gear(token, gid)
                         cur.execute(
                             """
