@@ -399,6 +399,7 @@ export default function App() {
   const NAV_TABS = (["home", "runs", "yearly", "gear", "records"] as Tab[]);
 
   const [gearTooltip, setGearTooltip] = useState<{ name: string; imageUrl: string; top: number; left: number } | null>(null);
+  const [runnerEscaping, setRunnerEscaping] = useState(false);
 
   function goTab(tab: Tab) {
     setActiveTab(tab);
@@ -539,13 +540,27 @@ export default function App() {
           {activeTab === "home" && (
             <div className="home">
               <div className="home-card">
-                <img src="/logo.png" alt="McRun" className="home-photo" />
+                <img
+                  src="/logo.png"
+                  alt="McRun"
+                  className={`home-photo${runnerEscaping ? " home-photo--clicked" : ""}`}
+                  onClick={() => { if (!runnerEscaping) setRunnerEscaping(true); }}
+                />
                 <blockquote className="home-quote">
                   <p className="home-quote-text">&ldquo;Pain is inevitable.<br />Suffering is optional.&rdquo;</p>
                   <footer className="home-quote-author">&mdash; Haruki Murakami</footer>
                 </blockquote>
               </div>
             </div>
+          )}
+
+          {runnerEscaping && (
+            <img
+              src="/runner_color_run_away.gif"
+              alt=""
+              className="runner-escape"
+              onAnimationEnd={() => setRunnerEscaping(false)}
+            />
           )}
 
           {/* ── GEAR ── */}

@@ -108,6 +108,36 @@
   white-space: nowrap;
 }
 
+/* ── Runner escape animation ── */
+.home-photo {
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.home-photo:hover {
+  transform: scale(1.03);
+}
+
+.home-photo--clicked {
+  opacity: 0.5;
+}
+
+.runner-escape {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  height: 110px;
+  width: auto;
+  z-index: 500;
+  pointer-events: none;
+  animation: runAway 2s linear forwards;
+}
+
+@keyframes runAway {
+  from { transform: translateX(-60px); }
+  to   { transform: translateX(110vw); }
+}
+
 /* ── Footer ── */
 .site-footer {
   text-align: center;
