@@ -156,6 +156,92 @@ def sync_garmin() -> dict:
         except Exception:
             pass
 
+        # ── Training Readiness ───────────────────────────────────────
+        training_readiness = None
+        debug_readiness = None
+        try:
+            raw_tr = client.get_training_readiness(today)
+            debug_readiness = raw_tr
+            if isinstance(raw_tr, list) and raw_tr:
+                raw_tr = raw_tr[0]
+            if isinstance(raw_tr, dict):
+                training_readiness = _num(
+                    raw_tr.get("score") or raw_tr.get("trainingReadinessScore")
+                    or raw_tr.get("value") or raw_tr.get("trainingReadiness")
+                )
+        except Exception:
+            pass
+
+        # ── Resting HR (today + 7-day list) ─────────────────────────
+        resting_hr = None
+        resting_hr_7day = None
+        debug_rhr = None
+        try:
+            from datetime import timedelta
+            import json as _json
+            seven_days_ago = (datetime.now(timezone.utc) - timedelta(days=6)).strftime("%Y-%m-%d")
+            raw_rhr = client.get_rhr_day(today)
+            debug_rhr = raw_rhr
+            if isinstance(raw_rhr, dict):
+                resting_hr = _num(
+                    raw_rhr.get("restingHeartRate") or raw_rhr.get("value")
+                    or raw_rhr.get("rhr")
+                )
+            elif isinstance(raw_rhr, list) and raw_rhr:
+                last = raw_rhr[-1]
+                resting_hr = _num(
+                    last.get("restingHeartRate") or last.get("value") or last.get("rhr")
+                )
+            # 7-day trend via get_heart_rates
+            raw_rhr7 = client.get_rhr_data(seven_days_ago, today)
+            if isinstance(raw_rhr7, list):
+                trend = [
+                    {"date": e.get("calendarDate") or e.get("date"), "value": _num(e.get("restingHeartRate") or e.get("value") or e.get("rhr"))}
+                    for e in raw_rhr7
+                    if isinstance(e, dict)
+                ]
+                resting_hr_7day = _json.dumps(trend)
+        except Exception:
+            pass
+
+        # ── Race Predictions ─────────────────────────────────────────
+        race_5k = race_10k = race_hm = race_marathon = None
+        debug_race = None
+        try:
+            raw_race = client.get_race_predictions()
+            debug_race = raw_race
+            if isinstance(raw_race, list) and raw_race:
+                raw_race = raw_race[0]
+            if isinstance(raw_race, dict):
+                def _fmt_time(seconds):
+                    if seconds is None:
+                        return None
+                    s = int(seconds)
+                    h, rem = divmod(s, 3600)
+                    m, sec = divmod(rem, 60)
+                    if h:
+                        return f"{h}:{m:02d}:{sec:02d}"
+                    return f"{m}:{sec:02d}"
+
+                race_5k = _fmt_time(_num(
+                    raw_race.get("time5K") or raw_race.get("racePrediction5K")
+                    or raw_race.get("fiveK") or raw_race.get("5k")
+                ))
+                race_10k = _fmt_time(_num(
+                    raw_race.get("time10K") or raw_race.get("racePrediction10K")
+                    or raw_race.get("tenK") or raw_race.get("10k")
+                ))
+                race_hm = _fmt_time(_num(
+                    raw_race.get("timeHalfMarathon") or raw_race.get("racePredictionHalfMarathon")
+                    or raw_race.get("halfMarathon")
+                ))
+                race_marathon = _fmt_time(_num(
+                    raw_race.get("timeMarathon") or raw_race.get("racePredictionMarathon")
+                    or raw_race.get("marathon")
+                ))
+        except Exception:
+            pass
+
         with get_conn() as conn:
             with conn.cursor() as cur:
                 cur.execute(
@@ -163,26 +249,45 @@ def sync_garmin() -> dict:
                     INSERT INTO garmin_metrics
                         (id, vo2_max, fitness_age, training_status,
                          training_load, acute_load,
-                         hrv_last_night, hrv_weekly_avg, hrv_status, synced_at)
-                    VALUES (1, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                         hrv_last_night, hrv_weekly_avg, hrv_status,
+                         training_readiness, resting_hr, resting_hr_7day,
+                         race_5k, race_10k, race_hm, race_marathon,
+                         synced_at)
+                    VALUES (1, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
                     ON CONFLICT (id) DO UPDATE SET
-                        vo2_max         = EXCLUDED.vo2_max,
-                        fitness_age     = EXCLUDED.fitness_age,
-                        training_status = EXCLUDED.training_status,
-                        training_load   = EXCLUDED.training_load,
-                        acute_load      = EXCLUDED.acute_load,
-                        hrv_last_night  = EXCLUDED.hrv_last_night,
-                        hrv_weekly_avg  = EXCLUDED.hrv_weekly_avg,
-                        hrv_status      = EXCLUDED.hrv_status,
-                        synced_at       = EXCLUDED.synced_at
+                        vo2_max             = EXCLUDED.vo2_max,
+                        fitness_age         = EXCLUDED.fitness_age,
+                        training_status     = EXCLUDED.training_status,
+                        training_load       = EXCLUDED.training_load,
+                        acute_load          = EXCLUDED.acute_load,
+                        hrv_last_night      = EXCLUDED.hrv_last_night,
+                        hrv_weekly_avg      = EXCLUDED.hrv_weekly_avg,
+                        hrv_status          = EXCLUDED.hrv_status,
+                        training_readiness  = EXCLUDED.training_readiness,
+                        resting_hr          = EXCLUDED.resting_hr,
+                        resting_hr_7day     = EXCLUDED.resting_hr_7day,
+                        race_5k             = EXCLUDED.race_5k,
+                        race_10k            = EXCLUDED.race_10k,
+                        race_hm             = EXCLUDED.race_hm,
+                        race_marathon       = EXCLUDED.race_marathon,
+                        synced_at           = EXCLUDED.synced_at
                     """,
                     (vo2_max, fitness_age, training_status,
                      training_load, acute_load,
-                     hrv_last_night, hrv_weekly_avg, hrv_status),
+                     hrv_last_night, hrv_weekly_avg, hrv_status,
+                     training_readiness, resting_hr, resting_hr_7day,
+                     race_5k, race_10k, race_hm, race_marathon),
                 )
             conn.commit()
 
-        return {"synced": len(records)}
+        return {
+            "synced": len(records),
+            "metrics_debug": {
+                "training_readiness_raw": debug_readiness,
+                "rhr_raw": debug_rhr,
+                "race_raw": debug_race,
+            },
+        }
 
     except Exception as e:
         try:

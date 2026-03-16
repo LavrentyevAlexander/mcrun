@@ -454,6 +454,38 @@
   white-space: nowrap;
 }
 
+.metric-card--wide {
+  grid-column: span 2;
+}
+
+.race-predictions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin-top: 0.4rem;
+}
+
+.race-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+}
+
+.race-dist {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--clr-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.race-time {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--clr-fg);
+}
+
 @media (max-width: 767px) {
   .home-metrics {
     grid-template-columns: repeat(2, 1fr);

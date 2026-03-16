@@ -53,6 +53,13 @@ interface GarminMetrics {
   hrv_last_night: number | null;
   hrv_weekly_avg: number | null;
   hrv_status: string | null;
+  training_readiness: number | null;
+  resting_hr: number | null;
+  resting_hr_7day: string | null; // JSON string: [{date, value}]
+  race_5k: string | null;
+  race_10k: string | null;
+  race_hm: string | null;
+  race_marathon: string | null;
   synced_at: string | null;
 }
 
@@ -824,6 +831,47 @@ export default function App() {
                         {garminMetrics.hrv_status.toLowerCase()}
                       </span>
                     )}
+                  </div>
+                )}
+                {garminMetrics.training_readiness !== null && (
+                  <div className="metric-card">
+                    <span className="metric-label">Training readiness</span>
+                    <span className="metric-value">{garminMetrics.training_readiness}</span>
+                    <span className="metric-sub">out of 100</span>
+                  </div>
+                )}
+                {garminMetrics.resting_hr !== null && (
+                  <div className="metric-card">
+                    <span className="metric-label">Resting HR</span>
+                    <span className="metric-value">{garminMetrics.resting_hr} <span style={{ fontSize: "0.6em", opacity: 0.7 }}>bpm</span></span>
+                    {garminMetrics.resting_hr_7day && (() => {
+                      const trend: { date: string; value: number | null }[] = (() => {
+                        try { return JSON.parse(garminMetrics.resting_hr_7day!); } catch { return []; }
+                      })();
+                      const vals = trend.map(p => p.value).filter((v): v is number => v !== null);
+                      if (vals.length < 2) return null;
+                      const min = Math.min(...vals), max = Math.max(...vals);
+                      const W = 80, H = 28, pad = 2;
+                      const x = (i: number) => pad + (i / (vals.length - 1)) * (W - pad * 2);
+                      const y = (v: number) => H - pad - ((v - min) / (max - min || 1)) * (H - pad * 2);
+                      const points = vals.map((v, i) => `${x(i)},${y(v)}`).join(" ");
+                      return (
+                        <svg width={W} height={H} style={{ display: "block", margin: "6px auto 0" }}>
+                          <polyline points={points} fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinejoin="round" />
+                        </svg>
+                      );
+                    })()}
+                  </div>
+                )}
+                {(garminMetrics.race_5k || garminMetrics.race_10k || garminMetrics.race_hm || garminMetrics.race_marathon) && (
+                  <div className="metric-card metric-card--wide">
+                    <span className="metric-label">Race predictions</span>
+                    <div className="race-predictions">
+                      {garminMetrics.race_5k && <span className="race-item"><span className="race-dist">5K</span><span className="race-time">{garminMetrics.race_5k}</span></span>}
+                      {garminMetrics.race_10k && <span className="race-item"><span className="race-dist">10K</span><span className="race-time">{garminMetrics.race_10k}</span></span>}
+                      {garminMetrics.race_hm && <span className="race-item"><span className="race-dist">HM</span><span className="race-time">{garminMetrics.race_hm}</span></span>}
+                      {garminMetrics.race_marathon && <span className="race-item"><span className="race-dist">M</span><span className="race-time">{garminMetrics.race_marathon}</span></span>}
+                    </div>
                   </div>
                 )}
                 <div className="metric-card metric-card--muted">
