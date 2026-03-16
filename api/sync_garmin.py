@@ -44,167 +44,170 @@ def get_garmin_client():
     return client
 
 
+def _num(val):
+    if val is None:
+        return None
+    if isinstance(val, (int, float)):
+        return val
+    if isinstance(val, str):
+        try:
+            return float(val)
+        except ValueError:
+            return None
+    return None
+
+
+def _str(val):
+    if val is None:
+        return None
+    if isinstance(val, str):
+        return val
+    if isinstance(val, (int, float, bool)):
+        return str(val)
+    return None
+
+
+def sync_garmin() -> dict:
+    """Core sync logic — called from HTTP handler and cron."""
+    started_at = datetime.now(timezone.utc)
+    try:
+        client = get_garmin_client()
+
+        # ── Personal records ─────────────────────────────────────────
+        prs = client.get_personal_record()
+        records = []
+        for pr in prs:
+            if pr.get("activityType") != "running":
+                continue
+            type_info = TYPE_ID_MAP.get(pr.get("typeId"))
+            if not type_info:
+                continue
+            label, distance_m = type_info
+            duration_sec = pr.get("value")
+            if not duration_sec:
+                continue
+            date_raw = pr.get("actStartDateTimeInGMTFormatted") or ""
+            records.append((
+                label,
+                distance_m,
+                round(duration_sec),
+                date_raw[:10] or None,
+                pr.get("activityId"),
+                pr.get("activityName") or "",
+            ))
+
+        with get_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("TRUNCATE TABLE personal_records")
+                for label, distance_m, time_sec, date, garmin_id, activity_name in records:
+                    cur.execute(
+                        """
+                        INSERT INTO personal_records
+                            (label, distance_m, time_sec, date, garmin_activity_id, activity_name, synced_at)
+                        VALUES (%s, %s, %s, %s, %s, %s, NOW())
+                        """,
+                        (label, distance_m, time_sec, date, garmin_id, activity_name),
+                    )
+                cur.execute(
+                    """
+                    INSERT INTO sync_log (source, status, records_synced, started_at, finished_at)
+                    VALUES ('garmin', 'success', %s, %s, NOW())
+                    """,
+                    (len(records), started_at),
+                )
+            conn.commit()
+
+        # ── Fitness metrics ──────────────────────────────────────────
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+        vo2_max = fitness_age = None
+        try:
+            raw = client.get_max_metrics(today)
+            entry = raw[0] if isinstance(raw, list) and raw else (raw if isinstance(raw, dict) else {})
+            g = entry.get("generic") or {}
+            vo2_max = _num(g.get("vo2MaxValue"))
+            fitness_age = _num(g.get("fitnessAge"))
+        except Exception:
+            pass
+
+        training_status = training_load = acute_load = None
+        try:
+            raw_ts = client.get_training_status(today)
+            latest = (
+                (raw_ts or {})
+                .get("mostRecentTrainingStatus", {})
+                .get("latestTrainingStatusData", {})
+            )
+            device_data = next(iter(latest.values()), {}) if latest else {}
+            training_status = TRAINING_STATUS_MAP.get(device_data.get("trainingStatus"))
+            acl = device_data.get("acuteTrainingLoadDTO") or {}
+            acute_load = _num(acl.get("dailyTrainingLoadAcute"))
+            training_load = _num(acl.get("dailyTrainingLoadChronic"))
+        except Exception:
+            pass
+
+        hrv_last_night = hrv_weekly_avg = hrv_status = None
+        try:
+            raw_hrv = client.get_hrv_data(today)
+            hrv_summary = (raw_hrv or {}).get("hrvSummary") or {}
+            hrv_last_night = _num(hrv_summary.get("lastNightAvg"))
+            hrv_weekly_avg = _num(hrv_summary.get("weeklyAvg"))
+            hrv_status = _str(hrv_summary.get("status"))
+        except Exception:
+            pass
+
+        with get_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO garmin_metrics
+                        (id, vo2_max, fitness_age, training_status,
+                         training_load, acute_load,
+                         hrv_last_night, hrv_weekly_avg, hrv_status, synced_at)
+                    VALUES (1, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                    ON CONFLICT (id) DO UPDATE SET
+                        vo2_max         = EXCLUDED.vo2_max,
+                        fitness_age     = EXCLUDED.fitness_age,
+                        training_status = EXCLUDED.training_status,
+                        training_load   = EXCLUDED.training_load,
+                        acute_load      = EXCLUDED.acute_load,
+                        hrv_last_night  = EXCLUDED.hrv_last_night,
+                        hrv_weekly_avg  = EXCLUDED.hrv_weekly_avg,
+                        hrv_status      = EXCLUDED.hrv_status,
+                        synced_at       = EXCLUDED.synced_at
+                    """,
+                    (vo2_max, fitness_age, training_status,
+                     training_load, acute_load,
+                     hrv_last_night, hrv_weekly_avg, hrv_status),
+                )
+            conn.commit()
+
+        return {"synced": len(records)}
+
+    except Exception as e:
+        try:
+            with get_conn() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """
+                        INSERT INTO sync_log (source, status, error_detail, started_at, finished_at)
+                        VALUES ('garmin', 'error', %s, %s, NOW())
+                        """,
+                        (str(e), started_at),
+                    )
+                conn.commit()
+        except Exception:
+            pass
+        raise
+
+
 class handler(BaseHTTPRequestHandler):
     def do_POST(self):
-        started_at = datetime.now(timezone.utc)
         try:
             verify_token(self.headers)
-
-            client = get_garmin_client()
-            prs = client.get_personal_record()
-
-            records = []
-            for pr in prs:
-                if pr.get("activityType") != "running":
-                    continue
-                type_info = TYPE_ID_MAP.get(pr.get("typeId"))
-                if not type_info:
-                    continue
-                label, distance_m = type_info
-                duration_sec = pr.get("value")
-                if not duration_sec:
-                    continue
-                date_raw = pr.get("actStartDateTimeInGMTFormatted") or ""
-                records.append(
-                    (
-                        label,
-                        distance_m,
-                        round(duration_sec),
-                        date_raw[:10] or None,
-                        pr.get("activityId"),
-                        pr.get("activityName") or "",
-                    )
-                )
-
-            with get_conn() as conn:
-                with conn.cursor() as cur:
-                    cur.execute("TRUNCATE TABLE personal_records")
-                    for label, distance_m, time_sec, date, garmin_id, activity_name in records:
-                        cur.execute(
-                            """
-                            INSERT INTO personal_records
-                                (label, distance_m, time_sec, date, garmin_activity_id, activity_name, synced_at)
-                            VALUES (%s, %s, %s, %s, %s, %s, NOW())
-                            """,
-                            (label, distance_m, time_sec, date, garmin_id, activity_name),
-                        )
-                    cur.execute(
-                        """
-                        INSERT INTO sync_log (source, status, records_synced, started_at, finished_at)
-                        VALUES ('garmin', 'success', %s, %s, NOW())
-                        """,
-                        (len(records), started_at),
-                    )
-                conn.commit()
-
-            # ── Fitness metrics ──────────────────────────────────────────
-            today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-
-            # Keep raw responses for debug output
-            raw_max_metrics = raw_training_status = raw_hrv = None
-
-            def _num(val):
-                """Return val as float/int if scalar, else None."""
-                if val is None:
-                    return None
-                if isinstance(val, (int, float)):
-                    return val
-                if isinstance(val, str):
-                    try:
-                        return float(val)
-                    except ValueError:
-                        return None
-                return None
-
-            def _str(val):
-                """Return val as str if scalar, else None."""
-                if val is None:
-                    return None
-                if isinstance(val, str):
-                    return val
-                if isinstance(val, (int, float, bool)):
-                    return str(val)
-                return None
-
-            vo2_max = fitness_age = None
-            try:
-                raw_max_metrics = client.get_max_metrics(today)
-                entry = raw_max_metrics[0] if isinstance(raw_max_metrics, list) and raw_max_metrics else (raw_max_metrics if isinstance(raw_max_metrics, dict) else {})
-                g = entry.get("generic") or {}
-                vo2_max = _num(g.get("vo2MaxValue"))
-                fitness_age = _num(g.get("fitnessAge"))
-            except Exception:
-                pass
-
-            training_status = training_load = acute_load = None
-            try:
-                raw_training_status = client.get_training_status(today)
-                latest = (
-                    (raw_training_status or {})
-                    .get("mostRecentTrainingStatus", {})
-                    .get("latestTrainingStatusData", {})
-                )
-                device_data = next(iter(latest.values()), {}) if latest else {}
-                status_num = device_data.get("trainingStatus")
-                training_status = TRAINING_STATUS_MAP.get(status_num)
-                acl = device_data.get("acuteTrainingLoadDTO") or {}
-                acute_load = _num(acl.get("dailyTrainingLoadAcute"))
-                training_load = _num(acl.get("dailyTrainingLoadChronic"))
-            except Exception:
-                pass
-
-            hrv_last_night = hrv_weekly_avg = hrv_status = None
-            try:
-                raw_hrv = client.get_hrv_data(today)
-                hrv_summary = (raw_hrv or {}).get("hrvSummary") or {}
-                hrv_last_night = _num(hrv_summary.get("lastNightAvg"))
-                hrv_weekly_avg = _num(hrv_summary.get("weeklyAvg"))
-                hrv_status = _str(hrv_summary.get("status"))
-            except Exception:
-                pass
-
-            with get_conn() as conn:
-                with conn.cursor() as cur:
-                    cur.execute(
-                        """
-                        INSERT INTO garmin_metrics
-                            (id, vo2_max, fitness_age, training_status,
-                             training_load, acute_load,
-                             hrv_last_night, hrv_weekly_avg, hrv_status, synced_at)
-                        VALUES (1, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
-                        ON CONFLICT (id) DO UPDATE SET
-                            vo2_max         = EXCLUDED.vo2_max,
-                            fitness_age     = EXCLUDED.fitness_age,
-                            training_status = EXCLUDED.training_status,
-                            training_load   = EXCLUDED.training_load,
-                            acute_load      = EXCLUDED.acute_load,
-                            hrv_last_night  = EXCLUDED.hrv_last_night,
-                            hrv_weekly_avg  = EXCLUDED.hrv_weekly_avg,
-                            hrv_status      = EXCLUDED.hrv_status,
-                            synced_at       = EXCLUDED.synced_at
-                        """,
-                        (vo2_max, fitness_age, training_status,
-                         training_load, acute_load,
-                         hrv_last_night, hrv_weekly_avg, hrv_status),
-                    )
-                conn.commit()
-
-            send_json(self, 200, {"synced": len(records)})
-
+            result = sync_garmin()
+            send_json(self, 200, result)
         except PermissionError as e:
             send_json(self, 401, {"error": str(e)})
         except Exception as e:
-            try:
-                with get_conn() as conn:
-                    with conn.cursor() as cur:
-                        cur.execute(
-                            """
-                            INSERT INTO sync_log (source, status, error_detail, started_at, finished_at)
-                            VALUES ('garmin', 'error', %s, %s, NOW())
-                            """,
-                            (str(e), started_at),
-                        )
-                    conn.commit()
-            except Exception:
-                pass
             send_json(self, 500, {"error": str(e)})

@@ -2,7 +2,7 @@ import os
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler
 
 import psycopg2.extras
@@ -74,143 +74,141 @@ def fetch_all_athlete_shoes(token):
     ]
 
 
-class handler(BaseHTTPRequestHandler):
-    def do_POST(self):
-        started_at = datetime.now(timezone.utc)
-        try:
-            verify_token(self.headers)
+def sync_strava() -> dict:
+    """Core sync logic — called from HTTP handler and cron."""
+    started_at = datetime.now(timezone.utc)
+    try:
+        token = get_access_token()
 
-            token = get_access_token()
+        with get_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT MAX(date) FROM activities")
+                row = cur.fetchone()
 
-            # Incremental sync: only fetch activities newer than the latest in DB
-            with get_conn() as conn:
-                with conn.cursor() as cur:
-                    cur.execute("SELECT MAX(date) FROM activities")
-                    row = cur.fetchone()
+        latest_date = row[0]
+        if latest_date:
+            cutoff = latest_date - timedelta(days=3)
+            after_ts = int(datetime.combine(cutoff, datetime.min.time()).timestamp())
+        else:
+            after_ts = 0
 
-            latest_date = row[0]
-            if latest_date:
-                # Subtract 3 days to catch any late-arriving activities
-                from datetime import timedelta
-                cutoff = latest_date - timedelta(days=3)
-                after_ts = int(datetime.combine(cutoff, datetime.min.time()).timestamp())
-            else:
-                after_ts = 0
+        activities = fetch_all_activities(token, after_timestamp=after_ts)
+        athlete_shoes = fetch_all_athlete_shoes(token)
+        activity_gear_ids = {
+            a["gear_id"]
+            for a in activities
+            if a.get("gear_id") and not a["gear_id"].startswith("b")
+        }
 
-            activities = fetch_all_activities(token, after_timestamp=after_ts)
-
-            # All shoes from athlete profile (includes shoes with 0 activities)
-            athlete_shoes = fetch_all_athlete_shoes(token)
-            # Also collect gear ids referenced in fetched activities (for db_id lookup)
-            activity_gear_ids = {
-                a["gear_id"]
-                for a in activities
-                if a.get("gear_id") and not a["gear_id"].startswith("b")
-            }
-
-            with get_conn() as conn:
-                with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-                    # Upsert all athlete shoes (complete list, not just from activities)
-                    gear_db_ids = {}
-                    for gid, name, total_km in athlete_shoes:
-                        cur.execute(
-                            """
-                            INSERT INTO gear (strava_id, name, total_km, synced_at)
-                            VALUES (%s, %s, %s, NOW())
-                            ON CONFLICT (strava_id) DO UPDATE
-                                SET name      = EXCLUDED.name,
-                                    total_km  = EXCLUDED.total_km,
-                                    synced_at = EXCLUDED.synced_at
-                            RETURNING id
-                            """,
-                            (gid, name, total_km),
-                        )
-                        gear_db_ids[gid] = cur.fetchone()["id"]
-
-                    # For any activity gear not covered by athlete profile, fetch individually
-                    for gid in activity_gear_ids - {s[0] for s in athlete_shoes}:
-                        name, total_km = fetch_gear(token, gid)
-                        cur.execute(
-                            """
-                            INSERT INTO gear (strava_id, name, total_km, synced_at)
-                            VALUES (%s, %s, %s, NOW())
-                            ON CONFLICT (strava_id) DO UPDATE
-                                SET name      = EXCLUDED.name,
-                                    total_km  = EXCLUDED.total_km,
-                                    synced_at = EXCLUDED.synced_at
-                            RETURNING id
-                            """,
-                            (gid, name, total_km),
-                        )
-                        gear_db_ids[gid] = cur.fetchone()["id"]
-
-                    # Upsert activities (runs only)
-                    synced = 0
-                    for act in activities:
-                        if act.get("type") != "Run":
-                            continue
-                        gear_id = act.get("gear_id")
-                        if not gear_id:
-                            continue
-
-                        cur.execute(
-                            """
-                            INSERT INTO activities (
-                                strava_id, date, name, distance_km, elapsed_sec, moving_sec,
-                                avg_hr, elevation_m, relative_effort, gear_id, synced_at
-                            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
-                            ON CONFLICT (strava_id) DO UPDATE SET
-                                date            = EXCLUDED.date,
-                                name            = EXCLUDED.name,
-                                distance_km     = EXCLUDED.distance_km,
-                                elapsed_sec     = EXCLUDED.elapsed_sec,
-                                moving_sec      = EXCLUDED.moving_sec,
-                                avg_hr          = EXCLUDED.avg_hr,
-                                elevation_m     = EXCLUDED.elevation_m,
-                                relative_effort = EXCLUDED.relative_effort,
-                                gear_id         = EXCLUDED.gear_id,
-                                synced_at       = EXCLUDED.synced_at
-                            """,
-                            (
-                                act["id"],
-                                act["start_date_local"][:10],
-                                act["name"],
-                                round(act["distance"] / 1000, 3),
-                                act["elapsed_time"],
-                                act["moving_time"],
-                                round(act["average_heartrate"]) if act.get("average_heartrate") else None,
-                                act.get("total_elevation_gain"),
-                                act.get("suffer_score"),
-                                gear_db_ids.get(gear_id),
-                            ),
-                        )
-                        synced += 1
-
+        with get_conn() as conn:
+            with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+                gear_db_ids = {}
+                for gid, name, total_km in athlete_shoes:
                     cur.execute(
                         """
-                        INSERT INTO sync_log (source, status, records_synced, started_at, finished_at)
-                        VALUES ('strava', 'success', %s, %s, NOW())
+                        INSERT INTO gear (strava_id, name, total_km, synced_at)
+                        VALUES (%s, %s, %s, NOW())
+                        ON CONFLICT (strava_id) DO UPDATE
+                            SET name      = EXCLUDED.name,
+                                total_km  = EXCLUDED.total_km,
+                                synced_at = EXCLUDED.synced_at
+                        RETURNING id
                         """,
-                        (synced, started_at),
+                        (gid, name, total_km),
+                    )
+                    gear_db_ids[gid] = cur.fetchone()["id"]
+
+                for gid in activity_gear_ids - {s[0] for s in athlete_shoes}:
+                    name, total_km = fetch_gear(token, gid)
+                    cur.execute(
+                        """
+                        INSERT INTO gear (strava_id, name, total_km, synced_at)
+                        VALUES (%s, %s, %s, NOW())
+                        ON CONFLICT (strava_id) DO UPDATE
+                            SET name      = EXCLUDED.name,
+                                total_km  = EXCLUDED.total_km,
+                                synced_at = EXCLUDED.synced_at
+                        RETURNING id
+                        """,
+                        (gid, name, total_km),
+                    )
+                    gear_db_ids[gid] = cur.fetchone()["id"]
+
+                synced = 0
+                for act in activities:
+                    if act.get("type") != "Run":
+                        continue
+                    gear_id = act.get("gear_id")
+                    if not gear_id:
+                        continue
+                    cur.execute(
+                        """
+                        INSERT INTO activities (
+                            strava_id, date, name, distance_km, elapsed_sec, moving_sec,
+                            avg_hr, elevation_m, relative_effort, gear_id, synced_at
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                        ON CONFLICT (strava_id) DO UPDATE SET
+                            date            = EXCLUDED.date,
+                            name            = EXCLUDED.name,
+                            distance_km     = EXCLUDED.distance_km,
+                            elapsed_sec     = EXCLUDED.elapsed_sec,
+                            moving_sec      = EXCLUDED.moving_sec,
+                            avg_hr          = EXCLUDED.avg_hr,
+                            elevation_m     = EXCLUDED.elevation_m,
+                            relative_effort = EXCLUDED.relative_effort,
+                            gear_id         = EXCLUDED.gear_id,
+                            synced_at       = EXCLUDED.synced_at
+                        """,
+                        (
+                            act["id"],
+                            act["start_date_local"][:10],
+                            act["name"],
+                            round(act["distance"] / 1000, 3),
+                            act["elapsed_time"],
+                            act["moving_time"],
+                            round(act["average_heartrate"]) if act.get("average_heartrate") else None,
+                            act.get("total_elevation_gain"),
+                            act.get("suffer_score"),
+                            gear_db_ids.get(gear_id),
+                        ),
+                    )
+                    synced += 1
+
+                cur.execute(
+                    """
+                    INSERT INTO sync_log (source, status, records_synced, started_at, finished_at)
+                    VALUES ('strava', 'success', %s, %s, NOW())
+                    """,
+                    (synced, started_at),
+                )
+            conn.commit()
+
+        return {"synced": synced}
+
+    except Exception as e:
+        try:
+            with get_conn() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """
+                        INSERT INTO sync_log (source, status, error_detail, started_at, finished_at)
+                        VALUES ('strava', 'error', %s, %s, NOW())
+                        """,
+                        (str(e), started_at),
                     )
                 conn.commit()
+        except Exception:
+            pass
+        raise
 
-            send_json(self, 200, {"synced": synced})
 
+class handler(BaseHTTPRequestHandler):
+    def do_POST(self):
+        try:
+            verify_token(self.headers)
+            result = sync_strava()
+            send_json(self, 200, result)
         except PermissionError as e:
             send_json(self, 401, {"error": str(e)})
         except Exception as e:
-            try:
-                with get_conn() as conn:
-                    with conn.cursor() as cur:
-                        cur.execute(
-                            """
-                            INSERT INTO sync_log (source, status, error_detail, started_at, finished_at)
-                            VALUES ('strava', 'error', %s, %s, NOW())
-                            """,
-                            (str(e), started_at),
-                        )
-                    conn.commit()
-            except Exception:
-                pass
             send_json(self, 500, {"error": str(e)})

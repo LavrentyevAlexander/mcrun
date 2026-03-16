@@ -1,0 +1,43 @@
+name: Auto Sync
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"  # every 30 minutes (UTC)
+  workflow_dispatch:          # allow manual trigger from GitHub Actions UI
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Trigger sync
+        run: |
+          response=$(curl -sf -X POST "${{ secrets.APP_URL }}/api/cron_sync" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            -w "\n%{http_code}")
+
+          body=$(echo "$response" | head -n -1)
+          status=$(echo "$response" | tail -n 1)
+
+          echo "HTTP $status"
+          echo "$body" | jq .
+
+          if [ "$status" != "200" ]; then
+            echo "Sync failed with HTTP $status"
+            exit 1
+          fi
+
+          # Fail the job if either source returned an error
+          strava_error=$(echo "$body" | jq -r '.strava.error // empty')
+          garmin_error=$(echo "$body" | jq -r '.garmin.error // empty')
+
+          if [ -n "$strava_error" ]; then
+            echo "Strava error: $strava_error"
+            exit 1
+          fi
+          if [ -n "$garmin_error" ]; then
+            echo "Garmin error: $garmin_error"
+            exit 1
+          fi
