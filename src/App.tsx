@@ -107,113 +107,77 @@ function YearlyChart({ data }: { data: Record<string, number> }) {
   if (entries.length === 0) return null;
 
   const W = 620, H = 320;
-  const PAD = { top: 28, right: 40, bottom: 64, left: 72 };
+  const PAD = { top: 32, right: 24, bottom: 56, left: 64 };
   const plotW = W - PAD.left - PAD.right;
   const plotH = H - PAD.top - PAD.bottom;
 
   const maxKm = Math.max(...entries.map(([, km]) => km));
   const yMax = Math.ceil(maxKm / 500) * 500 || 500;
 
-  const toX = (i: number) => PAD.left + (entries.length > 1 ? (i / (entries.length - 1)) * plotW : plotW / 2);
-  const toY = (km: number) => PAD.top + plotH - (km / yMax) * plotH;
-
   const axisBottom = PAD.top + plotH;
-  const points = entries.map(([year, km], i) => ({ year, km, x: toX(i), y: toY(km) }));
-  const polyline = points.map(p => `${p.x},${p.y}`).join(" ");
+  const slotW = plotW / entries.length;
+  const barW = Math.min(slotW * 0.7, 80);
+  const toBarX = (i: number) => PAD.left + slotW * i + (slotW - barW) / 2;
+  const toBarH = (km: number) => (km / yMax) * plotH;
+  const toBarY = (km: number) => PAD.top + plotH - toBarH(km);
 
   const gridSteps = 5;
   const gridLines = Array.from({ length: gridSteps + 1 }, (_, i) => {
     const km = Math.round((yMax / gridSteps) * i);
-    return { km, y: toY(km) };
+    return { km, y: toBarY(km) };
   });
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="yearly-chart">
       <defs>
-        {/* Arrowhead pointing right (X axis) */}
         <marker id="arr-x" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
           <path d="M0,0 L0,6 L8,3 z" fill="#ccc" />
         </marker>
-        {/* Arrowhead pointing up (Y axis) */}
         <marker id="arr-y" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
           <path d="M0,0 L0,6 L8,3 z" fill="#ccc" />
         </marker>
       </defs>
 
-      {/* Horizontal grid lines + Y tick labels */}
+      {/* Horizontal grid lines + Y labels */}
       {gridLines.map(({ km, y }) => (
         <g key={km}>
           <line x1={PAD.left} y1={y} x2={W - PAD.right} y2={y}
-            stroke={km === 0 ? "transparent" : "#e8e8e8"} strokeWidth="1" strokeDasharray={km === 0 ? undefined : "4 3"} />
-          <text x={PAD.left - 10} y={y} textAnchor="end" dominantBaseline="middle" fontSize="11" fill="#aaa">
+            stroke={km === 0 ? "transparent" : "#e8e8e8"} strokeWidth="1" strokeDasharray="4 3" />
+          <text x={PAD.left - 8} y={y} textAnchor="end" dominantBaseline="middle" fontSize="11" fill="#aaa">
             {km}
           </text>
         </g>
       ))}
 
-      {/* Vertical grid lines at each data point */}
-      {points.map(({ year, x }) => (
-        <line key={`vg-${year}`}
-          x1={x} y1={PAD.top} x2={x} y2={axisBottom}
-          stroke="#e8e8e8" strokeWidth="1" strokeDasharray="4 3"
-        />
-      ))}
-
       {/* Y axis */}
-      <line
-        x1={PAD.left} y1={axisBottom}
-        x2={PAD.left} y2={PAD.top - 8}
-        stroke="#ccc" strokeWidth="1.5"
-        markerEnd="url(#arr-y)"
-      />
+      <line x1={PAD.left} y1={axisBottom} x2={PAD.left} y2={PAD.top - 8}
+        stroke="#ccc" strokeWidth="1.5" markerEnd="url(#arr-y)" />
       {/* X axis */}
-      <line
-        x1={PAD.left} y1={axisBottom}
-        x2={W - PAD.right + 8} y2={axisBottom}
-        stroke="#ccc" strokeWidth="1.5"
-        markerEnd="url(#arr-x)"
-      />
+      <line x1={PAD.left} y1={axisBottom} x2={W - PAD.right + 8} y2={axisBottom}
+        stroke="#ccc" strokeWidth="1.5" markerEnd="url(#arr-x)" />
 
       {/* Y axis label */}
-      <text
-        transform={`rotate(-90)`}
-        x={-(PAD.top + plotH / 2)}
-        y={18}
-        textAnchor="middle"
-        fontSize="12"
-        fill="#aaa"
-      >
-        km
-      </text>
+      <text transform="rotate(-90)" x={-(PAD.top + plotH / 2)} y={18}
+        textAnchor="middle" fontSize="12" fill="#aaa">km</text>
 
-      {/* X axis label */}
-      <text
-        x={PAD.left + plotW / 2}
-        y={H - 8}
-        textAnchor="middle"
-        fontSize="12"
-        fill="#aaa"
-      >
-        Year
-      </text>
-
-      {/* Data line */}
-      <polyline points={polyline} fill="none" stroke="#fc4c02" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
-
-      {/* Data points + labels */}
-      {points.map(({ year, km, x, y }) => (
-        <g key={year}>
-          <circle cx={x} cy={y} r="5" fill="#fc4c02" />
-          <text x={x} y={y - 13} textAnchor="middle" fontSize="12" fontWeight="600" fill="#555">
-            {Math.round(km)}
-          </text>
-          {/* X tick */}
-          <line x1={x} y1={axisBottom} x2={x} y2={axisBottom + 4} stroke="#ccc" strokeWidth="1" />
-          <text x={x} y={axisBottom + 18} textAnchor="middle" fontSize="11" fill="#aaa">
-            {year}
-          </text>
-        </g>
-      ))}
+      {/* Bars */}
+      {entries.map(([year, km], i) => {
+        const bx = toBarX(i);
+        const bh = toBarH(km);
+        const by = toBarY(km);
+        const cx = bx + barW / 2;
+        return (
+          <g key={year}>
+            <rect x={bx} y={by} width={barW} height={bh} fill="#fc4c02" rx="4" />
+            <text x={cx} y={by - 8} textAnchor="middle" fontSize="12" fontWeight="600" fill="#555">
+              {Math.round(km)}
+            </text>
+            <text x={cx} y={axisBottom + 18} textAnchor="middle" fontSize="12" fill="#aaa">
+              {year}
+            </text>
+          </g>
+        );
+      })}
     </svg>
   );
 }
