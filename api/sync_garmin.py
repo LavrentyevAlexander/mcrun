@@ -13,6 +13,17 @@ GARMIN_EMAIL = os.environ.get("GARMIN_EMAIL")
 GARMIN_PASSWORD = os.environ.get("GARMIN_PASSWORD")
 GARMIN_TOTP_SECRET = os.environ.get("GARMIN_TOTP_SECRET")
 
+TRAINING_STATUS_MAP = {
+    1: "no data",
+    2: "recovery",
+    3: "unproductive",
+    4: "maintaining",
+    5: "productive",
+    6: "peaking",
+    7: "overreaching",
+    8: "strained",
+}
+
 TYPE_ID_MAP = {
     1: ("1 km", 1000),
     2: ("1 mile", 1609),
@@ -128,27 +139,27 @@ class handler(BaseHTTPRequestHandler):
             training_status = training_load = acute_load = None
             try:
                 raw_training_status = client.get_training_status(today)
-                ts = raw_training_status
-                if isinstance(ts, list) and ts:
-                    ts = ts[0]
-                if isinstance(ts, dict):
-                    training_status = _str(
-                        ts.get("trainingStatus")
-                        or ts.get("mostRecentTrainingStatus")
-                    )
-                    training_load = _num(ts.get("trainingLoad7Day") or ts.get("trainingLoad"))
-                    acute_load = _num(ts.get("acuteLoad"))
+                latest = (
+                    (raw_training_status or {})
+                    .get("mostRecentTrainingStatus", {})
+                    .get("latestTrainingStatusData", {})
+                )
+                device_data = next(iter(latest.values()), {}) if latest else {}
+                status_num = device_data.get("trainingStatus")
+                training_status = TRAINING_STATUS_MAP.get(status_num)
+                acl = device_data.get("acuteTrainingLoadDTO") or {}
+                acute_load = _num(acl.get("dailyTrainingLoadAcute"))
+                training_load = _num(acl.get("dailyTrainingLoadChronic"))
             except Exception:
                 pass
 
             hrv_last_night = hrv_weekly_avg = hrv_status = None
             try:
                 raw_hrv = client.get_hrv_data(today)
-                hrv = raw_hrv
-                if isinstance(hrv, dict):
-                    hrv_last_night = _num(hrv.get("lastNightAvg"))
-                    hrv_weekly_avg = _num(hrv.get("weeklyAvg"))
-                    hrv_status = _str(hrv.get("status"))
+                hrv_summary = (raw_hrv or {}).get("hrvSummary") or {}
+                hrv_last_night = _num(hrv_summary.get("lastNightAvg"))
+                hrv_weekly_avg = _num(hrv_summary.get("weeklyAvg"))
+                hrv_status = _str(hrv_summary.get("status"))
             except Exception:
                 pass
 
@@ -178,14 +189,7 @@ class handler(BaseHTTPRequestHandler):
                     )
                 conn.commit()
 
-            send_json(self, 200, {
-                "synced": len(records),
-                "metrics_debug": {
-                    "max_metrics": raw_max_metrics,
-                    "training_status": raw_training_status,
-                    "hrv": raw_hrv,
-                },
-            })
+            send_json(self, 200, {"synced": len(records)})
 
         except PermissionError as e:
             send_json(self, 401, {"error": str(e)})
