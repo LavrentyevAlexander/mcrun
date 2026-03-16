@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { GoogleLogin, googleLogout } from "@react-oauth/google";
-import { FaHouse, FaPersonRunning, FaCalendarDays, FaTrophy, FaBolt, FaUser, FaArrowsRotate, FaRightFromBracket } from "react-icons/fa6";
+import { FaHouse, FaPersonRunning, FaCalendarDays, FaTrophy, FaBolt, FaUser, FaArrowsRotate, FaRightFromBracket, FaHeartPulse } from "react-icons/fa6";
 import { GiRunningShoe } from "react-icons/gi";
 import "./App.css";
 
@@ -9,6 +9,7 @@ const TAB_META: Record<string, { label: string; icon: React.ReactNode }> = {
   runs:         { label: "Run History",    icon: <FaPersonRunning /> },
   yearly:       { label: "Yearly Mileage", icon: <FaCalendarDays /> },
   gear:         { label: "Gear",           icon: <GiRunningShoe /> },
+  health:       { label: "Health",         icon: <FaHeartPulse /> },
   competitions: { label: "Competitions",   icon: <FaTrophy /> },
   records:      { label: "Records",        icon: <FaBolt /> },
 };
@@ -71,7 +72,7 @@ interface Competition {
   link: string | null;
 }
 
-type Tab = "home" | "runs" | "yearly" | "gear" | "competitions" | "records";
+type Tab = "home" | "runs" | "yearly" | "gear" | "health" | "competitions" | "records";
 
 function formatDuration(totalSec: number): string {
   const h = Math.floor(totalSec / 3600);
@@ -566,7 +567,7 @@ export default function App() {
     return { background: "#f5f5f5", color: "#555" };
   }
 
-  const NAV_TABS = (["home", "runs", "yearly", "gear", "records"] as Tab[]);
+  const NAV_TABS = (["home", "runs", "yearly", "gear", "health", "records"] as Tab[]);
 
   const [gearTooltip, setGearTooltip] = useState<{ name: string; imageUrl: string; top: number; left: number } | null>(null);
 
@@ -708,48 +709,6 @@ export default function App() {
           {/* ── HOME ── */}
           {activeTab === "home" && (
             <div className="home">
-              {garminMetrics && (
-                <div className="home-metrics">
-                  {garminMetrics.vo2_max !== null && (
-                    <div className="metric-card">
-                      <span className="metric-label">VO₂ Max</span>
-                      <span className="metric-value">{garminMetrics.vo2_max}</span>
-                      {garminMetrics.fitness_age !== null && (
-                        <span className="metric-sub">Fitness age {garminMetrics.fitness_age}</span>
-                      )}
-                    </div>
-                  )}
-                  {garminMetrics.training_status && (
-                    <div className="metric-card">
-                      <span className="metric-label">Status</span>
-                      <span className="metric-badge" style={trainingStatusStyle(garminMetrics.training_status)}>
-                        {garminMetrics.training_status.toLowerCase()}
-                      </span>
-                    </div>
-                  )}
-                  {(garminMetrics.training_load !== null || garminMetrics.acute_load !== null) && (
-                    <div className="metric-card">
-                      <span className="metric-label">Load</span>
-                      <span className="metric-value">{garminMetrics.training_load !== null ? Math.round(garminMetrics.training_load) : "—"}</span>
-                      {garminMetrics.acute_load !== null && (
-                        <span className="metric-sub">Acute {Math.round(garminMetrics.acute_load)}</span>
-                      )}
-                    </div>
-                  )}
-                  {garminMetrics.hrv_last_night !== null && (
-                    <div className="metric-card">
-                      <span className="metric-label">HRV</span>
-                      <span className="metric-value">{garminMetrics.hrv_last_night}</span>
-                      {garminMetrics.hrv_status && (
-                        <span className="metric-badge" style={hrvStatusStyle(garminMetrics.hrv_status)}>
-                          {garminMetrics.hrv_status.toLowerCase()}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-
               <div className="home-card">
                 <img src="/logo.png" alt="McRun" className="home-photo" />
                 <blockquote className="home-quote">
@@ -757,6 +716,62 @@ export default function App() {
                   <footer className="home-quote-author">&mdash; Haruki Murakami</footer>
                 </blockquote>
               </div>
+            </div>
+          )}
+
+          {/* ── HEALTH ── */}
+          {activeTab === "health" && (
+            <div className="health-tiles">
+              {!garminMetrics && <p className="health-empty">No data yet — sync Garmin to populate.</p>}
+              {garminMetrics && (<>
+                {garminMetrics.vo2_max !== null && (
+                  <div className="metric-card">
+                    <span className="metric-label">VO₂ Max</span>
+                    <span className="metric-value">{garminMetrics.vo2_max}</span>
+                    {garminMetrics.fitness_age !== null && (
+                      <span className="metric-sub">Fitness age {garminMetrics.fitness_age}</span>
+                    )}
+                  </div>
+                )}
+                {garminMetrics.training_status && (
+                  <div className="metric-card">
+                    <span className="metric-label">Training status</span>
+                    <span className="metric-badge" style={trainingStatusStyle(garminMetrics.training_status)}>
+                      {garminMetrics.training_status}
+                    </span>
+                  </div>
+                )}
+                {garminMetrics.training_load !== null && (
+                  <div className="metric-card">
+                    <span className="metric-label">Chronic load</span>
+                    <span className="metric-value">{Math.round(garminMetrics.training_load)}</span>
+                  </div>
+                )}
+                {garminMetrics.acute_load !== null && (
+                  <div className="metric-card">
+                    <span className="metric-label">Acute load</span>
+                    <span className="metric-value">{Math.round(garminMetrics.acute_load)}</span>
+                  </div>
+                )}
+                {garminMetrics.hrv_last_night !== null && (
+                  <div className="metric-card">
+                    <span className="metric-label">HRV last night</span>
+                    <span className="metric-value">{garminMetrics.hrv_last_night}</span>
+                    {garminMetrics.hrv_weekly_avg !== null && (
+                      <span className="metric-sub">Weekly avg {garminMetrics.hrv_weekly_avg}</span>
+                    )}
+                    {garminMetrics.hrv_status && (
+                      <span className="metric-badge" style={hrvStatusStyle(garminMetrics.hrv_status)}>
+                        {garminMetrics.hrv_status.toLowerCase()}
+                      </span>
+                    )}
+                  </div>
+                )}
+                <div className="metric-card metric-card--muted">
+                  <span className="metric-label">Last synced</span>
+                  <span className="metric-sub">{garminMetrics.synced_at ? new Date(garminMetrics.synced_at).toLocaleString() : "—"}</span>
+                </div>
+              </>)}
             </div>
           )}
 

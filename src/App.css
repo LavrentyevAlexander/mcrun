@@ -381,7 +381,28 @@
 }
 
 /* ════════════════════════════════════════
-   Home metrics strip
+   Health tab tiles
+   ════════════════════════════════════════ */
+.health-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 1rem;
+  padding: 0.5rem 0;
+}
+
+.health-empty {
+  color: var(--clr-muted);
+  text-align: center;
+  padding: 2rem;
+}
+
+.metric-card--muted .metric-sub {
+  font-size: 0.78rem;
+  color: var(--clr-subtle);
+}
+
+/* ════════════════════════════════════════
+   Home metrics strip (legacy — unused)
    ════════════════════════════════════════ */
 .home-metrics {
   display: grid;
