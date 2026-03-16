@@ -10,3 +10,5 @@ lambda_package.zip
 *.tsbuildinfo
 .idea
 .env*.local
+.DS_Store
+.claude/
