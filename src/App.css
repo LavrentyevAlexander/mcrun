@@ -580,6 +580,78 @@ tbody tr:hover {
 }
 
 /* ════════════════════════════════════════
+   Mileage tab controls
+   ════════════════════════════════════════ */
+.mileage-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.view-toggle {
+  display: flex;
+  background: var(--clr-surface);
+  border-radius: var(--radius-sm);
+  padding: 3px;
+  gap: 2px;
+}
+
+.view-toggle button {
+  background: transparent;
+  color: var(--clr-muted);
+  border: none;
+  border-radius: calc(var(--radius-sm) - 2px);
+  padding: 0.3rem 0.9rem;
+  font-size: var(--font-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.view-toggle button:hover:not(:disabled) {
+  background: rgba(252, 76, 2, 0.08);
+  color: var(--clr-brand);
+}
+
+.view-toggle button.active {
+  background: #fff;
+  color: var(--clr-brand);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.year-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.year-selector button {
+  background: var(--clr-surface);
+  color: var(--clr-muted);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius-sm);
+  padding: 0.25rem 0.7rem;
+  font-size: var(--font-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.year-selector button:hover:not(:disabled) {
+  background: rgba(252, 76, 2, 0.08);
+  color: var(--clr-brand);
+  border-color: var(--clr-brand);
+}
+
+.year-selector button.active {
+  background: var(--clr-brand);
+  color: #fff;
+  border-color: var(--clr-brand);
+}
+
+/* ════════════════════════════════════════
    Yearly chart
    ════════════════════════════════════════ */
 .yearly-chart-wrap {
