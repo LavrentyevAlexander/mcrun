@@ -11,27 +11,38 @@ jobs:
     timeout-minutes: 10
 
     steps:
+      - name: Check secrets
+        run: |
+          if [ -z "${{ secrets.APP_URL }}" ]; then
+            echo "ERROR: APP_URL secret is not set"
+            exit 1
+          fi
+          if [ -z "${{ secrets.CRON_SECRET }}" ]; then
+            echo "ERROR: CRON_SECRET secret is not set"
+            exit 1
+          fi
+          echo "APP_URL: ${{ secrets.APP_URL }}"
+
       - name: Trigger sync
         run: |
-          response=$(curl -sf -X POST "${{ secrets.APP_URL }}/api/cron_sync" \
+          HTTP_CODE=$(curl -sL \
+            -o /tmp/response.json \
+            -w "%{http_code}" \
+            -X POST "${{ secrets.APP_URL }}/api/cron_sync" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            -H "Content-Type: application/json" \
-            -w "\n%{http_code}")
+            -H "Content-Type: application/json")
 
-          body=$(echo "$response" | head -n -1)
-          status=$(echo "$response" | tail -n 1)
+          echo "HTTP status: $HTTP_CODE"
+          echo "Response:"
+          cat /tmp/response.json | jq . || cat /tmp/response.json
 
-          echo "HTTP $status"
-          echo "$body" | jq .
-
-          if [ "$status" != "200" ]; then
-            echo "Sync failed with HTTP $status"
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "Sync failed with HTTP $HTTP_CODE"
             exit 1
           fi
 
-          # Fail the job if either source returned an error
-          strava_error=$(echo "$body" | jq -r '.strava.error // empty')
-          garmin_error=$(echo "$body" | jq -r '.garmin.error // empty')
+          strava_error=$(cat /tmp/response.json | jq -r '.strava.error // empty')
+          garmin_error=$(cat /tmp/response.json | jq -r '.garmin.error // empty')
 
           if [ -n "$strava_error" ]; then
             echo "Strava error: $strava_error"
@@ -41,3 +52,7 @@ jobs:
             echo "Garmin error: $garmin_error"
             exit 1
           fi
+
+          echo "Sync completed successfully"
+          echo "Strava: $(cat /tmp/response.json | jq -r '.strava.synced') activities"
+          echo "Garmin: $(cat /tmp/response.json | jq -r '.garmin.synced') records"
