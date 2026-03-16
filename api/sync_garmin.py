@@ -89,38 +89,66 @@ class handler(BaseHTTPRequestHandler):
             # ── Fitness metrics ──────────────────────────────────────────
             today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
+            # Keep raw responses for debug output
+            raw_max_metrics = raw_training_status = raw_hrv = None
+
+            def _num(val):
+                """Return val as float/int if scalar, else None."""
+                if val is None:
+                    return None
+                if isinstance(val, (int, float)):
+                    return val
+                if isinstance(val, str):
+                    try:
+                        return float(val)
+                    except ValueError:
+                        return None
+                return None
+
+            def _str(val):
+                """Return val as str if scalar, else None."""
+                if val is None:
+                    return None
+                if isinstance(val, str):
+                    return val
+                if isinstance(val, (int, float, bool)):
+                    return str(val)
+                return None
+
             vo2_max = fitness_age = None
             try:
-                raw = client.get_max_metrics(today)
-                entry = raw[0] if isinstance(raw, list) and raw else (raw if isinstance(raw, dict) else {})
+                raw_max_metrics = client.get_max_metrics(today)
+                entry = raw_max_metrics[0] if isinstance(raw_max_metrics, list) and raw_max_metrics else (raw_max_metrics if isinstance(raw_max_metrics, dict) else {})
                 g = entry.get("generic") or {}
-                vo2_max = g.get("vo2MaxValue")
-                fitness_age = g.get("fitnessAge")
+                vo2_max = _num(g.get("vo2MaxValue"))
+                fitness_age = _num(g.get("fitnessAge"))
             except Exception:
                 pass
 
             training_status = training_load = acute_load = None
             try:
-                ts = client.get_training_status(today)
+                raw_training_status = client.get_training_status(today)
+                ts = raw_training_status
                 if isinstance(ts, list) and ts:
                     ts = ts[0]
                 if isinstance(ts, dict):
-                    training_status = (
+                    training_status = _str(
                         ts.get("trainingStatus")
                         or ts.get("mostRecentTrainingStatus")
                     )
-                    training_load = ts.get("trainingLoad7Day") or ts.get("trainingLoad")
-                    acute_load = ts.get("acuteLoad")
+                    training_load = _num(ts.get("trainingLoad7Day") or ts.get("trainingLoad"))
+                    acute_load = _num(ts.get("acuteLoad"))
             except Exception:
                 pass
 
             hrv_last_night = hrv_weekly_avg = hrv_status = None
             try:
-                hrv = client.get_hrv_data(today)
+                raw_hrv = client.get_hrv_data(today)
+                hrv = raw_hrv
                 if isinstance(hrv, dict):
-                    hrv_last_night = hrv.get("lastNightAvg")
-                    hrv_weekly_avg = hrv.get("weeklyAvg")
-                    hrv_status = hrv.get("status")
+                    hrv_last_night = _num(hrv.get("lastNightAvg"))
+                    hrv_weekly_avg = _num(hrv.get("weeklyAvg"))
+                    hrv_status = _str(hrv.get("status"))
             except Exception:
                 pass
 
@@ -150,7 +178,14 @@ class handler(BaseHTTPRequestHandler):
                     )
                 conn.commit()
 
-            send_json(self, 200, {"synced": len(records)})
+            send_json(self, 200, {
+                "synced": len(records),
+                "metrics_debug": {
+                    "max_metrics": raw_max_metrics,
+                    "training_status": raw_training_status,
+                    "hrv": raw_hrv,
+                },
+            })
 
         except PermissionError as e:
             send_json(self, 401, {"error": str(e)})
