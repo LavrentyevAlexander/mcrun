@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { GoogleLogin, googleLogout } from "@react-oauth/google";
 import { FaHouse, FaPersonRunning, FaCalendarDays, FaTrophy, FaBolt, FaUser, FaArrowsRotate, FaRightFromBracket } from "react-icons/fa6";
 import { GiRunningShoe } from "react-icons/gi";
@@ -708,14 +708,6 @@ export default function App() {
           {/* ── HOME ── */}
           {activeTab === "home" && (
             <div className="home">
-              <div className="home-card">
-                <img src="/logo.png" alt="McRun" className="home-photo" />
-                <blockquote className="home-quote">
-                  <p className="home-quote-text">&ldquo;Pain is inevitable.<br />Suffering is optional.&rdquo;</p>
-                  <footer className="home-quote-author">&mdash; Haruki Murakami</footer>
-                </blockquote>
-              </div>
-
               {garminMetrics && (
                 <div className="home-metrics">
                   {garminMetrics.vo2_max !== null && (
@@ -757,6 +749,14 @@ export default function App() {
                   )}
                 </div>
               )}
+
+              <div className="home-card">
+                <img src="/logo.png" alt="McRun" className="home-photo" />
+                <blockquote className="home-quote">
+                  <p className="home-quote-text">&ldquo;Pain is inevitable.<br />Suffering is optional.&rdquo;</p>
+                  <footer className="home-quote-author">&mdash; Haruki Murakami</footer>
+                </blockquote>
+              </div>
             </div>
           )}
 
