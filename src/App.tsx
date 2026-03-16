@@ -43,6 +43,18 @@ interface GarminRecord {
   activity_name: string;
 }
 
+interface GarminMetrics {
+  vo2_max: number | null;
+  fitness_age: number | null;
+  training_status: string | null;
+  training_load: number | null;
+  acute_load: number | null;
+  hrv_last_night: number | null;
+  hrv_weekly_avg: number | null;
+  hrv_status: string | null;
+  synced_at: string | null;
+}
+
 interface StatsResponse {
   activities: Activity[];
   gear_summary: Record<string, GearInfo>;
@@ -218,6 +230,9 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
 
+  // Garmin fitness metrics (home page)
+  const [garminMetrics, setGarminMetrics] = useState<GarminMetrics | null>(null);
+
   // All-time data: Gear + Yearly
   const [allTimeData, setAllTimeData] = useState<StatsResponse | null>(null);
   const [allTimeLoading, setAllTimeLoading] = useState(false);
@@ -264,8 +279,21 @@ export default function App() {
     fetchSyncStatus();
     fetchRuns();
     fetchRecords();
+    fetchGarminMetrics();
     if (googleCredential) fetchCompetitions();
   }, []);
+
+  async function fetchGarminMetrics() {
+    try {
+      const res = await fetch("/api/garmin_metrics");
+      if (res.ok) {
+        const json = await res.json();
+        if (json) setGarminMetrics(json);
+      }
+    } catch {
+      // non-critical
+    }
+  }
 
   async function fetchSyncStatus() {
     try {
@@ -293,7 +321,7 @@ export default function App() {
       // Refresh data after sync
       fetchAllTime();
       if (source === "strava") { setRunsData(null); }
-      if (source === "garmin") { setRecords(null); }
+      if (source === "garmin") { setRecords(null); fetchGarminMetrics(); }
     } catch (e: unknown) {
       setSyncError(e instanceof Error ? friendlyError(e.message) : "Sync failed");
     } finally {
@@ -519,6 +547,25 @@ export default function App() {
     return "#c62828";
   }
 
+  function trainingStatusStyle(status: string | null): React.CSSProperties {
+    const s = (status ?? "").toLowerCase();
+    if (s === "productive")   return { background: "#e8f5e9", color: "#2e7d32" };
+    if (s === "peaking")      return { background: "#e3f2fd", color: "#1565c0" };
+    if (s === "maintaining")  return { background: "#f5f5f5", color: "#555" };
+    if (s === "recovery")     return { background: "#e0f7fa", color: "#00838f" };
+    if (s === "unproductive") return { background: "#fff3e0", color: "#e65100" };
+    if (s === "strained")     return { background: "#fff3e0", color: "#e65100" };
+    if (s === "overreaching") return { background: "#ffebee", color: "#c62828" };
+    return { background: "#f5f5f5", color: "#555" };
+  }
+
+  function hrvStatusStyle(status: string | null): React.CSSProperties {
+    const s = (status ?? "").toLowerCase();
+    if (s === "balanced")    return { background: "#e8f5e9", color: "#2e7d32" };
+    if (s === "unbalanced")  return { background: "#fff3e0", color: "#e65100" };
+    return { background: "#f5f5f5", color: "#555" };
+  }
+
   const NAV_TABS = (["home", "runs", "yearly", "gear", "records"] as Tab[]);
 
   const [gearTooltip, setGearTooltip] = useState<{ name: string; imageUrl: string; top: number; left: number } | null>(null);
@@ -668,6 +715,48 @@ export default function App() {
                   <footer className="home-quote-author">&mdash; Haruki Murakami</footer>
                 </blockquote>
               </div>
+
+              {garminMetrics && (
+                <div className="home-metrics">
+                  {garminMetrics.vo2_max !== null && (
+                    <div className="metric-card">
+                      <span className="metric-label">VO₂ Max</span>
+                      <span className="metric-value">{garminMetrics.vo2_max}</span>
+                      {garminMetrics.fitness_age !== null && (
+                        <span className="metric-sub">Fitness age {garminMetrics.fitness_age}</span>
+                      )}
+                    </div>
+                  )}
+                  {garminMetrics.training_status && (
+                    <div className="metric-card">
+                      <span className="metric-label">Status</span>
+                      <span className="metric-badge" style={trainingStatusStyle(garminMetrics.training_status)}>
+                        {garminMetrics.training_status.toLowerCase()}
+                      </span>
+                    </div>
+                  )}
+                  {(garminMetrics.training_load !== null || garminMetrics.acute_load !== null) && (
+                    <div className="metric-card">
+                      <span className="metric-label">Load</span>
+                      <span className="metric-value">{garminMetrics.training_load !== null ? Math.round(garminMetrics.training_load) : "—"}</span>
+                      {garminMetrics.acute_load !== null && (
+                        <span className="metric-sub">Acute {Math.round(garminMetrics.acute_load)}</span>
+                      )}
+                    </div>
+                  )}
+                  {garminMetrics.hrv_last_night !== null && (
+                    <div className="metric-card">
+                      <span className="metric-label">HRV</span>
+                      <span className="metric-value">{garminMetrics.hrv_last_night}</span>
+                      {garminMetrics.hrv_status && (
+                        <span className="metric-badge" style={hrvStatusStyle(garminMetrics.hrv_status)}>
+                          {garminMetrics.hrv_status.toLowerCase()}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
