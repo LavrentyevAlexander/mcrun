@@ -27,6 +27,7 @@ interface Activity {
 }
 
 interface GearInfo {
+  id: number;
   total_km: number;
   limit_km: number | null;
   image_url: string | null;
@@ -121,8 +122,8 @@ function YearlyChart({ data }: { data: Record<string, number> }) {
           <path d="M0,0 L0,6 L8,3 z" fill="#ccc" />
         </marker>
         {/* Arrowhead pointing up (Y axis) */}
-        <marker id="arr-y" markerWidth="8" markerHeight="8" refX="3" refY="1" orient="auto">
-          <path d="M0,6 L3,0 L6,6 z" fill="#ccc" />
+        <marker id="arr-y" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#ccc" />
         </marker>
       </defs>
 
@@ -250,6 +251,13 @@ export default function App() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState({ competition: "", date: "", distance: "", time: "", rank: "", link: "" });
 
+  // Gear management
+  const [gearEditingId, setGearEditingId] = useState<number | null>(null);
+  const [gearEditForm, setGearEditForm] = useState({ name: "", limit_km: "", image_url: "" });
+  const [gearAddForm, setGearAddForm] = useState({ name: "", limit_km: "", image_url: "" });
+  const [gearAddLoading, setGearAddLoading] = useState(false);
+  const [gearError, setGearError] = useState("");
+
   // Preload all data on mount
   useEffect(() => {
     fetchAllTime();
@@ -343,6 +351,8 @@ export default function App() {
   function handleGoogleSuccess(credentialResponse: { credential?: string }) {
     const token = credentialResponse.credential ?? null;
     setGoogleCredential(token);
+    setAddError("");
+    setSyncError("");
     if (token) localStorage.setItem("google_credential", token);
     if (!competitions && !competitionsLoading) fetchCompetitions(token);
   }
@@ -416,6 +426,53 @@ export default function App() {
       setEditingId(null);
     } catch (e: unknown) {
       setAddError(e instanceof Error ? friendlyError(e.message) : "Unknown error");
+    }
+  }
+
+  async function saveGearEdit(id: number) {
+    setGearError("");
+    try {
+      const res = await fetch("/api/gear", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${googleCredential}` },
+        body: JSON.stringify({
+          id,
+          name: gearEditForm.name || undefined,
+          limit_km: gearEditForm.limit_km ? Number(gearEditForm.limit_km) : null,
+          image_url: gearEditForm.image_url || null,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
+      setGearEditingId(null);
+      fetchAllTime();
+    } catch (e: unknown) {
+      setGearError(e instanceof Error ? friendlyError(e.message) : "Unknown error");
+    }
+  }
+
+  async function addGear(e: React.FormEvent) {
+    e.preventDefault();
+    setGearAddLoading(true);
+    setGearError("");
+    try {
+      const res = await fetch("/api/gear", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${googleCredential}` },
+        body: JSON.stringify({
+          name: gearAddForm.name,
+          limit_km: gearAddForm.limit_km ? Number(gearAddForm.limit_km) : null,
+          image_url: gearAddForm.image_url || null,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
+      setGearAddForm({ name: "", limit_km: "", image_url: "" });
+      fetchAllTime();
+    } catch (e: unknown) {
+      setGearError(e instanceof Error ? friendlyError(e.message) : "Unknown error");
+    } finally {
+      setGearAddLoading(false);
     }
   }
 
@@ -621,12 +678,15 @@ export default function App() {
               {allTimeLoading && <div className="loading-box">Loading…</div>}
               {!allTimeLoading && allTimeData && (
                 <div className="table-compact">
+                  {gearError && <p className="error">{gearError}</p>}
                   <table>
                     <thead>
                       <tr>
                         <th>Shoe</th>
                         <th>Total km</th>
+                        <th>Limit km</th>
                         <th>Wear</th>
+                        {googleCredential && <th></th>}
                       </tr>
                     </thead>
                     <tbody>
@@ -639,6 +699,22 @@ export default function App() {
                             : wear < 70 ? "#f9a825"
                             : wear < 80 ? "#e65100"
                             : "#c62828";
+
+                          if (googleCredential && gearEditingId === info.id) {
+                            return (
+                              <tr key={name}>
+                                <td><input value={gearEditForm.name} onChange={(e) => setGearEditForm((f) => ({ ...f, name: e.target.value }))} style={{ width: "100%" }} /></td>
+                                <td>{info.total_km.toFixed(2)}</td>
+                                <td><input type="number" value={gearEditForm.limit_km} onChange={(e) => setGearEditForm((f) => ({ ...f, limit_km: e.target.value }))} style={{ width: 80 }} /></td>
+                                <td>—</td>
+                                <td style={{ display: "flex", gap: "0.4rem" }}>
+                                  <button onClick={() => saveGearEdit(info.id)} style={{ padding: "0.25rem 0.6rem", fontSize: "0.8rem" }}>Save</button>
+                                  <button onClick={() => setGearEditingId(null)} style={{ padding: "0.25rem 0.6rem", fontSize: "0.8rem", background: "#888" }}>✕</button>
+                                </td>
+                              </tr>
+                            );
+                          }
+
                           return (
                             <tr
                               key={name}
@@ -650,15 +726,36 @@ export default function App() {
                               style={info.image_url ? { cursor: "default" } : undefined}
                             >
                               <td data-label="">{name}</td>
-                              <td data-label="Total, km">{info.total_km.toFixed(2)}</td>
+                              <td data-label="Total km">{info.total_km.toFixed(2)}</td>
+                              <td data-label="Limit km">{info.limit_km ?? "—"}</td>
                               <td data-label="Wear" style={wearColor ? { color: wearColor, fontWeight: 600 } : {}}>
                                 {wear !== null ? `${wear}%` : "—"}
                               </td>
+                              {googleCredential && (
+                                <td>
+                                  <button
+                                    onClick={() => { setGearEditingId(info.id); setGearEditForm({ name, limit_km: String(info.limit_km ?? ""), image_url: info.image_url ?? "" }); }}
+                                    style={{ padding: "0.25rem 0.6rem", fontSize: "0.8rem", background: "transparent", color: "#888", border: "1px solid #ddd" }}
+                                  >✎</button>
+                                </td>
+                              )}
                             </tr>
                           );
                         })}
                     </tbody>
                   </table>
+
+                  {googleCredential && (
+                    <details style={{ marginTop: "1.5rem" }}>
+                      <summary style={{ cursor: "pointer", marginBottom: "0.75rem" }}>Add shoe</summary>
+                      <form onSubmit={addGear} style={{ display: "flex", flexDirection: "column", gap: "0.5rem", maxWidth: 420 }}>
+                        <input placeholder="Shoe name" required value={gearAddForm.name} onChange={(e) => setGearAddForm((f) => ({ ...f, name: e.target.value }))} />
+                        <input type="number" placeholder="Limit km (optional)" value={gearAddForm.limit_km} onChange={(e) => setGearAddForm((f) => ({ ...f, limit_km: e.target.value }))} />
+                        <input placeholder="Image URL (optional)" value={gearAddForm.image_url} onChange={(e) => setGearAddForm((f) => ({ ...f, image_url: e.target.value }))} />
+                        <button type="submit" disabled={gearAddLoading}>{gearAddLoading ? "Saving…" : "Add"}</button>
+                      </form>
+                    </details>
+                  )}
                 </div>
               )}
               {gearTooltip && (
@@ -815,9 +912,6 @@ export default function App() {
                 </div>
               ) : (
                 <>
-                  <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "0.75rem" }}>
-                    <button onClick={handleLogout} style={{ fontSize: "0.8rem" }}>Sign out</button>
-                  </div>
                   {competitionsLoading && <div className="loading-box">Loading…</div>}
                   {addError && <p className="error">{addError}</p>}
                   {!competitionsLoading && competitions && (
