@@ -633,6 +633,34 @@ export default function App() {
     return { background: "#f5f5f5", color: "#555" };
   }
 
+  function acuteLoadLabel(v: number): string {
+    if (v < 100)  return "low";
+    if (v < 250)  return "optimal";
+    if (v < 400)  return "high";
+    return "very high";
+  }
+
+  function acuteLoadStyle(v: number): React.CSSProperties {
+    if (v < 100)  return { background: "#f5f5f5", color: "#555" };
+    if (v < 250)  return { background: "#e8f5e9", color: "#2e7d32" };
+    if (v < 400)  return { background: "#fff3e0", color: "#e65100" };
+    return { background: "#ffebee", color: "#c62828" };
+  }
+
+  function readinessLabel(v: number): string {
+    if (v <= 25)  return "low";
+    if (v <= 50)  return "fair";
+    if (v <= 75)  return "good";
+    return "high";
+  }
+
+  function readinessStyle(v: number): React.CSSProperties {
+    if (v <= 25)  return { background: "#ffebee", color: "#c62828" };
+    if (v <= 50)  return { background: "#fff3e0", color: "#e65100" };
+    if (v <= 75)  return { background: "#e3f2fd", color: "#1565c0" };
+    return { background: "#e8f5e9", color: "#2e7d32" };
+  }
+
   const NAV_TABS = (["home", "runs", "yearly", "gear", "health", "records"] as Tab[]);
 
   const [gearTooltip, setGearTooltip] = useState<{ name: string; imageUrl: string; top: number; left: number } | null>(null);
@@ -790,13 +818,14 @@ export default function App() {
             <div className="health-tiles">
               {!garminMetrics && <p className="health-empty">No data yet — sync Garmin to populate.</p>}
               {garminMetrics && (<>
-                {garminMetrics.vo2_max !== null && (
+                <div className="metric-card">
+                  <span className="metric-label">VO₂ Max</span>
+                  <span className="metric-value">{garminMetrics.vo2_max ?? "—"}</span>
+                </div>
+                {garminMetrics.fitness_age !== null && (
                   <div className="metric-card">
-                    <span className="metric-label">VO₂ Max</span>
-                    <span className="metric-value">{garminMetrics.vo2_max}</span>
-                    {garminMetrics.fitness_age !== null && (
-                      <span className="metric-sub">Fitness age {garminMetrics.fitness_age}</span>
-                    )}
+                    <span className="metric-label">Fitness age</span>
+                    <span className="metric-value">{garminMetrics.fitness_age}</span>
                   </div>
                 )}
                 {garminMetrics.training_status && (
@@ -817,6 +846,9 @@ export default function App() {
                   <div className="metric-card">
                     <span className="metric-label">Acute load</span>
                     <span className="metric-value">{Math.round(garminMetrics.acute_load)}</span>
+                    <span className="metric-badge" style={acuteLoadStyle(garminMetrics.acute_load)}>
+                      {acuteLoadLabel(garminMetrics.acute_load)}
+                    </span>
                   </div>
                 )}
                 {garminMetrics.hrv_last_night !== null && (
@@ -838,6 +870,9 @@ export default function App() {
                     <span className="metric-label">Training readiness</span>
                     <span className="metric-value">{garminMetrics.training_readiness}</span>
                     <span className="metric-sub">out of 100</span>
+                    <span className="metric-badge" style={readinessStyle(garminMetrics.training_readiness)}>
+                      {readinessLabel(garminMetrics.training_readiness)}
+                    </span>
                   </div>
                 )}
                 {garminMetrics.resting_hr !== null && (
