@@ -313,6 +313,7 @@ export default function App() {
   const [syncStatus, setSyncStatus] = useState<Record<string, { status: string; records_synced: number | null; finished_at: string | null }>>({});
   const [syncLoading, setSyncLoading] = useState<Record<string, boolean>>({});
   const [syncError, setSyncError] = useState("");
+  const [pendingSync, setPendingSync] = useState<"strava" | "garmin" | null>(null);
 
   // Competitions
   const [googleCredential, setGoogleCredential] = useState<string | null>(
@@ -364,18 +365,19 @@ export default function App() {
     }
   }
 
-  async function triggerSync(source: "strava" | "garmin") {
-    if (!googleCredential) return;
+  async function triggerSync(source: "strava" | "garmin", tokenOverride?: string) {
+    const token = tokenOverride ?? googleCredential;
+    if (!token) return;
     setSyncLoading((s) => ({ ...s, [source]: true }));
     setSyncError("");
     try {
       const res = await fetch(`/api/sync_${source}`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${googleCredential}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
       let json: { error?: string; synced?: number } = {};
       try { json = await res.json(); } catch { /* non-JSON response */ }
-      if (res.status === 401 || res.status === 403) { handleLogout(); throw new Error("Session expired. Please sign in again."); }
+      if (res.status === 401 || res.status === 403) { handleLogout(); setPendingSync(source); setProfileOpen(true); return; }
       if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
       await fetchSyncStatus();
       // Refresh data after sync
@@ -443,6 +445,12 @@ export default function App() {
     setSyncError("");
     if (token) localStorage.setItem("google_credential", token);
     if (!competitions && !competitionsLoading) fetchCompetitions(token);
+    if (token && pendingSync) {
+      const src = pendingSync;
+      setPendingSync(null);
+      setProfileOpen(false);
+      triggerSync(src, token);
+    }
   }
 
   function handleLogout() {
