@@ -121,18 +121,20 @@ def sync_garmin() -> dict:
         today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
         vo2_max = fitness_age = None
+        debug_vo2max = None
         try:
             from datetime import timedelta
             for days_back in range(7):
                 check_date = (datetime.now(timezone.utc) - timedelta(days=days_back)).strftime("%Y-%m-%d")
                 raw = client.get_max_metrics(check_date)
+                debug_vo2max = {"date": check_date, "raw": raw}
                 g = (raw or {}).get("generic") or {}
                 vo2_max = _num(g.get("vo2MaxValue"))
                 fitness_age = _num(g.get("fitnessAge"))
                 if vo2_max is not None:
                     break
-        except Exception:
-            pass
+        except Exception as e:
+            debug_vo2max = {"error": str(e)}
 
         training_status = training_load = acute_load = None
         try:
@@ -187,10 +189,19 @@ def sync_garmin() -> dict:
             raw_rhr = client.get_rhr_day(today)
             debug_rhr = raw_rhr
             if isinstance(raw_rhr, dict):
+                # Try direct keys first
                 resting_hr = _num(
-                    raw_rhr.get("restingHeartRate") or raw_rhr.get("value")
-                    or raw_rhr.get("rhr")
+                    raw_rhr.get("restingHeartRate") or raw_rhr.get("value") or raw_rhr.get("rhr")
                 )
+                # Fallback: allMetrics.metricsMap.WELLNESS_RESTING_HEART_RATE[0].value
+                if resting_hr is None:
+                    entries = (
+                        (raw_rhr.get("allMetrics") or {})
+                        .get("metricsMap", {})
+                        .get("WELLNESS_RESTING_HEART_RATE", [])
+                    )
+                    if entries:
+                        resting_hr = _num(entries[0].get("value"))
             elif isinstance(raw_rhr, list) and raw_rhr:
                 last = raw_rhr[-1]
                 resting_hr = _num(
@@ -287,6 +298,7 @@ def sync_garmin() -> dict:
         return {
             "synced": len(records),
             "metrics_debug": {
+                "vo2max_raw": debug_vo2max,
                 "training_readiness_raw": debug_readiness,
                 "rhr_raw": debug_rhr,
                 "race_raw": debug_race,
