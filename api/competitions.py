@@ -18,7 +18,7 @@ class handler(BaseHTTPRequestHandler):
             with get_conn() as conn:
                 with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
                     cur.execute(
-                        "SELECT id, competition, date::text, distance, time, rank, link "
+                        "SELECT id, competition, location, date::text, distance, time, rank, link "
                         "FROM competitions ORDER BY date ASC"
                     )
                     rows = cur.fetchall()
@@ -40,6 +40,7 @@ class handler(BaseHTTPRequestHandler):
             competition = payload["competition"]
             date = payload["date"]
             distance = payload["distance"]
+            location = payload.get("location") or None
             time = payload.get("time") or None
             rank = payload.get("rank") or None
             link = payload.get("link") or None
@@ -47,9 +48,9 @@ class handler(BaseHTTPRequestHandler):
             with get_conn() as conn:
                 with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
                     cur.execute(
-                        "INSERT INTO competitions (competition, date, distance, time, rank, link) "
-                        "VALUES (%s, %s, %s, %s, %s, %s) RETURNING id, competition, date::text, distance, time, rank, link",
-                        (competition, date, distance, time, rank, link),
+                        "INSERT INTO competitions (competition, location, date, distance, time, rank, link) "
+                        "VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id, competition, location, date::text, distance, time, rank, link",
+                        (competition, location, date, distance, time, rank, link),
                     )
                     row = dict(cur.fetchone())
                 conn.commit()
@@ -74,6 +75,7 @@ class handler(BaseHTTPRequestHandler):
             competition = payload["competition"]
             date = payload["date"]
             distance = payload["distance"]
+            location = payload.get("location") or None
             time = payload.get("time") or None
             rank = payload.get("rank") or None
             link = payload.get("link") or None
@@ -81,9 +83,9 @@ class handler(BaseHTTPRequestHandler):
             with get_conn() as conn:
                 with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
                     cur.execute(
-                        "UPDATE competitions SET competition=%s, date=%s, distance=%s, time=%s, rank=%s, link=%s "
-                        "WHERE id=%s RETURNING id, competition, date::text, distance, time, rank, link",
-                        (competition, date, distance, time, rank, link, record_id),
+                        "UPDATE competitions SET competition=%s, location=%s, date=%s, distance=%s, time=%s, rank=%s, link=%s "
+                        "WHERE id=%s RETURNING id, competition, location, date::text, distance, time, rank, link",
+                        (competition, location, date, distance, time, rank, link, record_id),
                     )
                     row = cur.fetchone()
                     if not row:

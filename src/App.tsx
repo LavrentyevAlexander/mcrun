@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { GoogleLogin, googleLogout } from "@react-oauth/google";
-import { FaHouse, FaPersonRunning, FaCalendarDays, FaTrophy, FaBolt, FaUser, FaArrowsRotate, FaRightFromBracket, FaHeartPulse } from "react-icons/fa6";
+import { FaHouse, FaPersonRunning, FaCalendarDays, FaTrophy, FaBolt, FaUser, FaArrowsRotate, FaRightFromBracket, FaHeartPulse, FaArrowUpRightFromSquare } from "react-icons/fa6";
 import { GiRunningShoe } from "react-icons/gi";
 import "./App.css";
 
@@ -72,6 +72,7 @@ interface StatsResponse {
 interface Competition {
   id: number;
   competition: string;
+  location: string | null;
   date: string;
   distance: string;
   time: string | null;
@@ -321,11 +322,11 @@ export default function App() {
   );
   const [competitions, setCompetitions] = useState<Competition[] | null>(null);
   const [competitionsLoading, setCompetitionsLoading] = useState(false);
-  const [addForm, setAddForm] = useState({ competition: "", date: "", distance: "", time: "", rank: "", link: "" });
+  const [addForm, setAddForm] = useState({ competition: "", location: "", date: "", distance: "", time: "", rank: "", link: "" });
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [editForm, setEditForm] = useState({ competition: "", date: "", distance: "", time: "", rank: "", link: "" });
+  const [editForm, setEditForm] = useState({ competition: "", location: "", date: "", distance: "", time: "", rank: "", link: "" });
 
   // Gear management
   const [gearEditingId, setGearEditingId] = useState<number | null>(null);
@@ -497,7 +498,7 @@ export default function App() {
       const json = await res.json();
       if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
       setCompetitions((prev) => [...(prev ?? []), json]);
-      setAddForm({ competition: "", date: "", distance: "", time: "", rank: "", link: "" });
+      setAddForm({ competition: "", location: "", date: "", distance: "", time: "", rank: "", link: "" });
     } catch (e: unknown) {
       setAddError(e instanceof Error ? friendlyError(e.message) : "Unknown error");
     } finally {
@@ -1203,6 +1204,7 @@ export default function App() {
                           <tr>
                             <th>#</th>
                             <th>Competition</th>
+                            <th>Location</th>
                             <th>Date</th>
                             <th>Distance</th>
                             <th>Time</th>
@@ -1216,6 +1218,7 @@ export default function App() {
                             <tr key={c.id}>
                               <td>{i + 1}</td>
                               <td><input value={editForm.competition} onChange={(e) => setEditForm((f) => ({ ...f, competition: e.target.value }))} style={{ width: "100%" }} /></td>
+                              <td><input value={editForm.location} onChange={(e) => setEditForm((f) => ({ ...f, location: e.target.value }))} style={{ width: "100%" }} /></td>
                               <td><input type="date" value={editForm.date} onChange={(e) => setEditForm((f) => ({ ...f, date: e.target.value }))} /></td>
                               <td><input value={editForm.distance} onChange={(e) => setEditForm((f) => ({ ...f, distance: e.target.value }))} style={{ width: 80 }} /></td>
                               <td><input value={editForm.time} onChange={(e) => setEditForm((f) => ({ ...f, time: e.target.value }))} style={{ width: 80 }} /></td>
@@ -1230,18 +1233,19 @@ export default function App() {
                             <tr key={c.id}>
                               <td data-label="#">{i + 1}</td>
                               <td data-label="Competition">{c.competition}</td>
-                              <td data-label="Date">{c.date}</td>
+                              <td data-label="Location">{c.location ?? "—"}</td>
+                              <td data-label="Date">{c.date.split("-").reverse().join(".")}</td>
                               <td data-label="Distance">{c.distance}</td>
                               <td data-label="Time">{c.time ?? "—"}</td>
                               <td data-label="Rank">{c.rank ?? "—"}</td>
                               <td data-label="Results">
                                 {c.link ? (
-                                  <a href={c.link} target="_blank" rel="noopener noreferrer">link</a>
+                                  <a href={c.link} target="_blank" rel="noopener noreferrer"><FaArrowUpRightFromSquare /></a>
                                 ) : "—"}
                               </td>
                               <td>
                                 <button
-                                  onClick={() => { setEditingId(c.id); setEditForm({ competition: c.competition, date: c.date, distance: c.distance, time: c.time ?? "", rank: c.rank ?? "", link: c.link ?? "" }); }}
+                                  onClick={() => { setEditingId(c.id); setEditForm({ competition: c.competition, location: c.location ?? "", date: c.date, distance: c.distance, time: c.time ?? "", rank: c.rank ?? "", link: c.link ?? "" }); }}
                                   style={{ padding: "0.25rem 0.6rem", fontSize: "0.8rem", background: "transparent", color: "#888", border: "1px solid #ddd" }}
                                 >✎</button>
                               </td>
@@ -1255,6 +1259,7 @@ export default function App() {
                     <summary style={{ cursor: "pointer", marginBottom: "0.75rem" }}>Add competition</summary>
                     <form onSubmit={addCompetition} style={{ display: "flex", flexDirection: "column", gap: "0.5rem", maxWidth: 420 }}>
                       <input placeholder="Competition name" required value={addForm.competition} onChange={(e) => setAddForm((f) => ({ ...f, competition: e.target.value }))} />
+                      <input placeholder="Location (e.g. Moscow)" value={addForm.location} onChange={(e) => setAddForm((f) => ({ ...f, location: e.target.value }))} />
                       <input type="date" required value={addForm.date} onChange={(e) => setAddForm((f) => ({ ...f, date: e.target.value }))} />
                       <input placeholder="Distance (e.g. 10 km)" required value={addForm.distance} onChange={(e) => setAddForm((f) => ({ ...f, distance: e.target.value }))} />
                       <input placeholder="Time (e.g. 0:58:34)" value={addForm.time} onChange={(e) => setAddForm((f) => ({ ...f, time: e.target.value }))} />
