@@ -633,20 +633,6 @@ export default function App() {
     return { background: "#f5f5f5", color: "#555" };
   }
 
-  function acuteLoadLabel(v: number): string {
-    if (v < 100)  return "low";
-    if (v < 250)  return "optimal";
-    if (v < 400)  return "high";
-    return "very high";
-  }
-
-  function acuteLoadStyle(v: number): React.CSSProperties {
-    if (v < 100)  return { background: "#f5f5f5", color: "#555" };
-    if (v < 250)  return { background: "#e8f5e9", color: "#2e7d32" };
-    if (v < 400)  return { background: "#fff3e0", color: "#e65100" };
-    return { background: "#ffebee", color: "#c62828" };
-  }
-
   function readinessLabel(v: number): string {
     if (v <= 25)  return "low";
     if (v <= 50)  return "fair";
@@ -846,11 +832,25 @@ export default function App() {
                   <div className="metric-card">
                     <span className="metric-label">Acute load</span>
                     <span className="metric-value">{Math.round(garminMetrics.acute_load)}</span>
-                    <span className="metric-badge" style={acuteLoadStyle(garminMetrics.acute_load)}>
-                      {acuteLoadLabel(garminMetrics.acute_load)}
-                    </span>
                   </div>
                 )}
+                {garminMetrics.acute_load !== null && garminMetrics.training_load !== null && (() => {
+                  const ratio = garminMetrics.acute_load / garminMetrics.training_load;
+                  const label = ratio < 0.8 ? "low" : ratio <= 1.3 ? "optimal" : ratio <= 1.6 ? "high" : "overreaching";
+                  const style: React.CSSProperties =
+                    ratio < 0.8   ? { background: "#e3f2fd", color: "#1565c0" } :
+                    ratio <= 1.3  ? { background: "#e8f5e9", color: "#2e7d32" } :
+                    ratio <= 1.6  ? { background: "#ffebee", color: "#c62828" } :
+                                    { background: "#212121", color: "#fff" };
+                  return (
+                    <div className="metric-card">
+                      <span className="metric-label">Load ratio</span>
+                      <span className="metric-value">{ratio.toFixed(2)}</span>
+                      <span className="metric-sub">acute / chronic</span>
+                      <span className="metric-badge" style={style}>{label}</span>
+                    </div>
+                  );
+                })()}
                 {garminMetrics.hrv_last_night !== null && (
                   <div className="metric-card">
                     <span className="metric-label">HRV last night</span>
