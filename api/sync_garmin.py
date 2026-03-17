@@ -137,6 +137,18 @@ def sync_garmin() -> dict:
         except Exception as e:
             debug_vo2max = {"error": str(e)}
 
+        if fitness_age is None:
+            try:
+                raw_fa = client.get_fitnessage_data(today)
+                debug_vo2max = {**(debug_vo2max or {}), "fitnessage_raw": raw_fa}
+                if isinstance(raw_fa, dict):
+                    fitness_age = _num(
+                        raw_fa.get("fitnessAge") or raw_fa.get("fitness_age")
+                        or raw_fa.get("value")
+                    )
+            except Exception:
+                pass
+
         training_status = training_load = acute_load = None
         try:
             raw_ts = client.get_training_status(today)
