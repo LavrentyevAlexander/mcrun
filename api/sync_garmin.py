@@ -24,6 +24,33 @@ TRAINING_STATUS_MAP = {
     8: "strained",
 }
 
+READINESS_FEEDBACK_MAP = {
+    "GOOD_SLEEP_LAST_NIGHT": "Good sleep last night",
+    "RECOVERED_AND_READY": "Recovered and ready",
+    "HIGH_HRV": "High HRV",
+    "LOW_HRV": "Low HRV",
+    "GOOD_HRV": "Good HRV",
+    "HIGH_STRESS_HISTORY": "High recent stress",
+    "POOR_SLEEP_HISTORY": "Poor sleep history",
+    "GOOD_SLEEP_HISTORY": "Good sleep history",
+    "LOW_BODY_BATTERY": "Low body battery",
+    "HIGH_ACTIVITY": "High recent activity",
+    "LOW_ACTIVITY": "Low recent activity",
+    "POOR_SLEEP_LAST_NIGHT": "Poor sleep last night",
+    "MODERATE_SLEEP_LAST_NIGHT": "Moderate sleep last night",
+    "HIGH_RECOVERY_TIME": "High recovery time remaining",
+    "NO_CHANGE_SLEEP": "No change since waking",
+}
+
+ACWR_FEEDBACK_MAP = {
+    "VERY_GOOD": "very good",
+    "GOOD": "good",
+    "MODERATE": "moderate",
+    "FAIR": "fair",
+    "POOR": "poor",
+    "VERY_POOR": "very poor",
+}
+
 TYPE_ID_MAP = {
     1: ("1 km", 1000),
     2: ("1 mile", 1609),
@@ -130,7 +157,7 @@ def sync_garmin() -> dict:
                 entry = raw[0] if isinstance(raw, list) and raw else (raw if isinstance(raw, dict) else {})
                 debug_vo2max = {"date": check_date, "raw": raw}
                 g = (entry or {}).get("generic") or {}
-                vo2_max = _num(g.get("vo2MaxValue"))
+                vo2_max = _num(g.get("vo2MaxPreciseValue") or g.get("vo2MaxValue"))
                 fitness_age = _num(g.get("fitnessAge"))
                 if vo2_max is not None:
                     break
@@ -176,18 +203,33 @@ def sync_garmin() -> dict:
             pass
 
         # ── Training Readiness ───────────────────────────────────────
-        training_readiness = None
+        training_readiness = readiness_level = readiness_feedback = None
+        sleep_score = recovery_time = acwr_feedback = None
         debug_readiness = None
         try:
             raw_tr = client.get_training_readiness(today)
             debug_readiness = raw_tr
+            entry_tr = None
             if isinstance(raw_tr, list) and raw_tr:
-                raw_tr = raw_tr[0]
-            if isinstance(raw_tr, dict):
-                training_readiness = _num(
-                    raw_tr.get("score") or raw_tr.get("trainingReadinessScore")
-                    or raw_tr.get("value") or raw_tr.get("trainingReadiness")
+                # prefer post-exercise reset (most recent state), fallback to first
+                entry_tr = next(
+                    (e for e in raw_tr if e.get("inputContext") == "AFTER_POST_EXERCISE_RESET"),
+                    raw_tr[0],
                 )
+            elif isinstance(raw_tr, dict):
+                entry_tr = raw_tr
+            if entry_tr:
+                training_readiness = _num(
+                    entry_tr.get("score") or entry_tr.get("trainingReadinessScore")
+                    or entry_tr.get("value") or entry_tr.get("trainingReadiness")
+                )
+                readiness_level = _str(entry_tr.get("level"))
+                feedback_key = entry_tr.get("feedbackShort")
+                readiness_feedback = READINESS_FEEDBACK_MAP.get(feedback_key, feedback_key)
+                sleep_score = entry_tr.get("sleepScore")
+                recovery_time = entry_tr.get("recoveryTime")
+                acwr_raw = entry_tr.get("acwrFactorFeedback")
+                acwr_feedback = ACWR_FEEDBACK_MAP.get(acwr_raw, acwr_raw.lower().replace("_", " ") if acwr_raw else None)
         except Exception:
             pass
 
@@ -278,10 +320,12 @@ def sync_garmin() -> dict:
                         (id, vo2_max, fitness_age, training_status,
                          training_load, acute_load,
                          hrv_last_night, hrv_weekly_avg, hrv_status,
-                         training_readiness, resting_hr, resting_hr_7day,
+                         training_readiness, readiness_level, readiness_feedback,
+                         sleep_score, recovery_time, acwr_feedback,
+                         resting_hr, resting_hr_7day,
                          race_5k, race_10k, race_hm, race_marathon,
                          synced_at)
-                    VALUES (1, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                    VALUES (1, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
                     ON CONFLICT (id) DO UPDATE SET
                         vo2_max             = EXCLUDED.vo2_max,
                         fitness_age         = EXCLUDED.fitness_age,
@@ -292,6 +336,11 @@ def sync_garmin() -> dict:
                         hrv_weekly_avg      = EXCLUDED.hrv_weekly_avg,
                         hrv_status          = EXCLUDED.hrv_status,
                         training_readiness  = EXCLUDED.training_readiness,
+                        readiness_level     = EXCLUDED.readiness_level,
+                        readiness_feedback  = EXCLUDED.readiness_feedback,
+                        sleep_score         = EXCLUDED.sleep_score,
+                        recovery_time       = EXCLUDED.recovery_time,
+                        acwr_feedback       = EXCLUDED.acwr_feedback,
                         resting_hr          = EXCLUDED.resting_hr,
                         resting_hr_7day     = EXCLUDED.resting_hr_7day,
                         race_5k             = EXCLUDED.race_5k,
@@ -303,7 +352,9 @@ def sync_garmin() -> dict:
                     (vo2_max, fitness_age, training_status,
                      training_load, acute_load,
                      hrv_last_night, hrv_weekly_avg, hrv_status,
-                     training_readiness, resting_hr, resting_hr_7day,
+                     training_readiness, readiness_level, readiness_feedback,
+                     sleep_score, recovery_time, acwr_feedback,
+                     resting_hr, resting_hr_7day,
                      race_5k, race_10k, race_hm, race_marathon),
                 )
             conn.commit()

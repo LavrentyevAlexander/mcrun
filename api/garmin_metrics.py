@@ -19,7 +19,9 @@ class handler(BaseHTTPRequestHandler):
                         SELECT vo2_max, fitness_age, training_status,
                                training_load, acute_load,
                                hrv_last_night, hrv_weekly_avg, hrv_status,
-                               training_readiness, resting_hr, resting_hr_7day,
+                               training_readiness, readiness_level, readiness_feedback,
+                               sleep_score, recovery_time, acwr_feedback,
+                               resting_hr, resting_hr_7day,
                                race_5k, race_10k, race_hm, race_marathon,
                                synced_at::text
                         FROM garmin_metrics
@@ -41,6 +43,11 @@ class handler(BaseHTTPRequestHandler):
                 "hrv_weekly_avg": row["hrv_weekly_avg"],
                 "hrv_status": row["hrv_status"],
                 "training_readiness": row["training_readiness"],
+                "readiness_level": row["readiness_level"],
+                "readiness_feedback": row["readiness_feedback"],
+                "sleep_score": row["sleep_score"],
+                "recovery_time": row["recovery_time"],
+                "acwr_feedback": row["acwr_feedback"],
                 "resting_hr": row["resting_hr"],
                 "resting_hr_7day": row["resting_hr_7day"],
                 "race_5k": row["race_5k"],

@@ -54,6 +54,11 @@ interface GarminMetrics {
   hrv_weekly_avg: number | null;
   hrv_status: string | null;
   training_readiness: number | null;
+  readiness_level: string | null;
+  readiness_feedback: string | null;
+  sleep_score: number | null;
+  recovery_time: number | null;
+  acwr_feedback: string | null;
   resting_hr: number | null;
   resting_hr_7day: string | null; // JSON string: [{date, value}]
   race_5k: string | null;
@@ -642,6 +647,16 @@ export default function App() {
     return { background: "#f5f5f5", color: "#555" };
   }
 
+  function acwrFeedbackStyle(v: string | null): React.CSSProperties {
+    const s = (v ?? "").toLowerCase();
+    if (s === "very good") return { background: "#e8f5e9", color: "#2e7d32" };
+    if (s === "good")      return { background: "#e8f5e9", color: "#2e7d32" };
+    if (s === "moderate" || s === "fair") return { background: "#e3f2fd", color: "#1565c0" };
+    if (s === "poor")      return { background: "#fff3e0", color: "#e65100" };
+    if (s === "very poor") return { background: "#ffebee", color: "#c62828" };
+    return { background: "#f5f5f5", color: "#555" };
+  }
+
   function readinessLabel(v: number): string {
     if (v <= 25)  return "low";
     if (v <= 50)  return "fair";
@@ -843,23 +858,15 @@ export default function App() {
                     <span className="metric-value">{Math.round(garminMetrics.acute_load)}</span>
                   </div>
                 )}
-                {garminMetrics.acute_load !== null && garminMetrics.training_load !== null && (() => {
-                  const ratio = garminMetrics.acute_load / garminMetrics.training_load;
-                  const label = ratio < 0.8 ? "low" : ratio <= 1.3 ? "optimal" : ratio <= 1.6 ? "high" : "overreaching";
-                  const style: React.CSSProperties =
-                    ratio < 0.8   ? { background: "#e3f2fd", color: "#1565c0" } :
-                    ratio <= 1.3  ? { background: "#e8f5e9", color: "#2e7d32" } :
-                    ratio <= 1.6  ? { background: "#ffebee", color: "#c62828" } :
-                                    { background: "#212121", color: "#fff" };
-                  return (
-                    <div className="metric-card">
-                      <span className="metric-label">Load ratio</span>
-                      <span className="metric-value">{ratio.toFixed(2)}</span>
-                      <span className="metric-sub">acute / chronic</span>
-                      <span className="metric-badge" style={style}>{label}</span>
-                    </div>
-                  );
-                })()}
+                {garminMetrics.acwr_feedback !== null && (
+                  <div className="metric-card">
+                    <span className="metric-label">Load balance</span>
+                    <span className="metric-badge" style={acwrFeedbackStyle(garminMetrics.acwr_feedback)}>
+                      {garminMetrics.acwr_feedback}
+                    </span>
+                    <span className="metric-sub">acute / chronic</span>
+                  </div>
+                )}
                 {garminMetrics.hrv_last_night !== null && (
                   <div className="metric-card">
                     <span className="metric-label">HRV last night</span>
@@ -880,8 +887,26 @@ export default function App() {
                     <span className="metric-value">{garminMetrics.training_readiness}</span>
                     <span className="metric-sub">out of 100</span>
                     <span className="metric-badge" style={readinessStyle(garminMetrics.training_readiness)}>
-                      {readinessLabel(garminMetrics.training_readiness)}
+                      {garminMetrics.readiness_level
+                        ? garminMetrics.readiness_level.toLowerCase()
+                        : readinessLabel(garminMetrics.training_readiness)}
                     </span>
+                    {garminMetrics.readiness_feedback && (
+                      <span className="metric-sub">{garminMetrics.readiness_feedback}</span>
+                    )}
+                  </div>
+                )}
+                {garminMetrics.sleep_score !== null && (
+                  <div className="metric-card">
+                    <span className="metric-label">Sleep score</span>
+                    <span className="metric-value">{garminMetrics.sleep_score}</span>
+                    <span className="metric-sub">out of 100</span>
+                  </div>
+                )}
+                {garminMetrics.recovery_time !== null && garminMetrics.recovery_time > 0 && (
+                  <div className="metric-card">
+                    <span className="metric-label">Recovery time</span>
+                    <span className="metric-value">{garminMetrics.recovery_time} <span style={{ fontSize: "0.6em", opacity: 0.7 }}>hr</span></span>
                   </div>
                 )}
                 {garminMetrics.resting_hr !== null && (
@@ -1075,7 +1100,7 @@ export default function App() {
                       <tbody>
                         {sortedActivities.map((a, i) => (
                           <tr key={i}>
-                            <td data-label="Date">{a.date}</td>
+                            <td data-label="Date">{a.date.split("-").reverse().join(".")}</td>
                             <td data-label="Name">
                               <a href={`https://www.strava.com/activities/${a.strava_id}`} target="_blank" rel="noopener noreferrer">
                                 {a.name}
@@ -1168,7 +1193,7 @@ export default function App() {
                         <td data-label="Distance">{r.label}</td>
                         <td data-label="Time">{r.time}</td>
                         <td data-label="Pace / min/km">{r.pace}</td>
-                        <td data-label="Date">{r.date}</td>
+                        <td data-label="Date">{r.date.split("-").reverse().join(".")}</td>
                         <td data-label="Activity">
                           <a href={`https://connect.garmin.com/modern/activity/${r.activity_id}`} target="_blank" rel="noopener noreferrer">
                             {r.activity_name || "Garmin"}
