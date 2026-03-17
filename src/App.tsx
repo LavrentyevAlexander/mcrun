@@ -1006,8 +1006,8 @@ export default function App() {
                               style={info.image_url ? { cursor: "default" } : undefined}
                             >
                               <td data-label="">{name}</td>
-                              <td data-label="Total km">{info.total_km.toFixed(2)}</td>
-                              <td data-label="Limit km">{info.limit_km ?? "—"}</td>
+                              <td data-label="Total, km">{info.total_km.toFixed(2)}</td>
+                              <td data-label="Limit, km">{info.limit_km ?? "—"}</td>
                               <td data-label="Wear" style={wearColor ? { color: wearColor, fontWeight: 600 } : {}}>
                                 {wear !== null ? `${wear}%` : "—"}
                               </td>
