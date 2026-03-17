@@ -122,11 +122,15 @@ def sync_garmin() -> dict:
 
         vo2_max = fitness_age = None
         try:
-            raw = client.get_max_metrics(today)
-            entry = raw[0] if isinstance(raw, list) and raw else (raw if isinstance(raw, dict) else {})
-            g = entry.get("generic") or {}
-            vo2_max = _num(g.get("vo2MaxValue"))
-            fitness_age = _num(g.get("fitnessAge"))
+            from datetime import timedelta
+            for days_back in range(7):
+                check_date = (datetime.now(timezone.utc) - timedelta(days=days_back)).strftime("%Y-%m-%d")
+                raw = client.get_max_metrics(check_date)
+                g = (raw or {}).get("generic") or {}
+                vo2_max = _num(g.get("vo2MaxValue"))
+                fitness_age = _num(g.get("fitnessAge"))
+                if vo2_max is not None:
+                    break
         except Exception:
             pass
 
