@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { GoogleLogin, googleLogout } from "@react-oauth/google";
-import { FaHouse, FaPersonRunning, FaCalendarDays, FaTrophy, FaBolt, FaUser, FaArrowsRotate, FaRightFromBracket, FaHeartPulse, FaArrowUpRightFromSquare } from "react-icons/fa6";
+import { FaHouse, FaPersonRunning, FaCalendarDays, FaTrophy, FaBolt, FaUser, FaArrowsRotate, FaRightFromBracket, FaHeartPulse, FaArrowUpRightFromSquare, FaCalendarCheck } from "react-icons/fa6";
 import { GiRunningShoe } from "react-icons/gi";
 import "./App.css";
 
@@ -10,6 +10,7 @@ const TAB_META: Record<string, { label: string; icon: React.ReactNode }> = {
   yearly:       { label: "Mileage",         icon: <FaCalendarDays /> },
   gear:         { label: "Gear",           icon: <GiRunningShoe /> },
   health:       { label: "Health",         icon: <FaHeartPulse /> },
+  calendar:     { label: "Calendar",       icon: <FaCalendarCheck /> },
   competitions: { label: "Competitions",   icon: <FaTrophy /> },
   records:      { label: "Records",        icon: <FaBolt /> },
 };
@@ -85,7 +86,19 @@ interface Competition {
   link: string | null;
 }
 
-type Tab = "home" | "runs" | "yearly" | "gear" | "health" | "competitions" | "records";
+type Tab = "home" | "runs" | "yearly" | "gear" | "health" | "calendar" | "competitions" | "records";
+
+interface GarminActivity {
+  id: string;
+  date: string;
+  name: string;
+  activity_type: string;
+  distance_km: number;
+  duration_sec: number;
+  calories: number | null;
+  aerobic_te: number | null;
+  anaerobic_te: number | null;
+}
 
 function formatDuration(totalSec: number): string {
   const h = Math.floor(totalSec / 3600);
@@ -333,12 +346,24 @@ export default function App() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState({ competition: "", location: "", date: "", distance: "", time: "", rank: "", link: "" });
 
+  // Calendar
+  const [calendarDate, setCalendarDate] = useState<Date>(() => { const d = new Date(); d.setDate(1); return d; });
+  const [calendarEvents, setCalendarEvents] = useState<GarminActivity[] | null>(null);
+  const [calendarLoading, setCalendarLoading] = useState(false);
+  const [calendarError, setCalendarError] = useState("");
+
   // Gear management
   const [gearEditingId, setGearEditingId] = useState<number | null>(null);
   const [gearEditForm, setGearEditForm] = useState({ name: "", limit_km: "", image_url: "" });
   const [gearAddForm, setGearAddForm] = useState({ name: "", limit_km: "", image_url: "" });
   const [gearAddLoading, setGearAddLoading] = useState(false);
   const [gearError, setGearError] = useState("");
+
+  useEffect(() => {
+    if (activeTab === "calendar") {
+      fetchCalendarEvents(calendarDate.getFullYear(), calendarDate.getMonth() + 1);
+    }
+  }, [calendarDate]);
 
   // Preload all data on mount
   useEffect(() => {
@@ -427,6 +452,22 @@ export default function App() {
       setRunsError(e instanceof Error ? friendlyError(e.message) : "Unknown error");
     } finally {
       setRunsLoading(false);
+    }
+  }
+
+  async function fetchCalendarEvents(year: number, month: number) {
+    setCalendarLoading(true);
+    setCalendarError("");
+    try {
+      const res = await fetch(`/api/garmin_calendar?year=${year}&month=${month}`);
+      const json = await res.json();
+      if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
+      setCalendarEvents(json);
+    } catch (e: unknown) {
+      setCalendarError(e instanceof Error ? friendlyError(e.message) : "Unknown error");
+      setCalendarEvents(null);
+    } finally {
+      setCalendarLoading(false);
     }
   }
 
@@ -671,7 +712,7 @@ export default function App() {
     return { background: "#e8f5e9", color: "#2e7d32" };
   }
 
-  const NAV_TABS = (["home", "runs", "yearly", "gear", "health", "records"] as Tab[]);
+  const NAV_TABS = (["home", "runs", "yearly", "gear", "health", "calendar", "records"] as Tab[]);
 
   const [gearTooltip, setGearTooltip] = useState<{ name: string; imageUrl: string; top: number; left: number } | null>(null);
 
@@ -679,6 +720,7 @@ export default function App() {
     setActiveTab(tab);
     if (tab === "records" && !records && !recordsLoading) fetchRecords();
     if (tab === "competitions" && googleCredential && !competitions && !competitionsLoading) fetchCompetitions();
+    if (tab === "calendar") fetchCalendarEvents(calendarDate.getFullYear(), calendarDate.getMonth() + 1);
   }
 
   function syncLabel(src: "strava" | "garmin") {
@@ -906,7 +948,16 @@ export default function App() {
                 {garminMetrics.recovery_time !== null && garminMetrics.recovery_time > 0 && (
                   <div className="metric-card">
                     <span className="metric-label">Recovery time</span>
-                    <span className="metric-value">{garminMetrics.recovery_time} <span style={{ fontSize: "0.6em", opacity: 0.7 }}>hr</span></span>
+                    {(() => {
+                      const totalMin = garminMetrics.recovery_time!;
+                      const h = Math.floor(totalMin / 60);
+                      const m = totalMin % 60;
+                      return (
+                        <span className="metric-value">
+                          {h > 0 ? <>{h}<span style={{ fontSize: "0.6em", opacity: 0.7 }}>h</span>{m > 0 ? <> {m}<span style={{ fontSize: "0.6em", opacity: 0.7 }}>m</span></> : null}</> : <>{m}<span style={{ fontSize: "0.6em", opacity: 0.7 }}>m</span></>}
+                        </span>
+                      );
+                    })()}
                   </div>
                 )}
                 {garminMetrics.resting_hr !== null && (
@@ -932,15 +983,28 @@ export default function App() {
                     })()}
                   </div>
                 )}
-                {(garminMetrics.race_5k || garminMetrics.race_10k || garminMetrics.race_hm || garminMetrics.race_marathon) && (
-                  <div className="metric-card metric-card--wide">
-                    <span className="metric-label">Race predictions</span>
-                    <div className="race-predictions">
-                      {garminMetrics.race_5k && <span className="race-item"><span className="race-dist">5K</span><span className="race-time">{garminMetrics.race_5k}</span></span>}
-                      {garminMetrics.race_10k && <span className="race-item"><span className="race-dist">10K</span><span className="race-time">{garminMetrics.race_10k}</span></span>}
-                      {garminMetrics.race_hm && <span className="race-item"><span className="race-dist">HM</span><span className="race-time">{garminMetrics.race_hm}</span></span>}
-                      {garminMetrics.race_marathon && <span className="race-item"><span className="race-dist">M</span><span className="race-time">{garminMetrics.race_marathon}</span></span>}
-                    </div>
+                {garminMetrics.race_5k && (
+                  <div className="metric-card">
+                    <span className="metric-label">5K prediction</span>
+                    <span className="metric-value metric-value--mono">{garminMetrics.race_5k}</span>
+                  </div>
+                )}
+                {garminMetrics.race_10k && (
+                  <div className="metric-card">
+                    <span className="metric-label">10K prediction</span>
+                    <span className="metric-value metric-value--mono">{garminMetrics.race_10k}</span>
+                  </div>
+                )}
+                {garminMetrics.race_hm && (
+                  <div className="metric-card">
+                    <span className="metric-label">HM prediction</span>
+                    <span className="metric-value metric-value--mono">{garminMetrics.race_hm}</span>
+                  </div>
+                )}
+                {garminMetrics.race_marathon && (
+                  <div className="metric-card">
+                    <span className="metric-label">Marathon prediction</span>
+                    <span className="metric-value metric-value--mono">{garminMetrics.race_marathon}</span>
                   </div>
                 )}
                 <div className="metric-card metric-card--muted">
@@ -1297,6 +1361,86 @@ export default function App() {
               )}
             </div>
           )}
+
+          {/* ── CALENDAR ── */}
+          {activeTab === "calendar" && (() => {
+            const year = calendarDate.getFullYear();
+            const month = calendarDate.getMonth(); // 0-based
+            const firstDow = new Date(year, month, 1).getDay(); // 0=Sun
+            const startOffset = (firstDow + 6) % 7; // convert to Mon-first
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const cells: (number | null)[] = [...Array(startOffset).fill(null)];
+            for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+            const todayStr = new Date().toISOString().slice(0, 10);
+
+            // Group events by date
+            const eventsByDate: Record<string, GarminActivity[]> = {};
+            (calendarEvents || []).forEach((e) => {
+              if (!eventsByDate[e.date]) eventsByDate[e.date] = [];
+              eventsByDate[e.date].push(e);
+            });
+
+            function activityColor(type: string) {
+              if (type.includes("running") || type === "run") return "cal-run";
+              if (type.includes("cycling") || type.includes("bike")) return "cal-bike";
+              if (type.includes("swimming") || type === "swim") return "cal-swim";
+              if (type.includes("strength") || type.includes("training")) return "cal-strength";
+              return "cal-other";
+            }
+
+            return (
+              <div className="calendar-wrap">
+                <div className="calendar-nav">
+                  <button className="calendar-nav-btn" onClick={() => {
+                    const d = new Date(calendarDate);
+                    d.setMonth(d.getMonth() - 1);
+                    setCalendarDate(new Date(d));
+                  }}>‹</button>
+                  <span className="calendar-title">
+                    {calendarDate.toLocaleString("default", { month: "long" })} {year}
+                  </span>
+                  <button className="calendar-nav-btn" onClick={() => {
+                    const d = new Date(calendarDate);
+                    d.setMonth(d.getMonth() + 1);
+                    setCalendarDate(new Date(d));
+                  }}>›</button>
+                </div>
+                {calendarLoading && <div className="loading-box">Loading…</div>}
+                {calendarError && <p className="error">{calendarError}</p>}
+                {!calendarLoading && (
+                  <>
+                    {(calendarEvents === null || calendarEvents.length === 0) && (
+                      <p className="health-empty" style={{ textAlign: "center", marginBottom: "1rem" }}>
+                        {calendarEvents === null ? "No data — sync Garmin to populate." : "No activities this month."}
+                      </p>
+                    )}
+                    <div className="calendar-grid">
+                      {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
+                        <div key={d} className="calendar-dow">{d}</div>
+                      ))}
+                      {cells.map((day, i) => {
+                        if (day === null) return <div key={i} className="calendar-cell calendar-cell--empty" />;
+                        const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+                        const events = eventsByDate[dateStr] || [];
+                        const isToday = dateStr === todayStr;
+                        return (
+                          <div key={i} className={`calendar-cell${isToday ? " calendar-cell--today" : ""}${events.length ? " calendar-cell--has-events" : ""}`}>
+                            <span className="calendar-day-num">{day}</span>
+                            {events.map((ev, j) => (
+                              <span key={j} className={`calendar-event ${activityColor(ev.activity_type)}`} title={ev.name}>
+                                {ev.distance_km > 0 ? `${ev.distance_km.toFixed(1)}` : "·"}
+                                {ev.aerobic_te !== null && <span className="cal-te">↑{ev.aerobic_te.toFixed(1)}</span>}
+                              </span>
+                            ))}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })()}
 
         </div>
       </div>

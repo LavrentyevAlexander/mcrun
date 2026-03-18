@@ -359,8 +359,61 @@ def sync_garmin() -> dict:
                 )
             conn.commit()
 
+        # ── Recent Garmin activities (calendar) ─────────────────────
+        activities_synced = 0
+        try:
+            from datetime import timedelta
+            act_start = (datetime.now(timezone.utc) - timedelta(days=90)).strftime("%Y-%m-%d")
+            act_end = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            garmin_acts = client.get_activities_by_date(act_start, act_end)
+            if garmin_acts:
+                with get_conn() as conn:
+                    with conn.cursor() as cur:
+                        for act in garmin_acts:
+                            gid = act.get("activityId")
+                            if not gid:
+                                continue
+                            act_date = (act.get("startTimeLocal") or "")[:10] or None
+                            act_type = (act.get("activityType") or {}).get("typeKey") or ""
+                            dist_m = float(act.get("distance") or 0)
+                            cur.execute(
+                                """
+                                INSERT INTO garmin_activities
+                                    (garmin_id, date, name, activity_type,
+                                     distance_km, duration_sec, calories,
+                                     aerobic_te, anaerobic_te, synced_at)
+                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                                ON CONFLICT (garmin_id) DO UPDATE SET
+                                    date          = EXCLUDED.date,
+                                    name          = EXCLUDED.name,
+                                    activity_type = EXCLUDED.activity_type,
+                                    distance_km   = EXCLUDED.distance_km,
+                                    duration_sec  = EXCLUDED.duration_sec,
+                                    calories      = EXCLUDED.calories,
+                                    aerobic_te    = EXCLUDED.aerobic_te,
+                                    anaerobic_te  = EXCLUDED.anaerobic_te,
+                                    synced_at     = EXCLUDED.synced_at
+                                """,
+                                (
+                                    gid,
+                                    act_date,
+                                    act.get("activityName") or "",
+                                    act_type,
+                                    round(dist_m / 1000, 2),
+                                    int(act.get("duration") or 0),
+                                    act.get("calories"),
+                                    _num(act.get("aerobicTrainingEffect")),
+                                    _num(act.get("anaerobicTrainingEffect")),
+                                ),
+                            )
+                            activities_synced += 1
+                    conn.commit()
+        except Exception:
+            pass
+
         return {
             "synced": len(records),
+            "activities_synced": activities_synced,
             "metrics_debug": {
                 "vo2max_raw": debug_vo2max,
                 "training_readiness_raw": debug_readiness,
