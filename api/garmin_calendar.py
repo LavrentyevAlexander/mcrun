@@ -44,7 +44,20 @@ class handler(BaseHTTPRequestHandler):
                     )
                     rows = cur.fetchall()
 
-            send_json(self, 200, [dict(r) for r in rows])
+            result = []
+            for r in rows:
+                result.append({
+                    "id": str(r["id"]),
+                    "date": r["date"],
+                    "name": r["name"] or "",
+                    "activity_type": r["activity_type"] or "",
+                    "distance_km": float(r["distance_km"]) if r["distance_km"] is not None else 0.0,
+                    "duration_sec": r["duration_sec"] or 0,
+                    "calories": r["calories"],
+                    "aerobic_te": float(r["aerobic_te"]) if r["aerobic_te"] is not None else None,
+                    "anaerobic_te": float(r["anaerobic_te"]) if r["anaerobic_te"] is not None else None,
+                })
+            send_json(self, 200, result)
 
         except Exception as e:
             send_json(self, 500, {"error": str(e)})

@@ -983,28 +983,35 @@ export default function App() {
                     })()}
                   </div>
                 )}
-                {garminMetrics.race_5k && (
-                  <div className="metric-card">
-                    <span className="metric-label">5K prediction</span>
-                    <span className="metric-value metric-value--mono">{garminMetrics.race_5k}</span>
-                  </div>
-                )}
-                {garminMetrics.race_10k && (
-                  <div className="metric-card">
-                    <span className="metric-label">10K prediction</span>
-                    <span className="metric-value metric-value--mono">{garminMetrics.race_10k}</span>
-                  </div>
-                )}
-                {garminMetrics.race_hm && (
-                  <div className="metric-card">
-                    <span className="metric-label">HM prediction</span>
-                    <span className="metric-value metric-value--mono">{garminMetrics.race_hm}</span>
-                  </div>
-                )}
-                {garminMetrics.race_marathon && (
-                  <div className="metric-card">
-                    <span className="metric-label">Marathon prediction</span>
-                    <span className="metric-value metric-value--mono">{garminMetrics.race_marathon}</span>
+                {(garminMetrics.race_5k || garminMetrics.race_10k || garminMetrics.race_hm || garminMetrics.race_marathon) && (
+                  <div className="metric-card metric-card--wide">
+                    <span className="metric-label">Race predictions</span>
+                    <div className="predictions-grid">
+                      {garminMetrics.race_5k && (
+                        <div className="prediction-block">
+                          <span className="prediction-dist">5K</span>
+                          <span className="prediction-time">{garminMetrics.race_5k}</span>
+                        </div>
+                      )}
+                      {garminMetrics.race_10k && (
+                        <div className="prediction-block">
+                          <span className="prediction-dist">10K</span>
+                          <span className="prediction-time">{garminMetrics.race_10k}</span>
+                        </div>
+                      )}
+                      {garminMetrics.race_hm && (
+                        <div className="prediction-block">
+                          <span className="prediction-dist">HM</span>
+                          <span className="prediction-time">{garminMetrics.race_hm}</span>
+                        </div>
+                      )}
+                      {garminMetrics.race_marathon && (
+                        <div className="prediction-block">
+                          <span className="prediction-dist">Marathon</span>
+                          <span className="prediction-time">{garminMetrics.race_marathon}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
                 <div className="metric-card metric-card--muted">
