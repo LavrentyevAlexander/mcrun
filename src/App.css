@@ -795,6 +795,7 @@ tbody tr:hover {
 .site-footer {
   text-align: center;
   padding: 1.25rem 1rem;
+  padding-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
   font-size: 0.82rem;
   color: var(--clr-subtle);
 }

@@ -418,7 +418,7 @@ export default function App() {
       });
       let json: { error?: string; synced?: number } = {};
       try { json = await res.json(); } catch { /* non-JSON response */ }
-      if (res.status === 401 || res.status === 403) { handleLogout(); setPendingSync(source); setProfileOpen(true); return; }
+      if (res.status === 401 || res.status === 403) { handleLogout(); setPendingSync(source); openLoginPanel(); return; }
       if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
       await fetchSyncStatus();
       // Refresh data after sync
@@ -495,6 +495,14 @@ export default function App() {
     }
   }
 
+  function openLoginPanel() {
+    if (window.innerWidth < 1024) {
+      setMenuOpen(true);
+    } else {
+      setProfileOpen(true);
+    }
+  }
+
   function handleGoogleSuccess(credentialResponse: { credential?: string }) {
     const token = credentialResponse.credential ?? null;
     setGoogleCredential(token);
@@ -506,6 +514,7 @@ export default function App() {
       const src = pendingSync;
       setPendingSync(null);
       setProfileOpen(false);
+      setMenuOpen(false);
       triggerSync(src, token);
     }
   }
