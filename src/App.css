@@ -344,11 +344,23 @@
   width: 100%;
   object-fit: contain;
   border-radius: var(--radius-lg);
-  transition: transform 0.2s ease;
+  transition: transform 0.2s ease, opacity 0.3s ease;
+}
+
+.home-photo--clickable {
+  cursor: pointer;
 }
 
 .home-photo:hover {
   transform: scale(1.04);
+}
+
+.logo--fading {
+  opacity: 0;
+}
+
+.logo {
+  transition: opacity 0.3s ease;
 }
 
 .home-quote {

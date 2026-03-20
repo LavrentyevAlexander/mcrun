@@ -306,6 +306,16 @@ function decodeJwt(token: string): { picture?: string; name?: string } {
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>("home");
+  const LOGOS = ["/logo.png", "/logo-2.png", "/logo-3.jpg", "/logo-4.png"];
+  const [logoIdx, setLogoIdx] = useState(0);
+  const [logoFading, setLogoFading] = useState(false);
+  const cycleLogo = () => {
+    setLogoFading(true);
+    setTimeout(() => {
+      setLogoIdx((i) => (i + 1) % LOGOS.length);
+      setLogoFading(false);
+    }, 300);
+  };
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
 
@@ -735,7 +745,7 @@ export default function App() {
   return (
     <>
       <nav className="navbar">
-        <img src="/logo.png" alt="McRun" className="logo logo--link" onClick={() => setActiveTab("home")} />
+        <img src={LOGOS[logoIdx]} alt="McRun" className={`logo logo--link${logoFading ? " logo--fading" : ""}`} onClick={() => { setActiveTab("home"); cycleLogo(); }} />
         <div className="nav-tabs">
           {NAV_TABS.map((tab) => (
             <button
@@ -856,7 +866,7 @@ export default function App() {
           {activeTab === "home" && (
             <div className="home">
               <div className="home-card">
-                <img src="/logo.png" alt="McRun" className="home-photo" />
+                <img src={LOGOS[logoIdx]} alt="McRun" className={`home-photo home-photo--clickable${logoFading ? " logo--fading" : ""}`} onClick={cycleLogo} />
                 <blockquote className="home-quote">
                   <p className="home-quote-text">&ldquo;Pain is inevitable.<br />Suffering is optional.&rdquo;</p>
                   <footer className="home-quote-author">&mdash; Haruki Murakami</footer>
