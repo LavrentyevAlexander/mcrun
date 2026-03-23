@@ -526,6 +526,15 @@ export default function App() {
     localStorage.removeItem("google_credential");
   }
 
+  function handle401(res: Response): boolean {
+    if (res.status === 401 || res.status === 403) {
+      handleLogout();
+      openLoginPanel();
+      return true;
+    }
+    return false;
+  }
+
   async function fetchCompetitions(token?: string | null) {
     const t = token ?? googleCredential;
     setCompetitionsLoading(true);
@@ -534,10 +543,7 @@ export default function App() {
         headers: { Authorization: `Bearer ${t}` },
       });
       const json = await res.json();
-      if (res.status === 401 || res.status === 403) {
-        handleLogout();
-        throw new Error("Session expired. Please sign in again.");
-      }
+      if (handle401(res)) return;
       if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
       setCompetitions(json);
     } catch (e: unknown) {
@@ -561,6 +567,7 @@ export default function App() {
         body: JSON.stringify(addForm),
       });
       const json = await res.json();
+      if (handle401(res)) return;
       if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
       setCompetitions((prev) => [...(prev ?? []), json]);
       setAddForm({ competition: "", location: "", date: "", distance: "", time: "", rank: "", link: "" });
@@ -583,6 +590,7 @@ export default function App() {
         body: JSON.stringify({ id, ...editForm }),
       });
       const json = await res.json();
+      if (handle401(res)) return;
       if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
       setCompetitions((prev) => prev?.map((c) => c.id === id ? json : c) ?? null);
       setEditingId(null);
@@ -605,6 +613,7 @@ export default function App() {
         }),
       });
       const json = await res.json();
+      if (handle401(res)) return;
       if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
       setGearEditingId(null);
       fetchAllTime();
@@ -628,6 +637,7 @@ export default function App() {
         }),
       });
       const json = await res.json();
+      if (handle401(res)) return;
       if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
       setGearAddForm({ name: "", limit_km: "", image_url: "" });
       fetchAllTime();
