@@ -61,13 +61,31 @@ TYPE_ID_MAP = {
 }
 
 
+TOKEN_STORE = "/tmp/garmin_tokens"
+
+
 def get_garmin_client():
+    # Try cached tokens first — avoids a full OAuth login on every sync call
+    try:
+        client = garminconnect.Garmin(tokenstore=TOKEN_STORE)
+        client.login()
+        return client
+    except Exception:
+        pass
+
+    # Full login — runs when no cached tokens or tokens are expired
     client = garminconnect.Garmin(GARMIN_EMAIL, GARMIN_PASSWORD)
     if GARMIN_TOTP_SECRET:
         import pyotp
         client.login(prompt_mfa=lambda: pyotp.TOTP(GARMIN_TOTP_SECRET).now())
     else:
         client.login()
+
+    try:
+        client.garth.dump(TOKEN_STORE)
+    except Exception:
+        pass
+
     return client
 
 

@@ -125,7 +125,7 @@ function friendlyError(msg: string): string {
   if (m.includes("unauthorized") || m.includes("forbidden"))
     return "Access denied.";
   if (m.includes("429") || m.includes("rate limit") || m.includes("too many requests"))
-    return "Strava rate limit reached. Please try again in 15 minutes.";
+    return "Rate limit reached. Please try again in 15 minutes.";
   if (m.includes("postgres") || m.includes("database") || m.includes("socket"))
     return "Database connection error. Please try again later.";
   if (m.includes("failed to fetch") || m.includes("networkerror") || m.includes("load failed"))
@@ -759,6 +759,10 @@ export default function App() {
       .map((a) => ({ date: a.date, effort: a.relative_effort as number, strava_id: a.strava_id }))
       .sort((a, b) => a.date.localeCompare(b.date));
 
+    const globalAvg = withEffort.length
+      ? withEffort.reduce((s, x) => s + x.effort, 0) / withEffort.length
+      : null;
+
     for (const act of withEffort) {
       const d = new Date(act.date);
       const cutoff = new Date(d);
@@ -766,7 +770,10 @@ export default function App() {
       const window = withEffort.filter(
         (x) => x.strava_id !== act.strava_id && x.date > cutoff.toISOString().slice(0, 10) && x.date < act.date
       );
-      effortAvgMap.set(act.strava_id, window.length >= 2 ? window.reduce((s, x) => s + x.effort, 0) / window.length : null);
+      const avg = window.length >= 2
+        ? window.reduce((s, x) => s + x.effort, 0) / window.length
+        : globalAvg;
+      effortAvgMap.set(act.strava_id, avg);
     }
   }
 
