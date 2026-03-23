@@ -1437,7 +1437,7 @@ export default function App() {
                   <>
                     {(calendarEvents === null || calendarEvents.length === 0) && (
                       <p className="health-empty" style={{ textAlign: "center", marginBottom: "1rem" }}>
-                        {calendarEvents === null ? "No data — sync Garmin to populate." : "No activities this month."}
+                        {calendarEvents === null ? "No data — sync Garmin to populate." : "No planned workouts this month."}
                       </p>
                     )}
                     <div className="calendar-grid">

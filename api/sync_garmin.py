@@ -151,7 +151,7 @@ def sync_garmin() -> dict:
         debug_vo2max = None
         try:
             from datetime import timedelta
-            for days_back in range(7):
+            for days_back in range(3):
                 check_date = (datetime.now(timezone.utc) - timedelta(days=days_back)).strftime("%Y-%m-%d")
                 raw = client.get_max_metrics(check_date)
                 entry = raw[0] if isinstance(raw, list) and raw else (raw if isinstance(raw, dict) else {})
@@ -359,61 +359,77 @@ def sync_garmin() -> dict:
                 )
             conn.commit()
 
-        # ── Recent Garmin activities (calendar) ─────────────────────
-        activities_synced = 0
+        # ── Planned workouts (upcoming calendar) ─────────────────────
+        planned_synced = 0
         try:
             from datetime import timedelta
-            act_start = (datetime.now(timezone.utc) - timedelta(days=90)).strftime("%Y-%m-%d")
-            act_end = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-            garmin_acts = client.get_activities_by_date(act_start, act_end)
-            if garmin_acts:
-                with get_conn() as conn:
-                    with conn.cursor() as cur:
-                        for act in garmin_acts:
-                            gid = act.get("activityId")
-                            if not gid:
-                                continue
-                            act_date = (act.get("startTimeLocal") or "")[:10] or None
-                            act_type = (act.get("activityType") or {}).get("typeKey") or ""
-                            dist_m = float(act.get("distance") or 0)
-                            cur.execute(
-                                """
-                                INSERT INTO garmin_activities
-                                    (garmin_id, date, name, activity_type,
-                                     distance_km, duration_sec, calories,
-                                     aerobic_te, anaerobic_te, synced_at)
-                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
-                                ON CONFLICT (garmin_id) DO UPDATE SET
-                                    date          = EXCLUDED.date,
-                                    name          = EXCLUDED.name,
-                                    activity_type = EXCLUDED.activity_type,
-                                    distance_km   = EXCLUDED.distance_km,
-                                    duration_sec  = EXCLUDED.duration_sec,
-                                    calories      = EXCLUDED.calories,
-                                    aerobic_te    = EXCLUDED.aerobic_te,
-                                    anaerobic_te  = EXCLUDED.anaerobic_te,
-                                    synced_at     = EXCLUDED.synced_at
-                                """,
-                                (
-                                    gid,
-                                    act_date,
-                                    act.get("activityName") or "",
-                                    act_type,
-                                    round(dist_m / 1000, 2),
-                                    int(act.get("duration") or 0),
-                                    act.get("calories"),
-                                    _num(act.get("aerobicTrainingEffect")),
-                                    _num(act.get("anaerobicTrainingEffect")),
-                                ),
-                            )
-                            activities_synced += 1
-                    conn.commit()
+            today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            today_dt = datetime.now(timezone.utc)
+            all_planned = []
+
+            # Fetch current month and next month (Garmin calendar month is 0-indexed)
+            months = set()
+            months.add((today_dt.year, today_dt.month - 1))
+            next_m = (today_dt.replace(day=28) + timedelta(days=4))
+            months.add((next_m.year, next_m.month - 1))
+
+            for year, month_0 in sorted(months):
+                try:
+                    raw = client.connectapi(f"/calendarservice/year/{year}/month/{month_0}")
+                    for item in (raw or {}).get("calendarItems") or []:
+                        if item.get("itemType") != "workout":
+                            continue
+                        item_date = (item.get("date") or "")[:10]
+                        if not item_date or item_date < today_str:
+                            continue
+                        item_id = item.get("id")
+                        if not item_id:
+                            continue
+                        act_type_raw = item.get("activityType")
+                        act_type = (
+                            act_type_raw.get("typeKey")
+                            if isinstance(act_type_raw, dict)
+                            else str(act_type_raw or "")
+                        )
+                        all_planned.append((
+                            int(item_id),
+                            item_date,
+                            item.get("title") or item.get("workoutName") or "",
+                            act_type,
+                            round(float(item.get("distance") or 0) / 1000, 2),
+                            int(item.get("duration") or 0),
+                        ))
+                except Exception:
+                    pass
+
+            with get_conn() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("TRUNCATE TABLE garmin_activities")
+                    for item_id, date, name, act_type, dist_km, dur_sec in all_planned:
+                        cur.execute(
+                            """
+                            INSERT INTO garmin_activities
+                                (garmin_id, date, name, activity_type,
+                                 distance_km, duration_sec, synced_at)
+                            VALUES (%s, %s, %s, %s, %s, %s, NOW())
+                            ON CONFLICT (garmin_id) DO UPDATE SET
+                                date          = EXCLUDED.date,
+                                name          = EXCLUDED.name,
+                                activity_type = EXCLUDED.activity_type,
+                                distance_km   = EXCLUDED.distance_km,
+                                duration_sec  = EXCLUDED.duration_sec,
+                                synced_at     = EXCLUDED.synced_at
+                            """,
+                            (item_id, date, name, act_type, dist_km, dur_sec),
+                        )
+                        planned_synced += 1
+                conn.commit()
         except Exception:
             pass
 
         return {
             "synced": len(records),
-            "activities_synced": activities_synced,
+            "planned_synced": planned_synced,
             "metrics_debug": {
                 "vo2max_raw": debug_vo2max,
                 "training_readiness_raw": debug_readiness,
