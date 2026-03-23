@@ -318,14 +318,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>("home");
   const LOGOS = ["/logo.png", "/logo-2.png", "/logo-3.jpg", "/logo-4.png"];
   const [logoIdx, setLogoIdx] = useState(0);
-  const [logoFading, setLogoFading] = useState(false);
-  const cycleLogo = () => {
-    setLogoFading(true);
-    setTimeout(() => {
-      setLogoIdx((i) => (i + 1) % LOGOS.length);
-      setLogoFading(false);
-    }, 300);
-  };
+  const cycleLogo = () => setLogoIdx((i) => (i + 1) % LOGOS.length);
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
 
@@ -855,7 +848,7 @@ export default function App() {
   return (
     <>
       <nav className="navbar">
-        <img src={LOGOS[logoIdx]} alt="McRun" className={`logo logo--link${logoFading ? " logo--fading" : ""}`} onClick={() => { setActiveTab("home"); cycleLogo(); }} />
+        <img src={LOGOS[logoIdx]} alt="McRun" className="logo logo--link" onClick={() => { setActiveTab("home"); cycleLogo(); }} />
         <div className="nav-tabs">
           {NAV_TABS.map((tab) => (
             <button
@@ -985,7 +978,12 @@ export default function App() {
           {activeTab === "home" && (
             <div className="home">
               <div className="home-card">
-                <img src={LOGOS[logoIdx]} alt="McRun" className={`home-photo home-photo--clickable${logoFading ? " logo--fading" : ""}`} onClick={cycleLogo} />
+                <div className="photo-carousel" onClick={cycleLogo}>
+                  {LOGOS.map((src, i) => (
+                    <img key={src} src={src} alt="McRun"
+                      className={`home-photo${i === logoIdx ? " home-photo--active" : ""}`} />
+                  ))}
+                </div>
                 <blockquote className="home-quote">
                   <p className="home-quote-text">&ldquo;Pain is inevitable.<br />Suffering is optional.&rdquo;</p>
                   <footer className="home-quote-author">&mdash; Haruki Murakami</footer>

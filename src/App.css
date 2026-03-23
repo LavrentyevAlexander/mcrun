@@ -340,23 +340,30 @@
   width: clamp(200px, 60vw, 360px);
 }
 
-.home-photo {
+.photo-carousel {
+  display: grid;
   width: 100%;
-  object-fit: contain;
   border-radius: var(--radius-lg);
-  transition: transform 0.2s ease, opacity 0.3s ease;
-}
-
-.home-photo--clickable {
+  overflow: hidden;
   cursor: pointer;
 }
 
-.home-photo:hover {
+.home-photo {
+  grid-area: 1 / 1;
+  width: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.7s ease;
   transform: scale(1.04);
 }
 
-.logo--fading {
-  opacity: 0;
+.home-photo--active {
+  opacity: 1;
+  animation: photoEnter 0.7s ease forwards;
+}
+
+.photo-carousel:hover .home-photo--active {
+  filter: brightness(1.04);
 }
 
 .logo {
@@ -820,6 +827,11 @@ tbody tr:hover {
 /* ════════════════════════════════════════
    Animations
    ════════════════════════════════════════ */
+@keyframes photoEnter {
+  from { transform: scale(1.04); }
+  to   { transform: scale(1); }
+}
+
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -852,9 +864,13 @@ tbody tr:hover {
     gap: 0.75rem;
   }
 
+  .photo-carousel {
+    max-height: 38vh;
+  }
+
   .home-photo {
     max-height: 38vh;
-    object-fit: contain;
+    object-fit: cover;
   }
 
   .home-quote {
