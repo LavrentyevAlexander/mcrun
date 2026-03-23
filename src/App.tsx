@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { GoogleLogin, googleLogout } from "@react-oauth/google";
-import { FaHouse, FaPersonRunning, FaCalendarDays, FaTrophy, FaBolt, FaUser, FaArrowsRotate, FaRightFromBracket, FaHeartPulse, FaArrowUpRightFromSquare, FaCalendarCheck } from "react-icons/fa6";
+import { FaHouse, FaPersonRunning, FaCalendarDays, FaTrophy, FaBolt, FaUser, FaArrowsRotate, FaRightFromBracket, FaHeartPulse, FaArrowUpRightFromSquare, FaCalendarCheck, FaBullseye } from "react-icons/fa6";
 import { GiRunningShoe } from "react-icons/gi";
 import "./App.css";
 
@@ -12,6 +12,7 @@ const TAB_META: Record<string, { label: string; icon: React.ReactNode }> = {
   health:       { label: "Health",         icon: <FaHeartPulse /> },
   calendar:     { label: "Calendar",       icon: <FaCalendarCheck /> },
   competitions: { label: "Competitions",   icon: <FaTrophy /> },
+  goals:        { label: "Goals",          icon: <FaBullseye /> },
   records:      { label: "Records",        icon: <FaBolt /> },
 };
 
@@ -86,7 +87,16 @@ interface Competition {
   link: string | null;
 }
 
-type Tab = "home" | "runs" | "yearly" | "gear" | "health" | "calendar" | "competitions" | "records";
+interface Goal {
+  id: number;
+  year: number;
+  description: string;
+  achieved: boolean;
+  result: string | null;
+  sort_order: number;
+}
+
+type Tab = "home" | "runs" | "yearly" | "gear" | "health" | "calendar" | "competitions" | "goals" | "records";
 
 interface GarminActivity {
   id: string;
@@ -356,6 +366,15 @@ export default function App() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState({ competition: "", location: "", date: "", distance: "", time: "", rank: "", link: "" });
 
+  // Goals
+  const [goals, setGoals] = useState<Goal[] | null>(null);
+  const [goalsLoading, setGoalsLoading] = useState(false);
+  const [goalsError, setGoalsError] = useState("");
+  const [goalsEditingId, setGoalsEditingId] = useState<number | null>(null);
+  const [goalsEditForm, setGoalsEditForm] = useState({ description: "", achieved: false, result: "" });
+  const [goalsAddForm, setGoalsAddForm] = useState({ year: String(new Date().getFullYear()), description: "", achieved: false, result: "" });
+  const [goalsAddLoading, setGoalsAddLoading] = useState(false);
+
   // Calendar
   const [calendarDate, setCalendarDate] = useState<Date>(() => { const d = new Date(); d.setDate(1); return d; });
   const [calendarEvents, setCalendarEvents] = useState<GarminActivity[] | null>(null);
@@ -383,6 +402,7 @@ export default function App() {
     fetchRecords();
     fetchGarminMetrics();
     if (googleCredential) fetchCompetitions();
+    fetchGoals();
   }, []);
 
   async function fetchGarminMetrics() {
@@ -648,6 +668,69 @@ export default function App() {
     }
   }
 
+  async function fetchGoals() {
+    setGoalsLoading(true);
+    setGoalsError("");
+    try {
+      const res = await fetch("/api/goals");
+      const json = await res.json();
+      if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
+      setGoals(json);
+    } catch (e: unknown) {
+      setGoalsError(e instanceof Error ? friendlyError(e.message) : "Unknown error");
+    } finally {
+      setGoalsLoading(false);
+    }
+  }
+
+  async function addGoal(e: React.FormEvent) {
+    e.preventDefault();
+    setGoalsAddLoading(true);
+    setGoalsError("");
+    try {
+      const res = await fetch("/api/goals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${googleCredential}` },
+        body: JSON.stringify({
+          year: Number(goalsAddForm.year),
+          description: goalsAddForm.description,
+          achieved: goalsAddForm.achieved,
+          result: goalsAddForm.result || null,
+        }),
+      });
+      const json = await res.json();
+      if (handle401(res)) return;
+      if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
+      setGoals((prev) => {
+        const updated = [...(prev ?? []), json as Goal];
+        return updated.sort((a, b) => b.year - a.year || a.sort_order - b.sort_order);
+      });
+      setGoalsAddForm({ year: String(new Date().getFullYear()), description: "", achieved: false, result: "" });
+    } catch (e: unknown) {
+      setGoalsError(e instanceof Error ? friendlyError(e.message) : "Unknown error");
+    } finally {
+      setGoalsAddLoading(false);
+    }
+  }
+
+  async function saveGoalEdit(id: number) {
+    setGoalsError("");
+    try {
+      const res = await fetch("/api/goals", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${googleCredential}` },
+        body: JSON.stringify({ id, ...goalsEditForm }),
+      });
+      const json = await res.json();
+      if (handle401(res)) return;
+      if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
+      setGoals((prev) => prev?.map((g) => g.id === id ? (json as Goal) : g) ?? null);
+      setGoalsEditingId(null);
+    } catch (e: unknown) {
+      setGoalsError(e instanceof Error ? friendlyError(e.message) : "Unknown error");
+    }
+  }
+
   // Mileage tab
   const [mileageView, setMileageView] = useState<"yearly" | "monthly">("yearly");
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
@@ -749,6 +832,7 @@ export default function App() {
     setActiveTab(tab);
     if (tab === "records" && !records && !recordsLoading) fetchRecords();
     if (tab === "competitions" && googleCredential && !competitions && !competitionsLoading) fetchCompetitions();
+    if (tab === "goals" && !goals && !goalsLoading) fetchGoals();
     if (tab === "calendar") fetchCalendarEvents(calendarDate.getFullYear(), calendarDate.getMonth() + 1);
   }
 
@@ -810,6 +894,9 @@ export default function App() {
                   <button className="profile-action" onClick={() => { goTab("competitions"); setProfileOpen(false); }}>
                     <FaTrophy /><span>Competitions</span>
                   </button>
+                  <button className="profile-action" onClick={() => { goTab("goals"); setProfileOpen(false); }}>
+                    <FaBullseye /><span>Goals</span>
+                  </button>
                   <div className="profile-divider" />
                   <button className="profile-action profile-signout" onClick={() => { handleLogout(); setProfileOpen(false); }}>
                     <FaRightFromBracket /><span>Sign out</span>
@@ -863,6 +950,12 @@ export default function App() {
                   onClick={() => { goTab("competitions"); setMenuOpen(false); }}
                 >
                   <FaTrophy />Competitions
+                </button>
+                <button
+                  className={`drawer-item${activeTab === "goals" ? " active" : ""}`}
+                  onClick={() => { goTab("goals"); setMenuOpen(false); }}
+                >
+                  <FaBullseye />Goals
                 </button>
                 <button className="drawer-item drawer-signout" onClick={() => { handleLogout(); setMenuOpen(false); }}>
                   <FaRightFromBracket />Sign out
@@ -1397,6 +1490,94 @@ export default function App() {
               )}
             </div>
           )}
+
+          {/* ── GOALS ── */}
+          {activeTab === "goals" && (() => {
+            const yearGroups: Record<number, Goal[]> = {};
+            (goals ?? []).forEach((g) => {
+              if (!yearGroups[g.year]) yearGroups[g.year] = [];
+              yearGroups[g.year].push(g);
+            });
+            const sortedYears = Object.keys(yearGroups).map(Number).sort((a, b) => b - a);
+            return (
+              <div className="goals-wrap">
+                {goalsLoading && <div className="loading-box">Loading…</div>}
+                {goalsError && <p className="error">{goalsError}</p>}
+                {sortedYears.map((yr) => {
+                  const items = yearGroups[yr];
+                  const doneCount = items.filter((g) => g.achieved).length;
+                  const pct = items.length ? Math.round((doneCount / items.length) * 100) : 0;
+                  const allDone = doneCount === items.length;
+                  return (
+                    <div key={yr} className="goals-year">
+                      <div className="goals-year-header">
+                        <span className="goals-year-label">{yr}</span>
+                        <div className="goals-progress">
+                          <div className="goals-progress-fill" style={{ width: `${pct}%`, background: allDone ? "var(--clr-green)" : "var(--clr-accent)" }} />
+                        </div>
+                        <span className="goals-year-count">{doneCount}/{items.length}</span>
+                      </div>
+                      <div className="goals-list">
+                        {items.map((g) => goalsEditingId === g.id ? (
+                          <div key={g.id} className="goal-card goal-card--editing">
+                            <label className="goal-check-wrap">
+                              <input type="checkbox" checked={goalsEditForm.achieved}
+                                onChange={(e) => setGoalsEditForm((f) => ({ ...f, achieved: e.target.checked }))} />
+                            </label>
+                            <div className="goal-edit-fields">
+                              <input value={goalsEditForm.description}
+                                onChange={(e) => setGoalsEditForm((f) => ({ ...f, description: e.target.value }))}
+                                style={{ flex: 1 }} placeholder="Description" />
+                              <input value={goalsEditForm.result}
+                                onChange={(e) => setGoalsEditForm((f) => ({ ...f, result: e.target.value }))}
+                                style={{ width: 90 }} placeholder="Result" />
+                            </div>
+                            <div style={{ display: "flex", gap: "0.4rem" }}>
+                              <button onClick={() => saveGoalEdit(g.id)} style={{ padding: "0.25rem 0.6rem", fontSize: "0.8rem" }}>Save</button>
+                              <button onClick={() => setGoalsEditingId(null)} style={{ padding: "0.25rem 0.6rem", fontSize: "0.8rem", background: "#888" }}>✕</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div key={g.id} className={`goal-card${g.achieved ? " goal-card--done" : ""}`}>
+                            <div className={`goal-check${g.achieved ? " goal-check--done" : ""}`}>
+                              {g.achieved ? "✓" : ""}
+                            </div>
+                            <span className="goal-desc">{g.description}</span>
+                            {g.result && <span className="goal-result">{g.result}</span>}
+                            {googleCredential && (
+                              <button className="goal-edit-btn" onClick={() => {
+                                setGoalsEditingId(g.id);
+                                setGoalsEditForm({ description: g.description, achieved: g.achieved, result: g.result ?? "" });
+                              }}>✎</button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+                {googleCredential && (
+                  <details style={{ marginTop: "1.5rem" }}>
+                    <summary style={{ cursor: "pointer", marginBottom: "0.75rem" }}>Add goal</summary>
+                    <form onSubmit={addGoal} style={{ display: "flex", flexDirection: "column", gap: "0.5rem", maxWidth: 420 }}>
+                      <input type="number" placeholder="Year" required value={goalsAddForm.year}
+                        onChange={(e) => setGoalsAddForm((f) => ({ ...f, year: e.target.value }))} />
+                      <input placeholder="Description" required value={goalsAddForm.description}
+                        onChange={(e) => setGoalsAddForm((f) => ({ ...f, description: e.target.value }))} />
+                      <input placeholder="Result (optional, e.g. 49:03)" value={goalsAddForm.result}
+                        onChange={(e) => setGoalsAddForm((f) => ({ ...f, result: e.target.value }))} />
+                      <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.9rem" }}>
+                        <input type="checkbox" checked={goalsAddForm.achieved}
+                          onChange={(e) => setGoalsAddForm((f) => ({ ...f, achieved: e.target.checked }))} />
+                        Achieved
+                      </label>
+                      <button type="submit" disabled={goalsAddLoading}>{goalsAddLoading ? "Saving…" : "Add"}</button>
+                    </form>
+                  </details>
+                )}
+              </div>
+            );
+          })()}
 
           {/* ── CALENDAR ── */}
           {activeTab === "calendar" && (() => {
