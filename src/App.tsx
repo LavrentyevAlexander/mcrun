@@ -848,7 +848,7 @@ export default function App() {
   return (
     <>
       <nav className="navbar">
-        <img src="/sneaker.jpg" alt="McRun" className="logo logo--link" onClick={() => setActiveTab("home")} />
+        <img src="/sneaker.png" alt="McRun" className="logo logo--link" onClick={() => setActiveTab("home")} />
         <div className="nav-tabs">
           {NAV_TABS.map((tab) => (
             <button
