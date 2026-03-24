@@ -61,32 +61,77 @@ TYPE_ID_MAP = {
 }
 
 
-TOKEN_STORE = "/tmp/garmin_tokens"
+TOKEN_FILES = ("oauth1_token.json", "oauth2_token.json")
+
+
+def _load_tokens_from_db(conn, dir_path) -> bool:
+    """Write token files from DB into dir_path. Returns True if both tokens exist."""
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT key, value FROM garmin_tokens WHERE key = ANY(%s)",
+            (list(TOKEN_FILES),),
+        )
+        rows = dict(cur.fetchall())
+    if not all(f in rows for f in TOKEN_FILES):
+        return False
+    for fname, value in rows.items():
+        with open(os.path.join(dir_path, fname), "w") as f:
+            f.write(value)
+    return True
+
+
+def _save_tokens_to_db(conn, dir_path):
+    """Upsert token files from dir_path into DB."""
+    with conn.cursor() as cur:
+        for fname in TOKEN_FILES:
+            fpath = os.path.join(dir_path, fname)
+            if not os.path.exists(fpath):
+                continue
+            with open(fpath) as f:
+                value = f.read()
+            cur.execute(
+                """
+                INSERT INTO garmin_tokens (key, value, updated_at)
+                VALUES (%s, %s, NOW())
+                ON CONFLICT (key) DO UPDATE
+                    SET value = EXCLUDED.value, updated_at = NOW()
+                """,
+                (fname, value),
+            )
+    conn.commit()
 
 
 def get_garmin_client():
-    # Try cached tokens first — avoids a full OAuth login on every sync call
-    try:
-        client = garminconnect.Garmin(tokenstore=TOKEN_STORE)
-        client.login()
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp:
+        # Try cached tokens from DB — avoids a full OAuth login on every sync call
+        try:
+            with get_conn() as conn:
+                if _load_tokens_from_db(conn, tmp):
+                    client = garminconnect.Garmin(tokenstore=tmp)
+                    client.login()
+                    return client
+        except Exception:
+            pass
+
+        # Full login — runs when no cached tokens or tokens are expired
+        client = garminconnect.Garmin(GARMIN_EMAIL, GARMIN_PASSWORD)
+        if GARMIN_TOTP_SECRET:
+            import pyotp
+            client.login(prompt_mfa=lambda: pyotp.TOTP(GARMIN_TOTP_SECRET).now())
+        else:
+            client.login()
+
+        # Persist new tokens to DB so next call reuses them
+        try:
+            client.garth.dump(tmp)
+            with get_conn() as conn:
+                _save_tokens_to_db(conn, tmp)
+        except Exception:
+            pass
+
         return client
-    except Exception:
-        pass
-
-    # Full login — runs when no cached tokens or tokens are expired
-    client = garminconnect.Garmin(GARMIN_EMAIL, GARMIN_PASSWORD)
-    if GARMIN_TOTP_SECRET:
-        import pyotp
-        client.login(prompt_mfa=lambda: pyotp.TOTP(GARMIN_TOTP_SECRET).now())
-    else:
-        client.login()
-
-    try:
-        client.garth.dump(TOKEN_STORE)
-    except Exception:
-        pass
-
-    return client
 
 
 def _num(val):
