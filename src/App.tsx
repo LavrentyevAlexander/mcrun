@@ -346,6 +346,7 @@ export default function App() {
   const [syncLoading, setSyncLoading] = useState<Record<string, boolean>>({});
   const [syncError, setSyncError] = useState("");
   const [pendingSync, setPendingSync] = useState<"strava" | "garmin" | null>(null);
+  const [garminBanned, setGarminBanned] = useState<boolean | null>(null);
 
   // Competitions
   const [googleCredential, setGoogleCredential] = useState<string | null>(
@@ -394,9 +395,22 @@ export default function App() {
     fetchRuns();
     fetchRecords();
     fetchGarminMetrics();
+    fetchGarminStatus();
     if (googleCredential) fetchCompetitions();
     fetchGoals();
   }, []);
+
+  async function fetchGarminStatus() {
+    try {
+      const res = await fetch("/api/garmin_status");
+      if (res.ok) {
+        const json = await res.json();
+        setGarminBanned(json.banned ?? null);
+      }
+    } catch {
+      // non-critical
+    }
+  }
 
   async function fetchGarminMetrics() {
     try {
@@ -883,13 +897,19 @@ export default function App() {
               {googleCredential ? (
                 <>
                   {syncError && <p className="profile-error">{syncError}</p>}
-                  {(["strava", "garmin"] as const).map((src) => (
+                  {(["strava"] as const).map((src) => (
                     <button key={src} className="profile-action" disabled={syncLoading[src]}
                       onClick={() => triggerSync(src)}>
                       <FaArrowsRotate className={syncLoading[src] ? "spin" : ""} />
                       <span>{syncLabel(src)}</span>
                     </button>
                   ))}
+                  <button className="profile-action" disabled={garminBanned !== false || syncLoading["garmin"]}
+                    onClick={() => triggerSync("garmin")}
+                    title={garminBanned === true ? "Garmin rate-limited, try later" : garminBanned === null ? "Checking Garmin status…" : undefined}>
+                    <FaArrowsRotate className={syncLoading["garmin"] ? "spin" : ""} />
+                    <span>{garminBanned === true ? "Garmin (banned)" : garminBanned === null ? "Garmin (checking…)" : syncLabel("garmin")}</span>
+                  </button>
                   <div className="profile-divider" />
                   <button className="profile-action" onClick={() => { goTab("competitions"); setProfileOpen(false); }}>
                     <FaTrophy /><span>Competitions</span>
@@ -938,13 +958,19 @@ export default function App() {
             {googleCredential ? (
               <>
                 {syncError && <p className="profile-error" style={{ padding: "0 1.5rem" }}>{syncError}</p>}
-                {(["strava", "garmin"] as const).map((src) => (
+                {(["strava"] as const).map((src) => (
                   <button key={src} className="drawer-item" disabled={syncLoading[src]}
                     onClick={() => triggerSync(src)}>
                     <FaArrowsRotate className={syncLoading[src] ? "spin" : ""} />
                     {syncLabel(src)}
                   </button>
                 ))}
+                <button className="drawer-item" disabled={garminBanned !== false || syncLoading["garmin"]}
+                  onClick={() => triggerSync("garmin")}
+                  title={garminBanned === true ? "Garmin rate-limited, try later" : garminBanned === null ? "Checking Garmin status…" : undefined}>
+                  <FaArrowsRotate className={syncLoading["garmin"] ? "spin" : ""} />
+                  {garminBanned === true ? "Garmin (banned)" : garminBanned === null ? "Garmin (checking…)" : syncLabel("garmin")}
+                </button>
                 <button
                   className={`drawer-item${activeTab === "competitions" ? " active" : ""}`}
                   onClick={() => { goTab("competitions"); setMenuOpen(false); }}
