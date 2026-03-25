@@ -181,6 +181,10 @@
   font-variant-numeric: tabular-nums;
 }
 
+.comp-past td {
+  background: #f0fff4;
+}
+
 .profile-divider {
   height: 1px;
   background: #eee;

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { GoogleLogin, googleLogout } from "@react-oauth/google";
 import { FaHouse, FaPersonRunning, FaCalendarDays, FaTrophy, FaBolt, FaUser, FaArrowsRotate, FaRightFromBracket, FaHeartPulse, FaArrowUpRightFromSquare, FaCalendarCheck, FaBullseye, FaClock } from "react-icons/fa6";
 import { GiRunningShoe } from "react-icons/gi";
@@ -345,7 +345,7 @@ export default function App() {
   const [syncStatus, setSyncStatus] = useState<Record<string, { status: string; records_synced: number | null; finished_at: string | null }>>({});
   const [syncLoading, setSyncLoading] = useState<Record<string, boolean>>({});
   const [syncError, setSyncError] = useState("");
-  const [pendingSync, setPendingSync] = useState<"strava" | "garmin" | null>(null);
+  const pendingSyncRef = useRef<"strava" | "garmin" | null>(null);
   const [garminBanUntil, setGarminBanUntil] = useState<Date | null>(null);
   const [garminBanCountdown, setGarminBanCountdown] = useState("");
 
@@ -465,7 +465,7 @@ export default function App() {
       });
       let json: { error?: string; synced?: number } = {};
       try { json = await res.json(); } catch { /* non-JSON response */ }
-      if (res.status === 401 || res.status === 403) { handleLogout(); setPendingSync(source); openLoginPanel(); return; }
+      if (res.status === 401 || res.status === 403) { handleLogout(); pendingSyncRef.current = source; openLoginPanel(); return; }
       if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
       await fetchSyncStatus();
       // Refresh data after sync
@@ -557,12 +557,12 @@ export default function App() {
     setSyncError("");
     if (token) localStorage.setItem("google_credential", token);
     if (!competitions && !competitionsLoading) fetchCompetitions(token);
-    if (token && pendingSync) {
-      const src = pendingSync;
-      setPendingSync(null);
+    const pending = pendingSyncRef.current;
+    if (token && pending) {
+      pendingSyncRef.current = null;
       setProfileOpen(false);
       setMenuOpen(false);
-      triggerSync(src, token);
+      triggerSync(pending, token);
     }
   }
 
@@ -1464,7 +1464,9 @@ export default function App() {
           )}
 
           {/* ── COMPETITIONS ── */}
-          {activeTab === "competitions" && (
+          {activeTab === "competitions" && (() => {
+            const todayStr = new Date().toISOString().slice(0, 10);
+            return (
             <div>
               {!googleCredential ? (
                 <div style={{ textAlign: "center", padding: "2rem" }}>
@@ -1505,13 +1507,13 @@ export default function App() {
                               <td><input value={editForm.time} onChange={(e) => setEditForm((f) => ({ ...f, time: e.target.value }))} style={{ width: 80 }} /></td>
                               <td><input value={editForm.rank} onChange={(e) => setEditForm((f) => ({ ...f, rank: e.target.value }))} style={{ width: 90 }} /></td>
                               <td><input value={editForm.link} onChange={(e) => setEditForm((f) => ({ ...f, link: e.target.value }))} style={{ width: 120 }} /></td>
-                              <td style={{ display: "flex", gap: "0.4rem" }}>
-                                <button onClick={() => saveEdit(c.id)} style={{ padding: "0.25rem 0.6rem", fontSize: "0.8rem" }}>Save</button>
+                              <td style={{ whiteSpace: "nowrap" }}>
+                                <button onClick={() => saveEdit(c.id)} style={{ padding: "0.25rem 0.6rem", fontSize: "0.8rem", marginRight: "0.3rem" }}>Save</button>
                                 <button onClick={() => setEditingId(null)} style={{ padding: "0.25rem 0.6rem", fontSize: "0.8rem", background: "#888" }}>✕</button>
                               </td>
                             </tr>
                           ) : (
-                            <tr key={c.id}>
+                            <tr key={c.id} className={c.date < todayStr ? "comp-past" : ""}>
                               <td data-label="#">{i + 1}</td>
                               <td data-label="Competition">{c.competition}</td>
                               <td data-label="Location">{c.location ?? "—"}</td>
@@ -1552,7 +1554,8 @@ export default function App() {
                 </>
               )}
             </div>
-          )}
+            );
+          })()}
 
           {/* ── GOALS ── */}
           {activeTab === "goals" && (() => {
