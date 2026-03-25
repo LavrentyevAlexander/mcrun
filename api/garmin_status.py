@@ -2,30 +2,27 @@ import os
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
 
+from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler
 
-import requests
-
-from _db import send_json
-
-SSO_URL = "https://sso.garmin.com/sso/signin"
-SSO_PARAMS = {"id": "gauth-widget", "embedWidget": "true"}
+from _db import get_conn, send_json
 
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
-            resp = requests.get(
-                SSO_URL,
-                params=SSO_PARAMS,
-                headers={"User-Agent": "Mozilla/5.0"},
-                timeout=10,
-            )
-            if resp.status_code == 429:
-                send_json(self, 200, {"banned": True})
-            elif resp.status_code == 200:
-                send_json(self, 200, {"banned": False})
-            else:
-                send_json(self, 200, {"banned": None, "status": resp.status_code})
+            with get_conn() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT value FROM garmin_tokens WHERE key = 'ban_until'")
+                    row = cur.fetchone()
+            if row:
+                try:
+                    ban_until = datetime.fromisoformat(row[0])
+                    if ban_until > datetime.now(timezone.utc):
+                        send_json(self, 200, {"banned": True, "ban_until": row[0]})
+                        return
+                except (ValueError, TypeError):
+                    pass
+            send_json(self, 200, {"banned": False})
         except Exception as e:
             send_json(self, 200, {"banned": None, "error": str(e)})

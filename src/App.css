@@ -175,6 +175,12 @@
   color: #888;
 }
 
+.garmin-countdown {
+  opacity: 0.7;
+  cursor: default;
+  font-variant-numeric: tabular-nums;
+}
+
 .profile-divider {
   height: 1px;
   background: #eee;

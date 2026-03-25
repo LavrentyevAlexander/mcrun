@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { GoogleLogin, googleLogout } from "@react-oauth/google";
-import { FaHouse, FaPersonRunning, FaCalendarDays, FaTrophy, FaBolt, FaUser, FaArrowsRotate, FaRightFromBracket, FaHeartPulse, FaArrowUpRightFromSquare, FaCalendarCheck, FaBullseye } from "react-icons/fa6";
+import { FaHouse, FaPersonRunning, FaCalendarDays, FaTrophy, FaBolt, FaUser, FaArrowsRotate, FaRightFromBracket, FaHeartPulse, FaArrowUpRightFromSquare, FaCalendarCheck, FaBullseye, FaClock } from "react-icons/fa6";
 import { GiRunningShoe } from "react-icons/gi";
 import "./App.css";
 
@@ -346,7 +346,8 @@ export default function App() {
   const [syncLoading, setSyncLoading] = useState<Record<string, boolean>>({});
   const [syncError, setSyncError] = useState("");
   const [pendingSync, setPendingSync] = useState<"strava" | "garmin" | null>(null);
-  const [garminBanned, setGarminBanned] = useState<boolean | null>(null);
+  const [garminBanUntil, setGarminBanUntil] = useState<Date | null>(null);
+  const [garminBanCountdown, setGarminBanCountdown] = useState("");
 
   // Competitions
   const [googleCredential, setGoogleCredential] = useState<string | null>(
@@ -405,12 +406,31 @@ export default function App() {
       const res = await fetch("/api/garmin_status");
       if (res.ok) {
         const json = await res.json();
-        setGarminBanned(json.banned ?? null);
+        if (json.banned && json.ban_until) {
+          setGarminBanUntil(new Date(json.ban_until));
+        } else {
+          setGarminBanUntil(null);
+        }
       }
     } catch {
       // non-critical
     }
   }
+
+  useEffect(() => {
+    if (!garminBanUntil) { setGarminBanCountdown(""); return; }
+    function update() {
+      const diff = garminBanUntil!.getTime() - Date.now();
+      if (diff <= 0) { setGarminBanUntil(null); setGarminBanCountdown(""); return; }
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      setGarminBanCountdown(`${h}h ${String(m).padStart(2, "0")}m ${String(s).padStart(2, "0")}s`);
+    }
+    update();
+    const id = setInterval(update, 1000);
+    return () => clearInterval(id);
+  }, [garminBanUntil]);
 
   async function fetchGarminMetrics() {
     try {
@@ -904,12 +924,18 @@ export default function App() {
                       <span>{syncLabel(src)}</span>
                     </button>
                   ))}
-                  <button className="profile-action" disabled={garminBanned !== false || syncLoading["garmin"]}
-                    onClick={() => triggerSync("garmin")}
-                    title={garminBanned === true ? "Garmin rate-limited, try later" : garminBanned === null ? "Checking Garmin status…" : undefined}>
-                    <FaArrowsRotate className={syncLoading["garmin"] ? "spin" : ""} />
-                    <span>{garminBanned === true ? "Garmin (banned)" : garminBanned === null ? "Garmin (checking…)" : syncLabel("garmin")}</span>
-                  </button>
+                  {garminBanUntil ? (
+                    <div className="profile-action garmin-countdown">
+                      <FaClock />
+                      <span>Garmin sync in {garminBanCountdown}</span>
+                    </div>
+                  ) : (
+                    <button className="profile-action" disabled={syncLoading["garmin"]}
+                      onClick={() => triggerSync("garmin")}>
+                      <FaArrowsRotate className={syncLoading["garmin"] ? "spin" : ""} />
+                      <span>{syncLabel("garmin")}</span>
+                    </button>
+                  )}
                   <div className="profile-divider" />
                   <button className="profile-action" onClick={() => { goTab("competitions"); setProfileOpen(false); }}>
                     <FaTrophy /><span>Competitions</span>
@@ -965,12 +991,18 @@ export default function App() {
                     {syncLabel(src)}
                   </button>
                 ))}
-                <button className="drawer-item" disabled={garminBanned !== false || syncLoading["garmin"]}
-                  onClick={() => triggerSync("garmin")}
-                  title={garminBanned === true ? "Garmin rate-limited, try later" : garminBanned === null ? "Checking Garmin status…" : undefined}>
-                  <FaArrowsRotate className={syncLoading["garmin"] ? "spin" : ""} />
-                  {garminBanned === true ? "Garmin (banned)" : garminBanned === null ? "Garmin (checking…)" : syncLabel("garmin")}
-                </button>
+                {garminBanUntil ? (
+                  <div className="drawer-item garmin-countdown">
+                    <FaClock />
+                    Garmin sync in {garminBanCountdown}
+                  </div>
+                ) : (
+                  <button className="drawer-item" disabled={syncLoading["garmin"]}
+                    onClick={() => triggerSync("garmin")}>
+                    <FaArrowsRotate className={syncLoading["garmin"] ? "spin" : ""} />
+                    {syncLabel("garmin")}
+                  </button>
+                )}
                 <button
                   className={`drawer-item${activeTab === "competitions" ? " active" : ""}`}
                   onClick={() => { goTab("competitions"); setMenuOpen(false); }}

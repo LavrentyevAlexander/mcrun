@@ -62,6 +62,41 @@ TYPE_ID_MAP = {
 
 
 TOKEN_FILES = ("oauth1_token.json", "oauth2_token.json")
+BAN_DURATION_HOURS = 72
+
+
+def _get_ban_until(conn):
+    """Return ban_until datetime if currently rate-limited, else None."""
+    with conn.cursor() as cur:
+        cur.execute("SELECT value FROM garmin_tokens WHERE key = 'ban_until'")
+        row = cur.fetchone()
+    if not row:
+        return None
+    try:
+        from datetime import timedelta
+        ban_until = datetime.fromisoformat(row[0])
+        if ban_until > datetime.now(timezone.utc):
+            return ban_until
+    except (ValueError, TypeError):
+        pass
+    return None
+
+
+def _set_ban_until(conn):
+    """Store ban_until = now + 72h in DB."""
+    from datetime import timedelta
+    ban_until = datetime.now(timezone.utc) + timedelta(hours=BAN_DURATION_HOURS)
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO garmin_tokens (key, value, updated_at)
+            VALUES ('ban_until', %s, NOW())
+            ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()
+            """,
+            (ban_until.isoformat(),),
+        )
+    conn.commit()
+    return ban_until
 
 
 def _load_tokens_from_db(conn, dir_path) -> bool:
@@ -104,6 +139,14 @@ def _save_tokens_to_db(conn, dir_path):
 def get_garmin_client():
     import tempfile
 
+    # Circuit breaker: don't attempt login if rate-limited
+    with get_conn() as conn:
+        ban_until = _get_ban_until(conn)
+    if ban_until:
+        raise RuntimeError(
+            f"Garmin login blocked until {ban_until.isoformat()} (rate limit cooldown)"
+        )
+
     with tempfile.TemporaryDirectory() as tmp:
         # Try cached tokens from DB — avoids a full OAuth login on every sync call
         try:
@@ -115,13 +158,22 @@ def get_garmin_client():
         except Exception:
             pass
 
-        # Full login — runs when no cached tokens or tokens are expired
-        client = garminconnect.Garmin(GARMIN_EMAIL, GARMIN_PASSWORD)
-        if GARMIN_TOTP_SECRET:
-            import pyotp
-            client.login(prompt_mfa=lambda: pyotp.TOTP(GARMIN_TOTP_SECRET).now())
-        else:
-            client.login()
+        # Full login — catch 429 and activate circuit breaker
+        try:
+            client = garminconnect.Garmin(GARMIN_EMAIL, GARMIN_PASSWORD)
+            if GARMIN_TOTP_SECRET:
+                import pyotp
+                client.login(prompt_mfa=lambda: pyotp.TOTP(GARMIN_TOTP_SECRET).now())
+            else:
+                client.login()
+        except Exception as e:
+            if "429" in str(e):
+                with get_conn() as conn:
+                    ban_until = _set_ban_until(conn)
+                raise RuntimeError(
+                    f"Garmin rate-limited (429). Sync blocked for {BAN_DURATION_HOURS}h until {ban_until.isoformat()}"
+                ) from e
+            raise
 
         # Persist new tokens to DB so next call reuses them
         try:
