@@ -175,11 +175,6 @@
   color: #888;
 }
 
-.garmin-countdown {
-  opacity: 0.7;
-  cursor: default;
-  font-variant-numeric: tabular-nums;
-}
 
 .comp-past td {
   background: #f0fff4;
@@ -1017,6 +1012,10 @@ tbody tr:hover {
 .cal-agenda-wrap {
   max-width: 640px;
   margin: 0 auto;
+  background: var(--clr-bg);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: 0.75rem 1rem;
 }
 
 .cal-agenda {

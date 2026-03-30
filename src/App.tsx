@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { GoogleLogin, googleLogout } from "@react-oauth/google";
-import { FaHouse, FaPersonRunning, FaCalendarDays, FaTrophy, FaBolt, FaUser, FaArrowsRotate, FaRightFromBracket, FaHeartPulse, FaArrowUpRightFromSquare, FaCalendarCheck, FaBullseye, FaClock } from "react-icons/fa6";
+import { FaHouse, FaPersonRunning, FaCalendarDays, FaTrophy, FaBolt, FaUser, FaArrowsRotate, FaRightFromBracket, FaHeartPulse, FaArrowUpRightFromSquare, FaCalendarCheck, FaBullseye } from "react-icons/fa6";
 import { GiRunningShoe } from "react-icons/gi";
 import "./App.css";
 
@@ -346,8 +346,6 @@ export default function App() {
   const [syncLoading, setSyncLoading] = useState<Record<string, boolean>>({});
   const [syncError, setSyncError] = useState("");
   const pendingSyncRef = useRef<"strava" | "garmin" | null>(null);
-  const [garminBanUntil, setGarminBanUntil] = useState<Date | null>(null);
-  const [garminBanCountdown, setGarminBanCountdown] = useState("");
 
   // Competitions
   const [googleCredential, setGoogleCredential] = useState<string | null>(
@@ -393,41 +391,9 @@ export default function App() {
     fetchRuns();
     fetchRecords();
     fetchGarminMetrics();
-    fetchGarminStatus();
     if (googleCredential) fetchCompetitions();
     fetchGoals();
   }, []);
-
-  async function fetchGarminStatus() {
-    try {
-      const res = await fetch("/api/garmin_status");
-      if (res.ok) {
-        const json = await res.json();
-        if (json.banned && json.ban_until) {
-          setGarminBanUntil(new Date(json.ban_until));
-        } else {
-          setGarminBanUntil(null);
-        }
-      }
-    } catch {
-      // non-critical
-    }
-  }
-
-  useEffect(() => {
-    if (!garminBanUntil) { setGarminBanCountdown(""); return; }
-    function update() {
-      const diff = garminBanUntil!.getTime() - Date.now();
-      if (diff <= 0) { setGarminBanUntil(null); setGarminBanCountdown(""); return; }
-      const h = Math.floor(diff / 3600000);
-      const m = Math.floor((diff % 3600000) / 60000);
-      const s = Math.floor((diff % 60000) / 1000);
-      setGarminBanCountdown(`${h}h ${String(m).padStart(2, "0")}m ${String(s).padStart(2, "0")}s`);
-    }
-    update();
-    const id = setInterval(update, 1000);
-    return () => clearInterval(id);
-  }, [garminBanUntil]);
 
   async function fetchGarminMetrics() {
     try {
@@ -923,18 +889,11 @@ export default function App() {
                       <span>{syncLabel(src)}</span>
                     </button>
                   ))}
-                  {garminBanUntil ? (
-                    <div className="profile-action garmin-countdown">
-                      <FaClock />
-                      <span>Garmin sync in {garminBanCountdown}</span>
-                    </div>
-                  ) : (
-                    <button className="profile-action" disabled={syncLoading["garmin"]}
-                      onClick={() => triggerSync("garmin")}>
-                      <FaArrowsRotate className={syncLoading["garmin"] ? "spin" : ""} />
-                      <span>{syncLabel("garmin")}</span>
-                    </button>
-                  )}
+                  <button className="profile-action" disabled={syncLoading["garmin"]}
+                    onClick={() => triggerSync("garmin")}>
+                    <FaArrowsRotate className={syncLoading["garmin"] ? "spin" : ""} />
+                    <span>{syncLabel("garmin")}</span>
+                  </button>
                   <div className="profile-divider" />
                   <button className="profile-action" onClick={() => { goTab("competitions"); setProfileOpen(false); }}>
                     <FaTrophy /><span>Competitions</span>
@@ -990,18 +949,11 @@ export default function App() {
                     {syncLabel(src)}
                   </button>
                 ))}
-                {garminBanUntil ? (
-                  <div className="drawer-item garmin-countdown">
-                    <FaClock />
-                    Garmin sync in {garminBanCountdown}
-                  </div>
-                ) : (
-                  <button className="drawer-item" disabled={syncLoading["garmin"]}
-                    onClick={() => triggerSync("garmin")}>
-                    <FaArrowsRotate className={syncLoading["garmin"] ? "spin" : ""} />
-                    {syncLabel("garmin")}
-                  </button>
-                )}
+                <button className="drawer-item" disabled={syncLoading["garmin"]}
+                  onClick={() => triggerSync("garmin")}>
+                  <FaArrowsRotate className={syncLoading["garmin"] ? "spin" : ""} />
+                  {syncLabel("garmin")}
+                </button>
                 <button
                   className={`drawer-item${activeTab === "competitions" ? " active" : ""}`}
                   onClick={() => { goTab("competitions"); setMenuOpen(false); }}
@@ -1498,14 +1450,14 @@ export default function App() {
                         <tbody>
                           {competitions.map((c, i) => editingId === c.id ? (
                             <tr key={c.id}>
-                              <td>{i + 1}</td>
-                              <td><input value={editForm.competition} onChange={(e) => setEditForm((f) => ({ ...f, competition: e.target.value }))} style={{ width: "100%" }} /></td>
-                              <td><input value={editForm.location} onChange={(e) => setEditForm((f) => ({ ...f, location: e.target.value }))} style={{ width: "100%" }} /></td>
-                              <td><input type="date" value={editForm.date} onChange={(e) => setEditForm((f) => ({ ...f, date: e.target.value }))} /></td>
-                              <td><input value={editForm.distance} onChange={(e) => setEditForm((f) => ({ ...f, distance: e.target.value }))} style={{ width: 80 }} /></td>
-                              <td><input value={editForm.time} onChange={(e) => setEditForm((f) => ({ ...f, time: e.target.value }))} style={{ width: 80 }} /></td>
-                              <td><input value={editForm.rank} onChange={(e) => setEditForm((f) => ({ ...f, rank: e.target.value }))} style={{ width: 90 }} /></td>
-                              <td><input value={editForm.link} onChange={(e) => setEditForm((f) => ({ ...f, link: e.target.value }))} style={{ width: 120 }} /></td>
+                              <td data-label="#">{i + 1}</td>
+                              <td data-label="Competition"><input value={editForm.competition} onChange={(e) => setEditForm((f) => ({ ...f, competition: e.target.value }))} style={{ width: "100%" }} /></td>
+                              <td data-label="Location"><input value={editForm.location} onChange={(e) => setEditForm((f) => ({ ...f, location: e.target.value }))} style={{ width: "100%" }} /></td>
+                              <td data-label="Date"><input type="date" value={editForm.date} onChange={(e) => setEditForm((f) => ({ ...f, date: e.target.value }))} /></td>
+                              <td data-label="Distance"><input value={editForm.distance} onChange={(e) => setEditForm((f) => ({ ...f, distance: e.target.value }))} style={{ width: 80 }} /></td>
+                              <td data-label="Time"><input value={editForm.time} onChange={(e) => setEditForm((f) => ({ ...f, time: e.target.value }))} style={{ width: 80 }} /></td>
+                              <td data-label="Rank"><input value={editForm.rank} onChange={(e) => setEditForm((f) => ({ ...f, rank: e.target.value }))} style={{ width: 90 }} /></td>
+                              <td data-label="Results"><input value={editForm.link} onChange={(e) => setEditForm((f) => ({ ...f, link: e.target.value }))} style={{ width: 120 }} /></td>
                               <td style={{ whiteSpace: "nowrap" }}>
                                 <button onClick={() => saveEdit(c.id)} style={{ padding: "0.25rem 0.6rem", fontSize: "0.8rem", marginRight: "0.3rem" }}>Save</button>
                                 <button onClick={() => setEditingId(null)} style={{ padding: "0.25rem 0.6rem", fontSize: "0.8rem", background: "#888" }}>✕</button>
