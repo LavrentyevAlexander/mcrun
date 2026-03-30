@@ -566,7 +566,7 @@ def sync_garmin() -> dict:
 
             for year, month_0 in sorted(months):
                 try:
-                    raw = client.connectapi(f"/calendarservice/year/{year}/month/{month_0}")
+                    raw = client.connectapi(f"/calendar-service/year/{year}/month/{month_0}")
                     for item in (raw or {}).get("calendarItems") or []:
                         if item.get("itemType") != "workout":
                             continue
