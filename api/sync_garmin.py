@@ -136,6 +136,75 @@ def _save_tokens_to_db(conn, dir_path):
     conn.commit()
 
 
+_SSO_SIGNIN_PARAMS = (
+    "id=gauth-widget&embedWidget=true"
+    "&gauthHost=https%3A%2F%2Fsso.garmin.com%2Fsso%2Fembed"
+    "&service=https%3A%2F%2Fsso.garmin.com%2Fsso%2Fembed"
+    "&source=https%3A%2F%2Fsso.garmin.com%2Fsso%2Fembed"
+    "&redirectAfterAccountLoginUrl=https%3A%2F%2Fsso.garmin.com%2Fsso%2Fembed"
+    "&redirectAfterAccountCreationUrl=https%3A%2F%2Fsso.garmin.com%2Fsso%2Fembed"
+)
+_SSO_SIGNIN_URL = f"https://sso.garmin.com/sso/signin?{_SSO_SIGNIN_PARAMS}"
+_GARMIN_UA = "com.garmin.android.apps.connectmobile"
+
+
+def _get_service_ticket_via_curl() -> str:
+    """Login via curl to bypass Cloudflare TLS fingerprinting that blocks Python requests."""
+    import subprocess
+    import re as _re
+
+    # Step 1: GET signin page → CSRF token + Spring session cookie
+    r = subprocess.run(
+        ["curl", "-s", "-D", "-", "-H", f"User-Agent: {_GARMIN_UA}", _SSO_SIGNIN_URL],
+        capture_output=True, text=True, timeout=30,
+    )
+    if r.returncode != 0:
+        raise RuntimeError(f"curl GET SSO failed: {r.stderr}")
+
+    csrf_m = _re.search(r'name="_csrf"\s+value="(.+?)"', r.stdout)
+    if not csrf_m:
+        raise RuntimeError("No CSRF token in Garmin SSO page")
+    csrf_token = csrf_m.group(1)
+
+    locale_m = _re.search(
+        r"Set-Cookie: (org\.springframework\.web\.servlet\.i18n\.CookieLocaleResolver\.LOCALE=[^;\s]+)",
+        r.stdout,
+    )
+    spring_cookie = (
+        locale_m.group(1)
+        if locale_m
+        else "org.springframework.web.servlet.i18n.CookieLocaleResolver.LOCALE=en"
+    )
+
+    # Step 2: POST credentials → service ticket
+    r2 = subprocess.run(
+        ["curl", "-s",
+         "-X", "POST", _SSO_SIGNIN_URL,
+         "-H", f"User-Agent: {_GARMIN_UA}",
+         "-H", f"Referer: {_SSO_SIGNIN_URL}",
+         "-b", spring_cookie,
+         "--data-urlencode", f"username={GARMIN_EMAIL}",
+         "--data-urlencode", f"password={GARMIN_PASSWORD}",
+         "--data-urlencode", f"_csrf={csrf_token}",
+         "--data-urlencode", "embed=true"],
+        capture_output=True, text=True, timeout=30,
+    )
+    if r2.returncode != 0:
+        raise RuntimeError(f"curl POST SSO failed: {r2.stderr}")
+
+    if '"status-code":"429"' in r2.stdout:
+        raise RuntimeError("429 rate limit from Garmin SSO")
+
+    ticket_m = _re.search(r'embed\?ticket=([^"\\]+)', r2.stdout)
+    if not ticket_m:
+        title_m = _re.search(r"<title>(.+?)</title>", r2.stdout, _re.I)
+        raise RuntimeError(
+            f"No service ticket in SSO response (title: {title_m.group(1) if title_m else 'unknown'})"
+        )
+
+    return ticket_m.group(1)
+
+
 def get_garmin_client():
     import tempfile
 
@@ -148,24 +217,41 @@ def get_garmin_client():
         )
 
     with tempfile.TemporaryDirectory() as tmp:
-        # Try cached tokens from DB — avoids a full OAuth login on every sync call
+        # Try cached tokens from DB — avoids SSO login on every sync call
         try:
             with get_conn() as conn:
                 if _load_tokens_from_db(conn, tmp):
-                    client = garminconnect.Garmin(tokenstore=tmp)
-                    client.login()
+                    client = garminconnect.Garmin()
+                    client.login(tokenstore=tmp)
                     return client
         except Exception:
             pass
 
-        # Full login — catch 429 and activate circuit breaker
+        # Full login via curl + garth OAuth exchange
         try:
-            client = garminconnect.Garmin(GARMIN_EMAIL, GARMIN_PASSWORD)
-            if GARMIN_TOTP_SECRET:
-                import pyotp
-                client.login(prompt_mfa=lambda: pyotp.TOTP(GARMIN_TOTP_SECRET).now())
-            else:
-                client.login()
+            ticket = _get_service_ticket_via_curl()
+
+            from garth.http import Client as GarthClient
+            from garth.sso import get_oauth1_token, exchange as garth_exchange
+
+            garth_client = GarthClient()
+            oauth1 = get_oauth1_token(ticket, garth_client)
+            oauth2 = garth_exchange(oauth1, garth_client)
+
+            # Serialize tokens using garth's own method, then save to DB
+            garth_client.configure(oauth1_token=oauth1, oauth2_token=oauth2)
+            garth_client.dump(tmp)
+            with get_conn() as conn:
+                _save_tokens_to_db(conn, tmp)
+                # Clear ban_until since login succeeded
+                with conn.cursor() as cur:
+                    cur.execute("DELETE FROM garmin_tokens WHERE key = 'ban_until'")
+                conn.commit()
+
+            client = garminconnect.Garmin()
+            client.login(tokenstore=tmp)
+            return client
+
         except Exception as e:
             if "429" in str(e):
                 with get_conn() as conn:
@@ -174,16 +260,6 @@ def get_garmin_client():
                     f"Garmin rate-limited (429). Sync blocked for {BAN_DURATION_HOURS}h until {ban_until.isoformat()}"
                 ) from e
             raise
-
-        # Persist new tokens to DB so next call reuses them
-        try:
-            client.garth.dump(tmp)
-            with get_conn() as conn:
-                _save_tokens_to_db(conn, tmp)
-        except Exception:
-            pass
-
-        return client
 
 
 def _num(val):
