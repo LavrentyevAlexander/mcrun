@@ -110,6 +110,10 @@ interface GarminActivity {
   anaerobic_te: number | null;
 }
 
+function localDateStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 function formatDuration(totalSec: number): string {
   const h = Math.floor(totalSec / 3600);
   const m = Math.floor((totalSec % 3600) / 60);
@@ -482,7 +486,7 @@ export default function App() {
       const from = new Date();
       const to = new Date();
       to.setDate(to.getDate() + 13);
-      const fmt = (d: Date) => d.toISOString().slice(0, 10);
+      const fmt = localDateStr;
       const res = await fetch(`/api/garmin_calendar?from=${fmt(from)}&to=${fmt(to)}`);
       if (res.ok) setCalendarEvents(await res.json());
     } catch (e) {
@@ -760,7 +764,7 @@ export default function App() {
       const cutoff = new Date(d);
       cutoff.setDate(cutoff.getDate() - 28);
       const window = withEffort.filter(
-        (x) => x.strava_id !== act.strava_id && x.date > cutoff.toISOString().slice(0, 10) && x.date < act.date
+        (x) => x.strava_id !== act.strava_id && x.date > localDateStr(cutoff) && x.date < act.date
       );
       const avg = window.length >= 2
         ? window.reduce((s, x) => s + x.effort, 0) / window.length
@@ -1416,7 +1420,7 @@ export default function App() {
 
           {/* ── COMPETITIONS ── */}
           {activeTab === "competitions" && (() => {
-            const todayStr = new Date().toISOString().slice(0, 10);
+            const todayStr = localDateStr(new Date());
             return (
             <div>
               {!googleCredential ? (
@@ -1599,7 +1603,7 @@ export default function App() {
           {/* ── CALENDAR ── */}
           {activeTab === "calendar" && (() => {
             const today = new Date();
-            const todayStr = today.toISOString().slice(0, 10);
+            const todayStr = localDateStr(today);
             const days = Array.from({ length: 14 }, (_, i) => {
               const d = new Date(today);
               d.setDate(today.getDate() + i);
@@ -1660,7 +1664,7 @@ export default function App() {
                 {!calendarLoading && (
                   <div className="cal-agenda">
                     {days.map((d) => {
-                      const dateStr = d.toISOString().slice(0, 10);
+                      const dateStr = localDateStr(d);
                       const events = eventsByDate[dateStr] || [];
                       const isToday = dateStr === todayStr;
                       return (
