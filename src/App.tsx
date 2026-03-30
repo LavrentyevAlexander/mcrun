@@ -371,7 +371,6 @@ export default function App() {
   const [goalsAddLoading, setGoalsAddLoading] = useState(false);
 
   // Calendar
-  const [calendarDate, setCalendarDate] = useState<Date>(() => { const d = new Date(); d.setDate(1); return d; });
   const [calendarEvents, setCalendarEvents] = useState<GarminActivity[] | null>(null);
   const [calendarLoading, setCalendarLoading] = useState(false);
   const [calendarError, setCalendarError] = useState("");
@@ -384,10 +383,8 @@ export default function App() {
   const [gearError, setGearError] = useState("");
 
   useEffect(() => {
-    if (activeTab === "calendar") {
-      fetchCalendarEvents(calendarDate.getFullYear(), calendarDate.getMonth() + 1);
-    }
-  }, [calendarDate]);
+    if (activeTab === "calendar") fetchCalendarEvents();
+  }, []);
 
   // Preload all data on mount
   useEffect(() => {
@@ -512,15 +509,17 @@ export default function App() {
     }
   }
 
-  async function fetchCalendarEvents(year: number, month: number) {
+  async function fetchCalendarEvents() {
     setCalendarLoading(true);
     setCalendarError("");
     try {
-      const res = await fetch(`/api/garmin_calendar?year=${year}&month=${month}`);
-      const json = await res.json();
-      if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
-      setCalendarEvents(json);
-    } catch (e: unknown) {
+      const from = new Date();
+      const to = new Date();
+      to.setDate(to.getDate() + 13);
+      const fmt = (d: Date) => d.toISOString().slice(0, 10);
+      const res = await fetch(`/api/garmin_calendar?from=${fmt(from)}&to=${fmt(to)}`);
+      if (res.ok) setCalendarEvents(await res.json());
+    } catch (e) {
       setCalendarError(e instanceof Error ? friendlyError(e.message) : "Unknown error");
       setCalendarEvents(null);
     } finally {
@@ -867,7 +866,7 @@ export default function App() {
     if (tab === "records" && !records && !recordsLoading) fetchRecords();
     if (tab === "competitions" && googleCredential && !competitions && !competitionsLoading) fetchCompetitions();
     if (tab === "goals" && !goals && !goalsLoading) fetchGoals();
-    if (tab === "calendar") fetchCalendarEvents(calendarDate.getFullYear(), calendarDate.getMonth() + 1);
+    if (tab === "calendar") fetchCalendarEvents();
   }
 
   function syncLabel(src: "strava" | "garmin") {
@@ -1647,79 +1646,104 @@ export default function App() {
 
           {/* ── CALENDAR ── */}
           {activeTab === "calendar" && (() => {
-            const year = calendarDate.getFullYear();
-            const month = calendarDate.getMonth(); // 0-based
-            const firstDow = new Date(year, month, 1).getDay(); // 0=Sun
-            const startOffset = (firstDow + 6) % 7; // convert to Mon-first
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-            const cells: (number | null)[] = [...Array(startOffset).fill(null)];
-            for (let d = 1; d <= daysInMonth; d++) cells.push(d);
-            const todayStr = new Date().toISOString().slice(0, 10);
+            const today = new Date();
+            const todayStr = today.toISOString().slice(0, 10);
+            const days = Array.from({ length: 14 }, (_, i) => {
+              const d = new Date(today);
+              d.setDate(today.getDate() + i);
+              return d;
+            });
 
-            // Group events by date
             const eventsByDate: Record<string, GarminActivity[]> = {};
             (calendarEvents || []).forEach((e) => {
               if (!eventsByDate[e.date]) eventsByDate[e.date] = [];
               eventsByDate[e.date].push(e);
             });
 
-            function activityColor(type: string) {
-              if (type.includes("running") || type === "run") return "cal-run";
-              if (type.includes("cycling") || type.includes("bike")) return "cal-bike";
-              if (type.includes("swimming") || type === "swim") return "cal-swim";
-              if (type.includes("strength") || type.includes("training")) return "cal-strength";
+            function guessType(name: string, type: string): string {
+              if (type && type !== "") return type;
+              const n = name.toLowerCase();
+              if (n.includes("бег") || n.includes("run") || n.includes("темп") || /\d\s*[хx]\s*\d/.test(n) || n.includes("интервал") || n.includes("кросс")) return "running";
+              if (n.includes("upper") || n.includes("lower") || n.includes("push") || n.includes("pull") || n.includes("strength") || n.includes("силов")) return "strength";
+              if (n.includes("bike") || n.includes("велос") || n.includes("cycling")) return "cycling";
+              if (n.includes("swim") || n.includes("плав")) return "swimming";
+              return "other";
+            }
+
+            function typeEmoji(type: string): string {
+              if (type === "running") return "🏃";
+              if (type === "cycling") return "🚴";
+              if (type === "swimming") return "🏊";
+              if (type === "strength") return "💪";
+              return "⚡";
+            }
+
+            function typeClass(type: string): string {
+              if (type === "running") return "cal-run";
+              if (type === "cycling") return "cal-bike";
+              if (type === "swimming") return "cal-swim";
+              if (type === "strength") return "cal-strength";
               return "cal-other";
             }
 
+            const DOW_RU: Record<string, string> = { Mon: "Пн", Tue: "Вт", Wed: "Ср", Thu: "Чт", Fri: "Пт", Sat: "Сб", Sun: "Вс" };
+            const MON_RU: Record<string, string> = { Jan: "янв", Feb: "фев", Mar: "мар", Apr: "апр", May: "май", Jun: "июн", Jul: "июл", Aug: "авг", Sep: "сен", Oct: "окт", Nov: "ноя", Dec: "дек" };
+
+            function fmtDow(d: Date): string {
+              const en = d.toLocaleString("en", { weekday: "short" });
+              return DOW_RU[en] ?? en;
+            }
+            function fmtMonthDay(d: Date): string {
+              const m = d.toLocaleString("en", { month: "short" });
+              return `${d.getDate()} ${MON_RU[m] ?? m}`;
+            }
+
             return (
-              <div className="calendar-wrap">
-                <div className="calendar-nav">
-                  <button className="calendar-nav-btn" onClick={() => {
-                    const d = new Date(calendarDate);
-                    d.setMonth(d.getMonth() - 1);
-                    setCalendarDate(new Date(d));
-                  }}>‹</button>
-                  <span className="calendar-title">
-                    {calendarDate.toLocaleString("default", { month: "long" })} {year}
-                  </span>
-                  <button className="calendar-nav-btn" onClick={() => {
-                    const d = new Date(calendarDate);
-                    d.setMonth(d.getMonth() + 1);
-                    setCalendarDate(new Date(d));
-                  }}>›</button>
-                </div>
+              <div className="cal-agenda-wrap">
                 {calendarLoading && <div className="loading-box">Loading…</div>}
                 {calendarError && <p className="error">{calendarError}</p>}
+                {!calendarLoading && calendarEvents === null && (
+                  <p className="health-empty" style={{ textAlign: "center" }}>No data — sync Garmin to populate.</p>
+                )}
                 {!calendarLoading && (
-                  <>
-                    {(calendarEvents === null || calendarEvents.length === 0) && (
-                      <p className="health-empty" style={{ textAlign: "center", marginBottom: "1rem" }}>
-                        {calendarEvents === null ? "No data — sync Garmin to populate." : "No planned workouts this month."}
-                      </p>
-                    )}
-                    <div className="calendar-grid">
-                      {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
-                        <div key={d} className="calendar-dow">{d}</div>
-                      ))}
-                      {cells.map((day, i) => {
-                        if (day === null) return <div key={i} className="calendar-cell calendar-cell--empty" />;
-                        const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-                        const events = eventsByDate[dateStr] || [];
-                        const isToday = dateStr === todayStr;
-                        return (
-                          <div key={i} className={`calendar-cell${isToday ? " calendar-cell--today" : ""}${events.length ? " calendar-cell--has-events" : ""}`}>
-                            <span className="calendar-day-num">{day}</span>
-                            {events.map((ev, j) => (
-                              <span key={j} className={`calendar-event ${activityColor(ev.activity_type)}`} title={ev.name}>
-                                {ev.distance_km > 0 ? `${ev.distance_km.toFixed(1)}` : "·"}
-                                {ev.aerobic_te !== null && <span className="cal-te">↑{ev.aerobic_te.toFixed(1)}</span>}
-                              </span>
-                            ))}
+                  <div className="cal-agenda">
+                    {days.map((d) => {
+                      const dateStr = d.toISOString().slice(0, 10);
+                      const events = eventsByDate[dateStr] || [];
+                      const isToday = dateStr === todayStr;
+                      return (
+                        <div key={dateStr} className={`cal-row${isToday ? " cal-row--today" : ""}${events.length === 0 ? " cal-row--rest" : ""}`}>
+                          <div className="cal-row-label">
+                            <span className="cal-row-dow">{isToday ? "сегодня" : fmtDow(d)}</span>
+                            <span className="cal-row-date">{fmtMonthDay(d)}</span>
                           </div>
-                        );
-                      })}
-                    </div>
-                  </>
+                          <div className="cal-row-events">
+                            {events.length === 0 ? (
+                              <span className="cal-rest-label">—</span>
+                            ) : (
+                              events.map((ev, j) => {
+                                const t = guessType(ev.name, ev.activity_type);
+                                return (
+                                  <div key={j} className={`cal-card ${typeClass(t)}`}>
+                                    <div className="cal-card-top">
+                                      <span className="cal-card-emoji">{typeEmoji(t)}</span>
+                                      <span className="cal-card-name">{ev.name || t}</span>
+                                    </div>
+                                    {(ev.distance_km > 0 || ev.duration_sec > 0) && (
+                                      <div className="cal-card-meta">
+                                        {ev.distance_km > 0 && <span>{ev.distance_km.toFixed(1)} км</span>}
+                                        {ev.duration_sec > 0 && <span>{formatDuration(ev.duration_sec)}</span>}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
             );

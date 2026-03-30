@@ -4,7 +4,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 from http.server import BaseHTTPRequestHandler
 from urllib.parse import parse_qs, urlparse
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import calendar
 
 import psycopg2.extras
@@ -16,12 +16,18 @@ class handler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
             query = parse_qs(urlparse(self.path).query)
-            now = datetime.now()
-            year = int(query.get("year", [now.year])[0])
-            month = int(query.get("month", [now.month])[0])
-            _, last_day = calendar.monthrange(year, month)
-            start = date(year, month, 1).isoformat()
-            end = date(year, month, last_day).isoformat()
+            from_date = query.get("from", [None])[0]
+            to_date = query.get("to", [None])[0]
+            if from_date and to_date:
+                start = from_date
+                end = to_date
+            else:
+                now = datetime.now()
+                year = int(query.get("year", [now.year])[0])
+                month = int(query.get("month", [now.month])[0])
+                _, last_day = calendar.monthrange(year, month)
+                start = date(year, month, 1).isoformat()
+                end = date(year, month, last_day).isoformat()
 
             with get_conn() as conn:
                 with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
