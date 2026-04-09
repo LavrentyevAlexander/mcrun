@@ -507,7 +507,7 @@
 .race-time {
   font-size: 1rem;
   font-weight: 700;
-  color: var(--clr-fg);
+  color: var(--clr-text);
 }
 
 .metric-value--mono {
@@ -545,7 +545,7 @@
   font-size: 1.05rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: var(--clr-fg);
+  color: var(--clr-text);
   margin-top: 3px;
   white-space: nowrap;
 }
@@ -1056,17 +1056,17 @@ tbody tr:hover {
 }
 
 .cal-row--today .cal-row-dow {
-  color: var(--accent);
+  color: var(--clr-brand);
 }
 
 .cal-row-date {
   font-size: 0.9rem;
   font-weight: 600;
-  color: var(--clr-fg);
+  color: var(--clr-text);
 }
 
 .cal-row--today .cal-row-date {
-  color: var(--accent);
+  color: var(--clr-brand);
 }
 
 .cal-row-events {

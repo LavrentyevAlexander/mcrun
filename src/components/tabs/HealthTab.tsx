@@ -1,0 +1,206 @@
+import type { GarminMetrics } from "../../types";
+
+function trainingStatusStyle(status: string | null): React.CSSProperties {
+  const s = (status ?? "").toLowerCase();
+  if (s === "productive")   return { background: "#e8f5e9", color: "#2e7d32" };
+  if (s === "peaking")      return { background: "#e3f2fd", color: "#1565c0" };
+  if (s === "maintaining")  return { background: "#f5f5f5", color: "#555" };
+  if (s === "recovery")     return { background: "#e0f7fa", color: "#00838f" };
+  if (s === "unproductive") return { background: "#fff3e0", color: "#e65100" };
+  if (s === "strained")     return { background: "#fff3e0", color: "#e65100" };
+  if (s === "overreaching") return { background: "#ffebee", color: "#c62828" };
+  return { background: "#f5f5f5", color: "#555" };
+}
+
+function hrvStatusStyle(status: string | null): React.CSSProperties {
+  const s = (status ?? "").toLowerCase();
+  if (s === "balanced")    return { background: "#e8f5e9", color: "#2e7d32" };
+  if (s === "unbalanced")  return { background: "#fff3e0", color: "#e65100" };
+  return { background: "#f5f5f5", color: "#555" };
+}
+
+function acwrFeedbackStyle(v: string | null): React.CSSProperties {
+  const s = (v ?? "").toLowerCase();
+  if (s === "very good") return { background: "#e8f5e9", color: "#2e7d32" };
+  if (s === "good")      return { background: "#e8f5e9", color: "#2e7d32" };
+  if (s === "moderate" || s === "fair") return { background: "#e3f2fd", color: "#1565c0" };
+  if (s === "poor")      return { background: "#fff3e0", color: "#e65100" };
+  if (s === "very poor") return { background: "#ffebee", color: "#c62828" };
+  return { background: "#f5f5f5", color: "#555" };
+}
+
+function readinessLabel(v: number): string {
+  if (v <= 25)  return "low";
+  if (v <= 50)  return "fair";
+  if (v <= 75)  return "good";
+  return "high";
+}
+
+function readinessStyle(v: number): React.CSSProperties {
+  if (v <= 25)  return { background: "#ffebee", color: "#c62828" };
+  if (v <= 50)  return { background: "#fff3e0", color: "#e65100" };
+  if (v <= 75)  return { background: "#e3f2fd", color: "#1565c0" };
+  return { background: "#e8f5e9", color: "#2e7d32" };
+}
+
+interface HealthTabProps {
+  garminMetrics: GarminMetrics | null;
+}
+
+export default function HealthTab({ garminMetrics }: HealthTabProps) {
+  return (
+    <div className="health-tiles">
+      {!garminMetrics && <p className="health-empty">No data yet — sync Garmin to populate.</p>}
+      {garminMetrics && (<>
+        <div className="metric-card">
+          <span className="metric-label">VO₂ Max</span>
+          <span className="metric-value">{garminMetrics.vo2_max ?? "—"}</span>
+        </div>
+        {garminMetrics.fitness_age !== null && (
+          <div className="metric-card">
+            <span className="metric-label">Fitness age</span>
+            <span className="metric-value">{garminMetrics.fitness_age}</span>
+          </div>
+        )}
+        {garminMetrics.training_status && (
+          <div className="metric-card">
+            <span className="metric-label">Training status</span>
+            <span className="metric-badge" style={trainingStatusStyle(garminMetrics.training_status)}>
+              {garminMetrics.training_status}
+            </span>
+          </div>
+        )}
+        {garminMetrics.training_load !== null && (
+          <div className="metric-card">
+            <span className="metric-label">Chronic load</span>
+            <span className="metric-value">{Math.round(garminMetrics.training_load)}</span>
+          </div>
+        )}
+        {garminMetrics.acute_load !== null && (
+          <div className="metric-card">
+            <span className="metric-label">Acute load</span>
+            <span className="metric-value">{Math.round(garminMetrics.acute_load)}</span>
+          </div>
+        )}
+        {garminMetrics.acwr_feedback !== null && (
+          <div className="metric-card">
+            <span className="metric-label">Load balance</span>
+            <span className="metric-badge" style={acwrFeedbackStyle(garminMetrics.acwr_feedback)}>
+              {garminMetrics.acwr_feedback}
+            </span>
+            <span className="metric-sub">acute / chronic</span>
+          </div>
+        )}
+        {garminMetrics.hrv_last_night !== null && (
+          <div className="metric-card">
+            <span className="metric-label">HRV last night</span>
+            <span className="metric-value">{garminMetrics.hrv_last_night}</span>
+            {garminMetrics.hrv_weekly_avg !== null && (
+              <span className="metric-sub">Weekly avg {garminMetrics.hrv_weekly_avg}</span>
+            )}
+            {garminMetrics.hrv_status && (
+              <span className="metric-badge" style={hrvStatusStyle(garminMetrics.hrv_status)}>
+                {garminMetrics.hrv_status.toLowerCase()}
+              </span>
+            )}
+          </div>
+        )}
+        {garminMetrics.training_readiness !== null && (
+          <div className="metric-card">
+            <span className="metric-label">Training readiness</span>
+            <span className="metric-value">{garminMetrics.training_readiness}</span>
+            <span className="metric-sub">out of 100</span>
+            <span className="metric-badge" style={readinessStyle(garminMetrics.training_readiness)}>
+              {garminMetrics.readiness_level
+                ? garminMetrics.readiness_level.toLowerCase()
+                : readinessLabel(garminMetrics.training_readiness)}
+            </span>
+            {garminMetrics.readiness_feedback && (
+              <span className="metric-sub">{garminMetrics.readiness_feedback}</span>
+            )}
+          </div>
+        )}
+        {garminMetrics.sleep_score !== null && (
+          <div className="metric-card">
+            <span className="metric-label">Sleep score</span>
+            <span className="metric-value">{garminMetrics.sleep_score}</span>
+            <span className="metric-sub">out of 100</span>
+          </div>
+        )}
+        {garminMetrics.recovery_time !== null && garminMetrics.recovery_time > 0 && (
+          <div className="metric-card">
+            <span className="metric-label">Recovery time</span>
+            {(() => {
+              const totalMin = garminMetrics.recovery_time!;
+              const h = Math.floor(totalMin / 60);
+              const m = totalMin % 60;
+              return (
+                <span className="metric-value">
+                  {h > 0 ? <>{h}<span style={{ fontSize: "0.6em", opacity: 0.7 }}>h</span>{m > 0 ? <> {m}<span style={{ fontSize: "0.6em", opacity: 0.7 }}>m</span></> : null}</> : <>{m}<span style={{ fontSize: "0.6em", opacity: 0.7 }}>m</span></>}
+                </span>
+              );
+            })()}
+          </div>
+        )}
+        {garminMetrics.resting_hr !== null && (
+          <div className="metric-card">
+            <span className="metric-label">Resting HR</span>
+            <span className="metric-value">{garminMetrics.resting_hr} <span style={{ fontSize: "0.6em", opacity: 0.7 }}>bpm</span></span>
+            {garminMetrics.resting_hr_7day && (() => {
+              const trend: { date: string; value: number | null }[] = (() => {
+                try { return JSON.parse(garminMetrics.resting_hr_7day!); } catch { return []; }
+              })();
+              const vals = trend.map(p => p.value).filter((v): v is number => v !== null);
+              if (vals.length < 2) return null;
+              const min = Math.min(...vals), max = Math.max(...vals);
+              const W = 80, H = 28, pad = 2;
+              const x = (i: number) => pad + (i / (vals.length - 1)) * (W - pad * 2);
+              const y = (v: number) => H - pad - ((v - min) / (max - min || 1)) * (H - pad * 2);
+              const points = vals.map((v, i) => `${x(i)},${y(v)}`).join(" ");
+              return (
+                <svg width={W} height={H} style={{ display: "block", margin: "6px auto 0" }}>
+                  <polyline points={points} fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinejoin="round" />
+                </svg>
+              );
+            })()}
+          </div>
+        )}
+        {(garminMetrics.race_5k || garminMetrics.race_10k || garminMetrics.race_hm || garminMetrics.race_marathon) && (
+          <div className="metric-card metric-card--wide">
+            <span className="metric-label">Race predictions</span>
+            <div className="predictions-grid">
+              {garminMetrics.race_5k && (
+                <div className="prediction-block">
+                  <span className="prediction-dist">5K</span>
+                  <span className="prediction-time">{garminMetrics.race_5k}</span>
+                </div>
+              )}
+              {garminMetrics.race_10k && (
+                <div className="prediction-block">
+                  <span className="prediction-dist">10K</span>
+                  <span className="prediction-time">{garminMetrics.race_10k}</span>
+                </div>
+              )}
+              {garminMetrics.race_hm && (
+                <div className="prediction-block">
+                  <span className="prediction-dist">HM</span>
+                  <span className="prediction-time">{garminMetrics.race_hm}</span>
+                </div>
+              )}
+              {garminMetrics.race_marathon && (
+                <div className="prediction-block">
+                  <span className="prediction-dist">Marathon</span>
+                  <span className="prediction-time">{garminMetrics.race_marathon}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+        <div className="metric-card metric-card--muted">
+          <span className="metric-label">Last synced</span>
+          <span className="metric-sub">{garminMetrics.synced_at ? new Date(garminMetrics.synced_at).toLocaleString() : "—"}</span>
+        </div>
+      </>)}
+    </div>
+  );
+}
