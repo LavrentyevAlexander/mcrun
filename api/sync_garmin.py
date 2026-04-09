@@ -148,58 +148,50 @@ _SSO_SIGNIN_URL = f"https://sso.garmin.com/sso/signin?{_SSO_SIGNIN_PARAMS}"
 _GARMIN_UA = "com.garmin.android.apps.connectmobile"
 
 
-def _get_service_ticket_via_curl() -> str:
-    """Login via curl to bypass Cloudflare TLS fingerprinting that blocks Python requests."""
-    import subprocess
+def _get_service_ticket() -> str:
+    """Login via curl_cffi (Safari TLS fingerprint) to bypass Cloudflare WAF."""
+    from curl_cffi import requests as cffi_requests
     import re as _re
 
-    # Step 1: GET signin page → CSRF token + Spring session cookie
-    r = subprocess.run(
-        ["curl", "-s", "-D", "-", "-H", f"User-Agent: {_GARMIN_UA}", _SSO_SIGNIN_URL],
-        capture_output=True, text=True, timeout=30,
-    )
-    if r.returncode != 0:
-        raise RuntimeError(f"curl GET SSO failed: {r.stderr}")
+    _LOCALE_COOKIE = "org.springframework.web.servlet.i18n.CookieLocaleResolver.LOCALE"
 
-    csrf_m = _re.search(r'name="_csrf"\s+value="(.+?)"', r.stdout)
+    session = cffi_requests.Session(impersonate="safari")
+
+    # Step 1: GET signin page → CSRF token + locale cookie
+    r = session.get(_SSO_SIGNIN_URL, headers={"User-Agent": _GARMIN_UA}, timeout=30)
+
+    csrf_m = _re.search(r'name="_csrf"\s+value="(.+?)"', r.text)
     if not csrf_m:
-        raise RuntimeError("No CSRF token in Garmin SSO page")
+        raise RuntimeError(
+            f"No CSRF token in Garmin SSO page (HTTP {r.status_code})"
+        )
     csrf_token = csrf_m.group(1)
-
-    locale_m = _re.search(
-        r"Set-Cookie: (org\.springframework\.web\.servlet\.i18n\.CookieLocaleResolver\.LOCALE=[^;\s]+)",
-        r.stdout,
-    )
-    spring_cookie = (
-        locale_m.group(1)
-        if locale_m
-        else "org.springframework.web.servlet.i18n.CookieLocaleResolver.LOCALE=en"
-    )
+    locale_val = r.cookies.get(_LOCALE_COOKIE, "en")
 
     # Step 2: POST credentials → service ticket
-    r2 = subprocess.run(
-        ["curl", "-s",
-         "-X", "POST", _SSO_SIGNIN_URL,
-         "-H", f"User-Agent: {_GARMIN_UA}",
-         "-H", f"Referer: {_SSO_SIGNIN_URL}",
-         "-b", spring_cookie,
-         "--data-urlencode", f"username={GARMIN_EMAIL}",
-         "--data-urlencode", f"password={GARMIN_PASSWORD}",
-         "--data-urlencode", f"_csrf={csrf_token}",
-         "--data-urlencode", "embed=true"],
-        capture_output=True, text=True, timeout=30,
+    r2 = session.post(
+        _SSO_SIGNIN_URL,
+        headers={"User-Agent": _GARMIN_UA, "Referer": _SSO_SIGNIN_URL},
+        cookies={_LOCALE_COOKIE: locale_val},
+        data={
+            "username": GARMIN_EMAIL,
+            "password": GARMIN_PASSWORD,
+            "_csrf": csrf_token,
+            "embed": "true",
+        },
+        timeout=30,
     )
-    if r2.returncode != 0:
-        raise RuntimeError(f"curl POST SSO failed: {r2.stderr}")
 
-    if '"status-code":"429"' in r2.stdout:
+    if r2.status_code == 429 or '"status-code":"429"' in r2.text:
         raise RuntimeError("429 rate limit from Garmin SSO")
 
-    ticket_m = _re.search(r'embed\?ticket=([^"\\]+)', r2.stdout)
+    ticket_m = _re.search(r'embed\?ticket=([^"\\]+)', r2.text)
     if not ticket_m:
-        title_m = _re.search(r"<title>(.+?)</title>", r2.stdout, _re.I)
+        title_m = _re.search(r"<title>(.+?)</title>", r2.text, _re.I)
         raise RuntimeError(
-            f"No service ticket in SSO response (title: {title_m.group(1) if title_m else 'unknown'})"
+            f"No service ticket in Garmin SSO response"
+            f" (HTTP {r2.status_code}"
+            f"{', title: ' + title_m.group(1) if title_m else ''})"
         )
 
     return ticket_m.group(1)
@@ -227,9 +219,9 @@ def get_garmin_client():
         except Exception:
             pass
 
-        # Full login via curl + garth OAuth exchange
+        # Full login via curl_cffi + garth OAuth exchange
         try:
-            ticket = _get_service_ticket_via_curl()
+            ticket = _get_service_ticket()
 
             from garth.http import Client as GarthClient
             from garth.sso import get_oauth1_token, exchange as garth_exchange

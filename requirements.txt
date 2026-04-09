@@ -1,6 +1,7 @@
 requests
 garminconnect
 garth
+curl-cffi
 pyotp
 psycopg2-binary
 google-auth
