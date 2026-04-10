@@ -216,7 +216,7 @@ def get_garmin_client():
                 )
 
         try:
-            client = garminconnect.Garmin()
+            client = garminconnect.Garmin(email=GARMIN_EMAIL, password=GARMIN_PASSWORD)
             client.login(tokenstore=tmp)
             return client
         except Exception as e:
