@@ -187,11 +187,10 @@ def _get_service_ticket() -> str:
 
     ticket_m = _re.search(r'embed\?ticket=([^"\\]+)', r2.text)
     if not ticket_m:
-        title_m = _re.search(r"<title>(.+?)</title>", r2.text, _re.I)
+        # Don't include page title — Cloudflare "403 Forbidden" triggers frontend "Access denied"
         raise RuntimeError(
-            f"No service ticket in Garmin SSO response"
-            f" (HTTP {r2.status_code}"
-            f"{', title: ' + title_m.group(1) if title_m else ''})"
+            f"Garmin SSO login failed (HTTP {r2.status_code}). "
+            f"Cloudflare may be blocking server IP. Run init_garmin_tokens.py locally."
         )
 
     return ticket_m.group(1)
