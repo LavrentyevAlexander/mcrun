@@ -62,7 +62,7 @@ TYPE_ID_MAP = {
 
 
 TOKEN_FILES = ("oauth1_token.json", "oauth2_token.json")
-BAN_DURATION_HOURS = 72
+BAN_DURATION_HOURS = 0.5  # 30 minutes — Garmin says "try again in 15 min"
 
 
 def _get_ban_until(conn):
