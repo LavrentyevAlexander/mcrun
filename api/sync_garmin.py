@@ -208,49 +208,26 @@ def get_garmin_client():
         )
 
     with tempfile.TemporaryDirectory() as tmp:
-        # Try cached tokens from DB — avoids SSO login on every sync call
+        # Load tokens from DB — only auth path from Vercel (SSO blocked by Cloudflare)
+        with get_conn() as conn:
+            if not _load_tokens_from_db(conn, tmp):
+                raise RuntimeError(
+                    "No Garmin tokens in database. Run init_garmin_tokens.py locally."
+                )
+
         try:
-            with get_conn() as conn:
-                if _load_tokens_from_db(conn, tmp):
-                    client = garminconnect.Garmin()
-                    client.login(tokenstore=tmp)
-                    return client
-        except Exception:
-            pass
-
-        # Full login via curl_cffi + garth OAuth exchange
-        try:
-            ticket = _get_service_ticket()
-
-            from garth.http import Client as GarthClient
-            from garth.sso import get_oauth1_token, exchange as garth_exchange
-
-            garth_client = GarthClient()
-            oauth1 = get_oauth1_token(ticket, garth_client)
-            oauth2 = garth_exchange(oauth1, garth_client)
-
-            # Serialize tokens using garth's own method, then save to DB
-            garth_client.configure(oauth1_token=oauth1, oauth2_token=oauth2)
-            garth_client.dump(tmp)
-            with get_conn() as conn:
-                _save_tokens_to_db(conn, tmp)
-                # Clear ban_until since login succeeded
-                with conn.cursor() as cur:
-                    cur.execute("DELETE FROM garmin_tokens WHERE key = 'ban_until'")
-                conn.commit()
-
             client = garminconnect.Garmin()
             client.login(tokenstore=tmp)
             return client
-
         except Exception as e:
-            if "429" in str(e):
+            err = str(e)
+            if "429" in err:
                 with get_conn() as conn:
                     ban_until = _set_ban_until(conn)
                 raise RuntimeError(
-                    f"Garmin rate-limited (429). Sync blocked for {BAN_DURATION_HOURS}h until {ban_until.isoformat()}"
+                    f"Garmin rate-limited. Sync blocked for 30min until {ban_until.isoformat()}"
                 ) from e
-            raise
+            raise RuntimeError(f"Garmin token login failed: {e}") from e
 
 
 def _num(val):
