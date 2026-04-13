@@ -370,11 +370,8 @@ def sync_garmin() -> dict:
             debug_readiness = raw_tr
             entry_tr = None
             if isinstance(raw_tr, list) and raw_tr:
-                # prefer post-exercise reset (most recent state), fallback to first
-                entry_tr = next(
-                    (e for e in raw_tr if e.get("inputContext") == "AFTER_POST_EXERCISE_RESET"),
-                    raw_tr[0],
-                )
+                # Use most recent entry (API returns descending by timestamp)
+                entry_tr = raw_tr[0]
             elif isinstance(raw_tr, dict):
                 entry_tr = raw_tr
             if entry_tr:
