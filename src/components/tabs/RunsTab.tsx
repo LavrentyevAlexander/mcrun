@@ -105,7 +105,6 @@ export default function RunsTab({
                   <th>HR / bpm</th>
                   <th>Elev / m</th>
                   <th>Effort</th>
-                  <th>Fitness</th>
                   <th>Gear</th>
                 </tr>
               </thead>
@@ -131,22 +130,6 @@ export default function RunsTab({
                       }}
                     >
                       {a.relative_effort ?? "—"}
-                    </td>
-                    <td data-label="Fitness">
-                      {a.fitness_score !== null ? (
-                        <span style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}>
-                          <span style={{ fontWeight: 600 }}>{a.fitness_score}</span>
-                          {a.fitness_delta !== null && a.fitness_delta !== 0 && (
-                            <span style={{
-                              fontSize: "0.75em",
-                              color: a.fitness_delta > 0 ? "#2e7d32" : "#c62828",
-                              fontWeight: 600,
-                            }}>
-                              {a.fitness_delta > 0 ? "+" : ""}{a.fitness_delta}
-                            </span>
-                          )}
-                        </span>
-                      ) : "—"}
                     </td>
                     <td data-label="Gear">{a.gear}</td>
                   </tr>

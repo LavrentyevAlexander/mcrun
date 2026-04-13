@@ -15,32 +15,93 @@ from _db import get_conn, send_json, verify_token
 _CTL_TAU = 42.0  # days — Chronic Training Load time constant
 
 
+def _fetch_all_strava_efforts(token: str) -> list[tuple[str, float]]:
+    """Fetch (date, suffer_score) for ALL Strava activities, oldest first."""
+    all_efforts = []
+    page = 1
+    while True:
+        resp = requests.get(
+            "https://www.strava.com/api/v3/athlete/activities",
+            headers={"Authorization": f"Bearer {token}"},
+            params={"per_page": 200, "page": page},
+            timeout=30,
+        )
+        resp.raise_for_status()
+        batch = resp.json()
+        if not batch:
+            break
+        for act in batch:
+            score = act.get("suffer_score")
+            if score:
+                all_efforts.append((act["start_date_local"][:10], float(score)))
+        page += 1
+    all_efforts.sort(key=lambda x: x[0])
+    return all_efforts
+
+
 def _recompute_fitness(conn):
-    """Recompute CTL-based fitness score and delta for every activity."""
+    """Recompute CTL-based fitness score and delta for every activity.
+
+    Fetches the full Strava activity history to build an accurate CTL baseline,
+    then applies the scores to activities stored in our DB.
+    """
+    # Full history from Strava for correct CTL baseline
+    try:
+        token = get_access_token()
+        all_efforts = _fetch_all_strava_efforts(token)
+    except Exception:
+        all_efforts = []
+
+    # Activities in our DB (need id + date for final update)
     with conn.cursor() as cur:
         cur.execute(
-            "SELECT id, date, relative_effort FROM activities ORDER BY date ASC, id ASC"
+            "SELECT id, date::text, relative_effort FROM activities ORDER BY date ASC, id ASC"
         )
-        rows = cur.fetchall()
+        db_rows = {row[1]: (row[0], row[2]) for row in cur.fetchall()}  # date -> (id, effort)
 
+    # Build a merged timeline: (date, effort, db_id_or_None)
+    # Use all_efforts for CTL computation; mark which dates map to our DB rows
     k = 1 - math.exp(-1 / _CTL_TAU)
     ctl = 0.0
-    prev_date = None
+    prev_date_dt = None
     updates = []
 
-    for act_id, date, effort in rows:
-        date_dt = datetime.combine(date, datetime.min.time()) if not isinstance(date, datetime) else date
-        effort = effort or 0
+    # Index our DB rows by date for matching
+    db_by_date: dict[str, list[tuple[int, float]]] = {}
+    for date_str, (act_id, effort) in db_rows.items():
+        db_by_date.setdefault(date_str, []).append((act_id, effort or 0))
 
-        if prev_date is not None:
-            days_gap = (date_dt - prev_date).days
+    for date_str, effort in all_efforts:
+        date_dt = datetime.strptime(date_str, "%Y-%m-%d")
+
+        if prev_date_dt is not None:
+            days_gap = (date_dt - prev_date_dt).days
             if days_gap > 0:
                 ctl *= math.exp(-days_gap / _CTL_TAU)
 
         ctl_before = ctl
         ctl += effort * k
-        updates.append((round(ctl, 1), round(ctl - ctl_before, 1), act_id))
-        prev_date = date_dt
+
+        # If this date has a DB activity, record the score
+        if date_str in db_by_date:
+            for act_id, _eff in db_by_date[date_str]:
+                updates.append((round(ctl, 1), round(ctl - ctl_before, 1), act_id))
+            del db_by_date[date_str]
+
+        prev_date_dt = date_dt
+
+    # Any DB activities not in Strava full history (edge case) — compute from DB data
+    for date_str, entries in sorted(db_by_date.items()):
+        date_dt = datetime.strptime(date_str, "%Y-%m-%d")
+        if prev_date_dt is not None:
+            days_gap = (date_dt - prev_date_dt).days
+            if days_gap > 0:
+                ctl *= math.exp(-days_gap / _CTL_TAU)
+        for act_id, effort in entries:
+            ctl_before = ctl
+            ctl += effort * k
+            updates.append((round(ctl, 1), round(ctl - ctl_before, 1), act_id))
+        prev_date_dt = date_dt
 
     with conn.cursor() as cur:
         cur.executemany(
