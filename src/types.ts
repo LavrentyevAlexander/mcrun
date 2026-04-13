@@ -8,6 +8,8 @@ export interface Activity {
   avg_hr: number | null;
   elevation: number | null;
   relative_effort: number | null;
+  fitness_score: number | null;
+  fitness_delta: number | null;
   gear: string;
 }
 

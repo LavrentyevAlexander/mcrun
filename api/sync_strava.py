@@ -1,3 +1,4 @@
+import math
 import os
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
@@ -9,6 +10,44 @@ import psycopg2.extras
 import requests
 
 from _db import get_conn, send_json, verify_token
+
+
+_CTL_TAU = 42.0  # days — Chronic Training Load time constant
+
+
+def _recompute_fitness(conn):
+    """Recompute CTL-based fitness score and delta for every activity."""
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT id, date, relative_effort FROM activities ORDER BY date ASC, id ASC"
+        )
+        rows = cur.fetchall()
+
+    k = 1 - math.exp(-1 / _CTL_TAU)
+    ctl = 0.0
+    prev_date = None
+    updates = []
+
+    for act_id, date, effort in rows:
+        date_dt = datetime.combine(date, datetime.min.time()) if not isinstance(date, datetime) else date
+        effort = effort or 0
+
+        if prev_date is not None:
+            days_gap = (date_dt - prev_date).days
+            if days_gap > 0:
+                ctl *= math.exp(-days_gap / _CTL_TAU)
+
+        ctl_before = ctl
+        ctl += effort * k
+        updates.append((round(ctl, 1), round(ctl - ctl_before, 1), act_id))
+        prev_date = date_dt
+
+    with conn.cursor() as cur:
+        cur.executemany(
+            "UPDATE activities SET fitness_score = %s, fitness_delta = %s WHERE id = %s",
+            updates,
+        )
+    conn.commit()
 
 CLIENT_ID = os.environ.get("CLIENT_ID")
 CLIENT_SECRET = os.environ.get("CLIENT_SECRET")
@@ -182,6 +221,9 @@ def sync_strava() -> dict:
                     (synced, started_at),
                 )
             conn.commit()
+
+        # ── Recompute fitness scores (CTL) for all activities ─────────
+        _recompute_fitness(conn)
 
         return {"synced": synced}
 

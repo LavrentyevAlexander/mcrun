@@ -39,6 +39,8 @@ class handler(BaseHTTPRequestHandler):
                                a.avg_hr,
                                a.elevation_m,
                                a.relative_effort,
+                               a.fitness_score,
+                               a.fitness_delta,
                                g.name AS gear_name
                         FROM activities a
                         LEFT JOIN gear g ON g.id = a.gear_id
@@ -74,6 +76,8 @@ class handler(BaseHTTPRequestHandler):
                         "avg_hr": r["avg_hr"],
                         "elevation": float(r["elevation_m"]) if r["elevation_m"] is not None else None,
                         "relative_effort": r["relative_effort"],
+                        "fitness_score": round(r["fitness_score"]) if r["fitness_score"] is not None else None,
+                        "fitness_delta": round(r["fitness_delta"]) if r["fitness_delta"] is not None else None,
                         "gear": r["gear_name"] or "",
                     }
                 )
