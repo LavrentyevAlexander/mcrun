@@ -1,4 +1,5 @@
 import type { GarminMetrics } from "../../types";
+import React from "react";
 
 function trainingStatusStyle(status: string | null): React.CSSProperties {
   const s = (status ?? "").toLowerCase();
@@ -43,6 +44,39 @@ function readinessStyle(v: number): React.CSSProperties {
   return { background: "#e8f5e9", color: "#2e7d32" };
 }
 
+function feedbackStyle(v: string | null): React.CSSProperties {
+  const s = (v ?? "").toLowerCase();
+  if (s === "very good") return { background: "#e8f5e9", color: "#2e7d32" };
+  if (s === "good")      return { background: "#e8f5e9", color: "#2e7d32" };
+  if (s === "moderate")  return { background: "#e3f2fd", color: "#1565c0" };
+  if (s === "fair")      return { background: "#fff3e0", color: "#e65100" };
+  if (s === "poor")      return { background: "#fff3e0", color: "#e65100" };
+  if (s === "very poor") return { background: "#ffebee", color: "#c62828" };
+  return { background: "#f5f5f5", color: "#555" };
+}
+
+function stressStyle(avg: number): React.CSSProperties {
+  if (avg <= 25) return { background: "#e8f5e9", color: "#2e7d32" };
+  if (avg <= 50) return { background: "#e3f2fd", color: "#1565c0" };
+  if (avg <= 75) return { background: "#fff3e0", color: "#e65100" };
+  return { background: "#ffebee", color: "#c62828" };
+}
+
+function stressLabel(avg: number): string {
+  if (avg <= 25) return "Low";
+  if (avg <= 50) return "Moderate";
+  if (avg <= 75) return "High";
+  return "Very High";
+}
+
+function enduranceStyle(label: string | null): React.CSSProperties {
+  const s = (label ?? "").toLowerCase();
+  if (s === "elite" || s === "superior") return { background: "#e8f5e9", color: "#2e7d32" };
+  if (s === "expert" || s === "well trained") return { background: "#e3f2fd", color: "#1565c0" };
+  if (s === "trained") return { background: "#f5f5f5", color: "#555" };
+  return { background: "#fff3e0", color: "#e65100" };
+}
+
 interface HealthTabProps {
   garminMetrics: GarminMetrics | null;
 }
@@ -55,6 +89,11 @@ export default function HealthTab({ garminMetrics }: HealthTabProps) {
         <div className="metric-card">
           <span className="metric-label">VO₂ Max</span>
           <span className="metric-value">{garminMetrics.vo2_max ?? "—"}</span>
+          {garminMetrics.vo2_max_label && (
+            <span className="metric-badge" style={feedbackStyle(garminMetrics.vo2_max_label === "Good" || garminMetrics.vo2_max_label === "Excellent" || garminMetrics.vo2_max_label === "Superior" ? "good" : garminMetrics.vo2_max_label === "Average" || garminMetrics.vo2_max_label === "Above Average" ? "moderate" : "poor")}>
+              {garminMetrics.vo2_max_label}
+            </span>
+          )}
         </div>
         {garminMetrics.fitness_age !== null && (
           <div className="metric-card">
@@ -80,15 +119,11 @@ export default function HealthTab({ garminMetrics }: HealthTabProps) {
           <div className="metric-card">
             <span className="metric-label">Acute load</span>
             <span className="metric-value">{Math.round(garminMetrics.acute_load)}</span>
-          </div>
-        )}
-        {garminMetrics.acwr_feedback !== null && (
-          <div className="metric-card">
-            <span className="metric-label">Load balance</span>
-            <span className="metric-badge" style={acwrFeedbackStyle(garminMetrics.acwr_feedback)}>
-              {garminMetrics.acwr_feedback}
-            </span>
-            <span className="metric-sub">acute / chronic</span>
+            {garminMetrics.acwr_feedback && (
+              <span className="metric-badge" style={acwrFeedbackStyle(garminMetrics.acwr_feedback)}>
+                {garminMetrics.acwr_feedback}
+              </span>
+            )}
           </div>
         )}
         {garminMetrics.hrv_last_night !== null && (
@@ -125,6 +160,11 @@ export default function HealthTab({ garminMetrics }: HealthTabProps) {
             <span className="metric-label">Sleep score</span>
             <span className="metric-value">{garminMetrics.sleep_score}</span>
             <span className="metric-sub">out of 100</span>
+            {garminMetrics.sleep_score_feedback && (
+              <span className="metric-badge" style={feedbackStyle(garminMetrics.sleep_score_feedback)}>
+                {garminMetrics.sleep_score_feedback}
+              </span>
+            )}
           </div>
         )}
         {garminMetrics.recovery_time !== null && garminMetrics.recovery_time > 0 && (
@@ -140,6 +180,11 @@ export default function HealthTab({ garminMetrics }: HealthTabProps) {
                 </span>
               );
             })()}
+            {garminMetrics.recovery_time_feedback && (
+              <span className="metric-badge" style={feedbackStyle(garminMetrics.recovery_time_feedback)}>
+                {garminMetrics.recovery_time_feedback}
+              </span>
+            )}
           </div>
         )}
         {garminMetrics.resting_hr !== null && (
@@ -194,6 +239,47 @@ export default function HealthTab({ garminMetrics }: HealthTabProps) {
                 </div>
               )}
             </div>
+          </div>
+        )}
+        {(garminMetrics.lt_hr || garminMetrics.lt_pace) && (
+          <div className="metric-card">
+            <span className="metric-label">Lactate Threshold</span>
+            {garminMetrics.lt_pace && (
+              <span className="metric-value">
+                {garminMetrics.lt_pace}
+                <span style={{ fontSize: "0.55em", opacity: 0.7 }}> /km</span>
+              </span>
+            )}
+            {garminMetrics.lt_hr && (
+              <span className="metric-sub">{garminMetrics.lt_hr} bpm</span>
+            )}
+          </div>
+        )}
+        {garminMetrics.endurance_score !== null && (
+          <div className="metric-card">
+            <span className="metric-label">Endurance Score</span>
+            <span className="metric-value">{garminMetrics.endurance_score}</span>
+            {garminMetrics.endurance_label && (
+              <span className="metric-badge" style={enduranceStyle(garminMetrics.endurance_label)}>
+                {garminMetrics.endurance_label}
+              </span>
+            )}
+          </div>
+        )}
+        {garminMetrics.avg_stress !== null && garminMetrics.avg_stress >= 0 && (
+          <div className="metric-card">
+            <span className="metric-label">Stress</span>
+            <span className="metric-value">{garminMetrics.avg_stress}</span>
+            <span className="metric-sub">avg today</span>
+            <span className="metric-badge" style={stressStyle(garminMetrics.avg_stress)}>
+              {stressLabel(garminMetrics.avg_stress)}
+            </span>
+          </div>
+        )}
+        {garminMetrics.heat_acclim_level && (
+          <div className="metric-card">
+            <span className="metric-label">Heat Acclimation</span>
+            <span className="metric-value">{garminMetrics.heat_acclim_level}</span>
           </div>
         )}
         <div className="metric-card metric-card--muted">

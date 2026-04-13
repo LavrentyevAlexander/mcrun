@@ -253,6 +253,61 @@ def _str(val):
     return None
 
 
+_FEEDBACK_MAP = {
+    "VERY_GOOD": "Very Good",
+    "GOOD": "Good",
+    "MODERATE": "Moderate",
+    "FAIR": "Fair",
+    "POOR": "Poor",
+    "VERY_POOR": "Very Poor",
+}
+
+VO2_MAX_LABELS = [
+    (56, "Superior"),
+    (51, "Excellent"),
+    (45, "Good"),
+    (40, "Above Average"),
+    (35, "Average"),
+    (0,  "Below Average"),
+]
+
+
+def _vo2_label(vo2):
+    if vo2 is None:
+        return None
+    for threshold, label in VO2_MAX_LABELS:
+        if vo2 >= threshold:
+            return label
+    return None
+
+
+def _lt_pace(speed_raw):
+    """Convert Garmin LT speed (dm/s) to pace string MM:SS/km."""
+    if not speed_raw:
+        return None
+    speed_ms = speed_raw * 10  # Garmin returns in ~dm/s
+    pace_sec = round(1000 / speed_ms)
+    m, s = divmod(pace_sec, 60)
+    return f"{m}:{s:02d}"
+
+
+def _endurance_label(score, raw):
+    if score is None:
+        return None
+    tiers = [
+        (raw.get("classificationLowerLimitElite", 99999), "Elite"),
+        (raw.get("classificationLowerLimitSuperior", 99999), "Superior"),
+        (raw.get("classificationLowerLimitExpert", 99999), "Expert"),
+        (raw.get("classificationLowerLimitWellTrained", 99999), "Well Trained"),
+        (raw.get("classificationLowerLimitTrained", 99999), "Trained"),
+        (raw.get("classificationLowerLimitIntermediate", 99999), "Intermediate"),
+    ]
+    for threshold, label in sorted(tiers, key=lambda x: x[0], reverse=True):
+        if score >= threshold:
+            return label
+    return "Basic"
+
+
 def sync_garmin() -> dict:
     """Core sync logic — called from HTTP handler and cron."""
     started_at = datetime.now(timezone.utc)
@@ -335,6 +390,8 @@ def sync_garmin() -> dict:
             except Exception:
                 pass
 
+        vo2_max_label = _vo2_label(vo2_max)
+
         training_status = training_load = acute_load = None
         try:
             raw_ts = client.get_training_status(today)
@@ -364,6 +421,7 @@ def sync_garmin() -> dict:
         # ── Training Readiness ───────────────────────────────────────
         training_readiness = readiness_level = readiness_feedback = None
         sleep_score = recovery_time = acwr_feedback = None
+        sleep_score_feedback = recovery_time_feedback = None
         debug_readiness = None
         try:
             raw_tr = client.get_training_readiness(today)
@@ -386,6 +444,8 @@ def sync_garmin() -> dict:
                 recovery_time = entry_tr.get("recoveryTime")
                 acwr_raw = entry_tr.get("acwrFactorFeedback")
                 acwr_feedback = ACWR_FEEDBACK_MAP.get(acwr_raw, acwr_raw.lower().replace("_", " ") if acwr_raw else None)
+                sleep_score_feedback = _FEEDBACK_MAP.get(entry_tr.get("sleepScoreFactorFeedback"))
+                recovery_time_feedback = _FEEDBACK_MAP.get(entry_tr.get("recoveryTimeFactorFeedback"))
         except Exception:
             pass
 
@@ -468,6 +528,48 @@ def sync_garmin() -> dict:
         except Exception:
             pass
 
+        # ── Lactate Threshold ────────────────────────────────────────
+        lt_hr = lt_pace = None
+        try:
+            raw_lt = client.get_lactate_threshold()
+            shr = (raw_lt or {}).get("speed_and_heart_rate") or {}
+            lt_hr = shr.get("heartRate")
+            lt_pace = _lt_pace(shr.get("speed"))
+        except Exception:
+            pass
+
+        # ── Endurance Score ──────────────────────────────────────────
+        endurance_score = endurance_label = None
+        try:
+            raw_es = client.get_endurance_score(today)
+            if isinstance(raw_es, dict):
+                endurance_score = raw_es.get("overallScore")
+                endurance_label = _endurance_label(endurance_score, raw_es)
+        except Exception:
+            pass
+
+        # ── Daily Stress ─────────────────────────────────────────────
+        avg_stress = None
+        try:
+            raw_stress = client.get_stress_data(today)
+            if isinstance(raw_stress, dict):
+                avg_stress = raw_stress.get("avgStressLevel")
+        except Exception:
+            pass
+
+        # ── Heat / Altitude Acclimation ──────────────────────────────
+        heat_acclim_level = None
+        try:
+            raw_ts2 = client.get_training_status(today)
+            heat_dto = (raw_ts2 or {}).get("heatAltitudeAcclimationDTO") or {}
+            heat_acclim_level = _str(
+                heat_dto.get("acclimationPercentage")
+                or heat_dto.get("level")
+                or heat_dto.get("acclimationLevel")
+            )
+        except Exception:
+            pass
+
         with get_conn() as conn:
             with conn.cursor() as cur:
                 cur.execute(
@@ -480,30 +582,42 @@ def sync_garmin() -> dict:
                          sleep_score, recovery_time, acwr_feedback,
                          resting_hr, resting_hr_7day,
                          race_5k, race_10k, race_hm, race_marathon,
+                         sleep_score_feedback, recovery_time_feedback, vo2_max_label,
+                         lt_hr, lt_pace, endurance_score, endurance_label,
+                         avg_stress, heat_acclim_level,
                          synced_at)
-                    VALUES (1, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                    VALUES (1, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
                     ON CONFLICT (id) DO UPDATE SET
-                        vo2_max             = EXCLUDED.vo2_max,
-                        fitness_age         = EXCLUDED.fitness_age,
-                        training_status     = EXCLUDED.training_status,
-                        training_load       = EXCLUDED.training_load,
-                        acute_load          = EXCLUDED.acute_load,
-                        hrv_last_night      = EXCLUDED.hrv_last_night,
-                        hrv_weekly_avg      = EXCLUDED.hrv_weekly_avg,
-                        hrv_status          = EXCLUDED.hrv_status,
-                        training_readiness  = EXCLUDED.training_readiness,
-                        readiness_level     = EXCLUDED.readiness_level,
-                        readiness_feedback  = EXCLUDED.readiness_feedback,
-                        sleep_score         = EXCLUDED.sleep_score,
-                        recovery_time       = EXCLUDED.recovery_time,
-                        acwr_feedback       = EXCLUDED.acwr_feedback,
-                        resting_hr          = EXCLUDED.resting_hr,
-                        resting_hr_7day     = EXCLUDED.resting_hr_7day,
-                        race_5k             = EXCLUDED.race_5k,
-                        race_10k            = EXCLUDED.race_10k,
-                        race_hm             = EXCLUDED.race_hm,
-                        race_marathon       = EXCLUDED.race_marathon,
-                        synced_at           = EXCLUDED.synced_at
+                        vo2_max                 = EXCLUDED.vo2_max,
+                        fitness_age             = EXCLUDED.fitness_age,
+                        training_status         = EXCLUDED.training_status,
+                        training_load           = EXCLUDED.training_load,
+                        acute_load              = EXCLUDED.acute_load,
+                        hrv_last_night          = EXCLUDED.hrv_last_night,
+                        hrv_weekly_avg          = EXCLUDED.hrv_weekly_avg,
+                        hrv_status              = EXCLUDED.hrv_status,
+                        training_readiness      = EXCLUDED.training_readiness,
+                        readiness_level         = EXCLUDED.readiness_level,
+                        readiness_feedback      = EXCLUDED.readiness_feedback,
+                        sleep_score             = EXCLUDED.sleep_score,
+                        recovery_time           = EXCLUDED.recovery_time,
+                        acwr_feedback           = EXCLUDED.acwr_feedback,
+                        resting_hr              = EXCLUDED.resting_hr,
+                        resting_hr_7day         = EXCLUDED.resting_hr_7day,
+                        race_5k                 = EXCLUDED.race_5k,
+                        race_10k                = EXCLUDED.race_10k,
+                        race_hm                 = EXCLUDED.race_hm,
+                        race_marathon           = EXCLUDED.race_marathon,
+                        sleep_score_feedback    = EXCLUDED.sleep_score_feedback,
+                        recovery_time_feedback  = EXCLUDED.recovery_time_feedback,
+                        vo2_max_label           = EXCLUDED.vo2_max_label,
+                        lt_hr                   = EXCLUDED.lt_hr,
+                        lt_pace                 = EXCLUDED.lt_pace,
+                        endurance_score         = EXCLUDED.endurance_score,
+                        endurance_label         = EXCLUDED.endurance_label,
+                        avg_stress              = EXCLUDED.avg_stress,
+                        heat_acclim_level       = EXCLUDED.heat_acclim_level,
+                        synced_at               = EXCLUDED.synced_at
                     """,
                     (vo2_max, fitness_age, training_status,
                      training_load, acute_load,
@@ -511,7 +625,10 @@ def sync_garmin() -> dict:
                      training_readiness, readiness_level, readiness_feedback,
                      sleep_score, recovery_time, acwr_feedback,
                      resting_hr, resting_hr_7day,
-                     race_5k, race_10k, race_hm, race_marathon),
+                     race_5k, race_10k, race_hm, race_marathon,
+                     sleep_score_feedback, recovery_time_feedback, vo2_max_label,
+                     lt_hr, lt_pace, endurance_score, endurance_label,
+                     avg_stress, heat_acclim_level),
                 )
             conn.commit()
 

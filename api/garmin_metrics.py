@@ -23,6 +23,9 @@ class handler(BaseHTTPRequestHandler):
                                sleep_score, recovery_time, acwr_feedback,
                                resting_hr, resting_hr_7day,
                                race_5k, race_10k, race_hm, race_marathon,
+                               sleep_score_feedback, recovery_time_feedback, vo2_max_label,
+                               lt_hr, lt_pace, endurance_score, endurance_label,
+                               avg_stress, heat_acclim_level,
                                synced_at::text
                         FROM garmin_metrics
                         WHERE id = 1
@@ -54,6 +57,15 @@ class handler(BaseHTTPRequestHandler):
                 "race_10k": row["race_10k"],
                 "race_hm": row["race_hm"],
                 "race_marathon": row["race_marathon"],
+                "sleep_score_feedback": row["sleep_score_feedback"],
+                "recovery_time_feedback": row["recovery_time_feedback"],
+                "vo2_max_label": row["vo2_max_label"],
+                "lt_hr": row["lt_hr"],
+                "lt_pace": row["lt_pace"],
+                "endurance_score": row["endurance_score"],
+                "endurance_label": row["endurance_label"],
+                "avg_stress": row["avg_stress"],
+                "heat_acclim_level": row["heat_acclim_level"],
                 "synced_at": row["synced_at"],
             })
 

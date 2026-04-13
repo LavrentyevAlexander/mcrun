@@ -30,6 +30,7 @@ export interface GarminRecord {
 
 export interface GarminMetrics {
   vo2_max: number | null;
+  vo2_max_label: string | null;
   fitness_age: number | null;
   training_status: string | null;
   training_load: number | null;
@@ -41,7 +42,9 @@ export interface GarminMetrics {
   readiness_level: string | null;
   readiness_feedback: string | null;
   sleep_score: number | null;
+  sleep_score_feedback: string | null;
   recovery_time: number | null;
+  recovery_time_feedback: string | null;
   acwr_feedback: string | null;
   resting_hr: number | null;
   resting_hr_7day: string | null; // JSON string: [{date, value}]
@@ -49,6 +52,12 @@ export interface GarminMetrics {
   race_10k: string | null;
   race_hm: string | null;
   race_marathon: string | null;
+  lt_hr: number | null;
+  lt_pace: string | null;
+  endurance_score: number | null;
+  endurance_label: string | null;
+  avg_stress: number | null;
+  heat_acclim_level: string | null;
   synced_at: string | null;
 }
 
