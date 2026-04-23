@@ -53,6 +53,7 @@ export default function GearTab({
                 <th>Total km</th>
                 <th>Limit km</th>
                 <th>Wear</th>
+                <th>Status</th>
                 {googleCredential && <th></th>}
               </tr>
             </thead>
@@ -73,6 +74,7 @@ export default function GearTab({
                         <td><input value={gearEditForm.name} onChange={(e) => setGearEditForm((f) => ({ ...f, name: e.target.value }))} style={{ width: "100%" }} /></td>
                         <td>{info.total_km.toFixed(2)}</td>
                         <td><input type="number" value={gearEditForm.limit_km} onChange={(e) => setGearEditForm((f) => ({ ...f, limit_km: e.target.value }))} style={{ width: 80 }} /></td>
+                        <td>—</td>
                         <td>—</td>
                         <td style={{ display: "flex", gap: "0.4rem" }}>
                           <button onClick={() => handleSaveGearEdit(info.id)} style={{ padding: "0.25rem 0.6rem", fontSize: "0.8rem" }}>Save</button>
@@ -97,6 +99,11 @@ export default function GearTab({
                       <td data-label="Limit, km">{info.limit_km ?? "—"}</td>
                       <td data-label="Wear" style={wearColor ? { color: wearColor, fontWeight: 600 } : {}}>
                         {wear !== null ? `${wear}%` : "—"}
+                      </td>
+                      <td data-label="Status">
+                        {wear !== null && wear >= 100 ? (
+                          <span style={{ background: "#c62828", color: "#fff", borderRadius: 4, padding: "0.15rem 0.5rem", fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.04em" }}>Retired</span>
+                        ) : "—"}
                       </td>
                       {googleCredential && (
                         <td>
