@@ -103,6 +103,8 @@ export default function GearTab({
                       <td data-label="Status">
                         {wear !== null && wear >= 100 ? (
                           <span style={{ background: "#c62828", color: "#fff", borderRadius: 4, padding: "0.15rem 0.5rem", fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.04em" }}>Retired</span>
+                        ) : wear !== null ? (
+                          <span style={{ background: "#2e7d32", color: "#fff", borderRadius: 4, padding: "0.15rem 0.5rem", fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.04em" }}>Active</span>
                         ) : "—"}
                       </td>
                       {googleCredential && (
