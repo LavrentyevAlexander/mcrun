@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 import psycopg2
 import psycopg2.extras
 
-POSTGRES_URL = os.environ.get("mcrun_db_POSTGRES_URL_NON_POOLING") or os.environ.get("mcrun_db_POSTGRES_URL")
+POSTGRES_URL = os.environ.get("POSTGRES_URL_NON_POOLING") or os.environ.get("POSTGRES_URL")
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
 ALLOWED_EMAIL = os.environ.get("ALLOWED_EMAIL")
 

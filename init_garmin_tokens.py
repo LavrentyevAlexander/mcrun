@@ -7,7 +7,7 @@ Run this ONCE from your local machine (macOS) when:
   - Tokens have expired (~1 year)
 
 Usage:
-    source .env        # or set GARMIN_EMAIL, GARMIN_PASSWORD, mcrun_db_POSTGRES_URL
+    source .env        # or set GARMIN_EMAIL, GARMIN_PASSWORD, POSTGRES_URL
     python3 init_garmin_tokens.py
 """
 
@@ -110,11 +110,11 @@ def main():
         sys.exit(1)
 
     postgres_url = (
-        os.environ.get("mcrun_db_POSTGRES_URL_NON_POOLING")
-        or os.environ.get("mcrun_db_POSTGRES_URL")
+        os.environ.get("POSTGRES_URL_NON_POOLING")
+        or os.environ.get("POSTGRES_URL")
     )
     if not postgres_url:
-        print("ERROR: set mcrun_db_POSTGRES_URL environment variable")
+        print("ERROR: set POSTGRES_URL environment variable")
         sys.exit(1)
 
     print(f"Logging in as {GARMIN_EMAIL}...")
