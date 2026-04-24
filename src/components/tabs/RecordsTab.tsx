@@ -1,4 +1,5 @@
 import type { GarminRecord } from "../../types";
+import Skeleton from "../Skeleton";
 
 interface RecordsTabProps {
   records: GarminRecord[] | null;
@@ -8,7 +9,7 @@ interface RecordsTabProps {
 export default function RecordsTab({ records, recordsLoading }: RecordsTabProps) {
   return (
     <div className="table-compact">
-      {recordsLoading && <div className="loading-box">Loading…</div>}
+      {recordsLoading && <Skeleton variant="table" rows={8} />}
       {!recordsLoading && records && (
         <table>
           <thead>

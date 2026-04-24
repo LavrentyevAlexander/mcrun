@@ -1,5 +1,6 @@
 import type { GarminActivity } from "../../types";
 import { localDateStr, formatDuration } from "../../utils";
+import Skeleton from "../Skeleton";
 
 function guessType(name: string, type: string): string {
   if (type && type !== "") return type;
@@ -63,7 +64,7 @@ export default function CalendarTab({ calendarEvents, calendarLoading, calendarE
 
   return (
     <div className="cal-agenda-wrap">
-      {calendarLoading && <div className="loading-box">Loading…</div>}
+      {calendarLoading && <Skeleton variant="lines" rows={7} />}
       {calendarError && <p className="error">{calendarError}</p>}
       {!calendarLoading && calendarEvents === null && (
         <p className="health-empty" style={{ textAlign: "center" }}>No data — sync Garmin to populate.</p>

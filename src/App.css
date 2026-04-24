@@ -1354,8 +1354,11 @@ tbody tr:hover {
 }
 
 .home-stat-delta {
-  font-size: var(--font-sm);
+  font-size: clamp(0.65rem, 3vw, var(--font-sm));
   margin-top: 0.15rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .home-stat-delta.pos { color: #2e7d32; }

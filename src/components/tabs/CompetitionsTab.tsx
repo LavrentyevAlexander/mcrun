@@ -3,6 +3,7 @@ import { GoogleLogin } from "@react-oauth/google";
 import { FaArrowUpRightFromSquare } from "react-icons/fa6";
 import type { Competition } from "../../types";
 import { localDateStr } from "../../utils";
+import Skeleton from "../Skeleton";
 
 type CompFormData = { competition: string; location: string; date: string; distance: string; time: string; rank: string; link: string };
 
@@ -58,7 +59,7 @@ export default function CompetitionsTab({
         </div>
       ) : (
         <>
-          {competitionsLoading && <div className="loading-box">Loading…</div>}
+          {competitionsLoading && <Skeleton variant="table" rows={6} />}
           {addError && <p className="error">{addError}</p>}
           {!competitionsLoading && competitions && (
             <div className="table-wrap">

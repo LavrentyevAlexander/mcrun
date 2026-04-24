@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { Goal } from "../../types";
+import Skeleton from "../Skeleton";
 
 type GoalEditData = { description: string; achieved: boolean; result: string };
 type GoalAddData = { year: string; description: string; achieved: boolean; result: string };
@@ -47,7 +48,7 @@ export default function GoalsTab({
 
   return (
     <div className="goals-wrap">
-      {goalsLoading && <div className="loading-box">Loading…</div>}
+      {goalsLoading && <Skeleton variant="lines" rows={4} />}
       {goalsError && <p className="error">{goalsError}</p>}
       {sortedYears.map((yr) => {
         const items = yearGroups[yr];
