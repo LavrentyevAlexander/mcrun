@@ -1,5 +1,6 @@
 import type { StatsResponse } from "../../types";
 import { formatDuration, localDateStr } from "../../utils";
+import Skeleton from "../Skeleton";
 
 function effortColor(effort: number | null, avg: number | null): string | undefined {
   if (effort === null || avg === null) return undefined;
@@ -12,12 +13,21 @@ function effortColor(effort: number | null, avg: number | null): string | undefi
   return "#c62828";
 }
 
+const HR_ZONES = [
+  { label: "Z1 Recovery",  max: 130, color: "#64b5f6" },
+  { label: "Z2 Aerobic",   max: 148, color: "#81c784" },
+  { label: "Z3 Tempo",     max: 162, color: "#ffb74d" },
+  { label: "Z4 Threshold", max: 174, color: "#ef6c00" },
+  { label: "Z5 Max",       max: Infinity, color: "#c62828" },
+];
+
 interface RunsTabProps {
   runsData: StatsResponse | null;
   runsLoading: boolean;
   runsError: string;
   afterDate: string;
   allTime: boolean;
+  googleCredential: string | null;
   onAfterDateChange: (d: string) => void;
   onAllTimeChange: (v: boolean) => void;
   onLoad: () => void;
@@ -29,6 +39,7 @@ export default function RunsTab({
   runsError,
   afterDate,
   allTime,
+  googleCredential,
   onAfterDateChange,
   onAllTimeChange,
   onLoad,
@@ -62,6 +73,37 @@ export default function RunsTab({
     }
   }
 
+  // HR zone distribution
+  const zoneCounts = HR_ZONES.map(() => 0);
+  let totalWithHr = 0;
+  if (runsData) {
+    for (const a of runsData.activities) {
+      if (a.avg_hr == null) continue;
+      totalWithHr++;
+      for (let i = 0; i < HR_ZONES.length; i++) {
+        if (a.avg_hr < HR_ZONES[i].max) { zoneCounts[i]++; break; }
+      }
+    }
+  }
+  const maxZoneCount = Math.max(...zoneCounts, 1);
+
+  function handleExport() {
+    const date = allTime ? "1970-01-01" : afterDate;
+    const url = `/api/export?after_date=${date}`;
+    const a = document.createElement("a");
+    a.href = url;
+    // Include auth header via a fetch + blob approach since <a href> can't send headers
+    fetch(url, { headers: { Authorization: `Bearer ${googleCredential ?? ""}` } })
+      .then((res) => res.blob())
+      .then((blob) => {
+        const objectUrl = URL.createObjectURL(blob);
+        a.href = objectUrl;
+        a.download = "activities.csv";
+        a.click();
+        URL.revokeObjectURL(objectUrl);
+      });
+  }
+
   return (
     <>
       <div className="controls">
@@ -85,14 +127,41 @@ export default function RunsTab({
         <button onClick={onLoad} disabled={runsLoading}>
           {runsLoading ? "Loading…" : "Load"}
         </button>
+        {googleCredential && runsData && (
+          <button onClick={handleExport} title="Download CSV">
+            Export CSV
+          </button>
+        )}
       </div>
       {runsError && <p className="error">{runsError}</p>}
-      {runsLoading && <div className="loading-box">Loading…</div>}
+      {runsLoading && <Skeleton variant="table" rows={8} />}
       {runsData && (
         <>
           <p className="runs-summary">
             {totalKm.toFixed(2)} km &mdash; {formatDuration(totalSec)}
           </p>
+
+          {totalWithHr > 0 && (
+            <div className="hr-zones">
+              <div className="hr-zones-title">HR zone distribution ({totalWithHr} runs)</div>
+              {HR_ZONES.map((z, i) => (
+                <div key={z.label} className="hr-zone-row">
+                  <span className="hr-zone-label">{z.label}</span>
+                  <div className="hr-zone-bar-wrap">
+                    <div
+                      className="hr-zone-bar"
+                      style={{
+                        width: `${Math.round((zoneCounts[i] / maxZoneCount) * 100)}%`,
+                        background: z.color,
+                      }}
+                    />
+                  </div>
+                  <span className="hr-zone-count">{zoneCounts[i]}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className="table-wrap">
             <table>
               <thead>

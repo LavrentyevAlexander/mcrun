@@ -7,7 +7,7 @@ from http.server import BaseHTTPRequestHandler
 
 import psycopg2.extras
 
-from _db import get_conn, send_json, verify_token
+from _db import get_conn, send_json, validate, verify_token
 
 
 class handler(BaseHTTPRequestHandler):
@@ -18,12 +18,16 @@ class handler(BaseHTTPRequestHandler):
             length = int(self.headers.get("Content-Length", 0))
             payload = json.loads(self.rfile.read(length))
 
-            name = (payload.get("name") or "").strip()
+            errs = validate(payload, {
+                "name": {"required": True, "type": str, "min_len": 1},
+                "limit_km": {"type": (int, float), "min": 0},
+            })
+            if errs:
+                return send_json(self, 400, {"error": "; ".join(errs)})
+
+            name = payload["name"].strip()
             limit_km = payload.get("limit_km") or None
             image_url = (payload.get("image_url") or "").strip() or None
-
-            if not name:
-                return send_json(self, 400, {"error": "name is required"})
 
             with get_conn() as conn:
                 with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
@@ -55,6 +59,13 @@ class handler(BaseHTTPRequestHandler):
 
             length = int(self.headers.get("Content-Length", 0))
             payload = json.loads(self.rfile.read(length))
+
+            errs = validate(payload, {
+                "id": {"required": True, "type": (int,)},
+                "limit_km": {"type": (int, float), "min": 0},
+            })
+            if errs:
+                return send_json(self, 400, {"error": "; ".join(errs)})
 
             gear_id = payload.get("id")
             if not gear_id:

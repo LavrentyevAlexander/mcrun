@@ -1,3 +1,4 @@
+import hashlib
 import os
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
@@ -28,6 +29,17 @@ class handler(BaseHTTPRequestHandler):
 
             with get_conn() as conn:
                 with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+                    # Compute ETag from the latest synced_at timestamp so the
+                    # response is considered fresh until the next sync.
+                    cur.execute("SELECT MAX(synced_at) FROM activities")
+                    latest_synced = cur.fetchone()["max"]
+                    etag = '"' + hashlib.md5(f"{after_date}:{latest_synced}".encode()).hexdigest() + '"'
+                    if self.headers.get("If-None-Match") == etag:
+                        self.send_response(304)
+                        self.send_header("ETag", etag)
+                        self.end_headers()
+                        return
+
                     cur.execute(
                         """
                         SELECT a.strava_id,
@@ -92,7 +104,8 @@ class handler(BaseHTTPRequestHandler):
                 for g in gear_rows
             }
 
-            send_json(self, 200, {"activities": activities, "gear_summary": gear_summary})
+            send_json(self, 200, {"activities": activities, "gear_summary": gear_summary},
+                      extra_headers={"ETag": etag, "Cache-Control": "private, no-cache"})
 
         except Exception as e:
             send_json(self, 500, {"error": str(e)})

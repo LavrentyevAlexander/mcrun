@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { StatsResponse } from "../../types";
 import YearlyChart from "../YearlyChart";
 import MonthlyChart from "../MonthlyChart";
+import Skeleton from "../Skeleton";
 
 interface YearlyTabProps {
   allTimeData: StatsResponse | null;
@@ -28,7 +29,7 @@ export default function YearlyTab({ allTimeData, allTimeLoading, allTimeError }:
   return (
     <>
       {allTimeError && <p className="error">{allTimeError}</p>}
-      {allTimeLoading && <div className="loading-box">Loading…</div>}
+      {allTimeLoading && <Skeleton variant="lines" rows={8} />}
       {!allTimeLoading && allTimeData && (
         <>
           <div className="mileage-controls">

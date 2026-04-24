@@ -12,3 +12,4 @@ lambda_package.zip
 .env*.local
 .DS_Store
 .claude/
+.vscode/

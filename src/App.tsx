@@ -16,16 +16,22 @@ import GoalsTab from "./components/tabs/GoalsTab";
 import Drawer from "./components/Drawer";
 import Navbar from "./components/Navbar";
 
+const VALID_TABS = new Set<Tab>(["home", "runs", "yearly", "gear", "health", "calendar", "competitions", "goals", "records"]);
+
+function tabFromHash(): Tab {
+  const hash = window.location.hash.slice(1) as Tab;
+  return VALID_TABS.has(hash) ? hash : "home";
+}
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<Tab>("home");
+  const [activeTab, setActiveTab] = useState<Tab>(tabFromHash);
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
 
   // Garmin fitness metrics (home page)
   const [garminMetrics, setGarminMetrics] = useState<GarminMetrics | null>(null);
 
-  // All-time data: Gear + Yearly
+  // All-time data: Gear + Yearly + Home stats
   const [allTimeData, setAllTimeData] = useState<StatsResponse | null>(null);
   const [allTimeLoading, setAllTimeLoading] = useState(false);
   const [allTimeError, setAllTimeError] = useState("");
@@ -69,19 +75,34 @@ export default function App() {
 
   const [gearError, setGearError] = useState("");
 
+  // Track which tabs have been initialized to avoid redundant fetches
+  const initializedTabs = useRef<Set<Tab>>(new Set());
+
+  // Sync URL hash when tab changes
   useEffect(() => {
-    if (activeTab === "calendar") fetchCalendarEvents();
+    window.location.hash = activeTab;
+  }, [activeTab]);
+
+  // Handle browser back/forward navigation
+  useEffect(() => {
+    const onHashChange = () => {
+      const tab = tabFromHash();
+      setActiveTab(tab);
+    };
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
   }, []);
 
-  // Preload all data on mount
+  // Always-needed data fetched on mount
   useEffect(() => {
-    fetchAllTime();
     fetchSyncStatus();
-    fetchRuns();
-    fetchRecords();
     fetchGarminMetrics();
-    if (googleCredential) fetchCompetitions();
-    fetchGoals();
+    fetchAllTime();
+  }, []);
+
+  // Lazy-initialize the initial tab's data on mount
+  useEffect(() => {
+    initTab(activeTab);
   }, []);
 
   async function fetchGarminMetrics() {
@@ -400,21 +421,30 @@ export default function App() {
     }
   }
 
+  // Fetch tab-specific data the first time a tab is opened
+  function initTab(tab: Tab) {
+    if (initializedTabs.current.has(tab)) return;
+    initializedTabs.current.add(tab);
+
+    if (tab === "runs") fetchRuns();
+    if (tab === "records") fetchRecords();
+    if (tab === "goals") fetchGoals();
+    if (tab === "calendar") fetchCalendarEvents();
+    if (tab === "competitions" && googleCredential) fetchCompetitions();
+  }
+
   function goTab(tab: Tab) {
     setActiveTab(tab);
-    if (tab === "records" && !records && !recordsLoading) fetchRecords();
-    if (tab === "competitions" && googleCredential && !competitions && !competitionsLoading) fetchCompetitions();
-    if (tab === "goals" && !goals && !goalsLoading) fetchGoals();
-    if (tab === "calendar") fetchCalendarEvents();
+    initTab(tab);
   }
 
   function syncLabel(src: "strava" | "garmin") {
     const s = syncStatus[src];
-    if (syncLoading[src]) return "Syncing\u2026";
+    if (syncLoading[src]) return "Syncing…";
     if (!s) return `Sync ${src.charAt(0).toUpperCase() + src.slice(1)}`;
-    if (s.status === "error") return `Sync ${src.charAt(0).toUpperCase() + src.slice(1)} \u2014 Error`;
+    if (s.status === "error") return `Sync ${src.charAt(0).toUpperCase() + src.slice(1)} — Error`;
     const ago = s.finished_at ? new Date(s.finished_at).toLocaleString() : "";
-    return `Sync ${src.charAt(0).toUpperCase() + src.slice(1)}${ago ? ` \u00b7 ${ago}` : ""}`;
+    return `Sync ${src.charAt(0).toUpperCase() + src.slice(1)}${ago ? ` · ${ago}` : ""}`;
   }
 
   return (
@@ -433,7 +463,7 @@ export default function App() {
         onLogout={handleLogout}
         onGoogleSuccess={handleGoogleSuccess}
         syncLabel={syncLabel}
-        onLogoClick={() => setActiveTab("home")}
+        onLogoClick={() => goTab("home")}
         onMenuOpen={() => setMenuOpen(true)}
       />
 
@@ -457,7 +487,9 @@ export default function App() {
         <div className="tab-content" key={activeTab}>
 
           {/* ── HOME ── */}
-          {activeTab === "home" && <HomeTab />}
+          {activeTab === "home" && (
+            <HomeTab allTimeData={allTimeData} allTimeLoading={allTimeLoading} />
+          )}
 
           {/* ── HEALTH ── */}
           {activeTab === "health" && <HealthTab garminMetrics={garminMetrics} />}
@@ -483,6 +515,7 @@ export default function App() {
               runsError={runsError}
               afterDate={afterDate}
               allTime={allTime}
+              googleCredential={googleCredential}
               onAfterDateChange={setAfterDate}
               onAllTimeChange={setAllTime}
               onLoad={fetchRuns}

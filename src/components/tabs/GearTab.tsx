@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { StatsResponse } from "../../types";
+import Skeleton from "../Skeleton";
 
 interface GearTabProps {
   allTimeData: StatsResponse | null;
@@ -42,7 +43,7 @@ export default function GearTab({
   return (
     <>
       {allTimeError && <p className="error">{allTimeError}</p>}
-      {allTimeLoading && <div className="loading-box">Loading…</div>}
+      {allTimeLoading && <Skeleton variant="table" rows={6} />}
       {!allTimeLoading && allTimeData && (
         <div className="table-compact">
           {gearError && <p className="error">{gearError}</p>}

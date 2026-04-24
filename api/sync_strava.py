@@ -1,3 +1,4 @@
+import logging
 import math
 import os
 import sys
@@ -5,6 +6,12 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [sync_strava] %(levelname)s %(message)s",
+    datefmt="%Y-%m-%dT%H:%M:%SZ",
+)
 
 import psycopg2.extras
 import requests
@@ -283,9 +290,16 @@ def sync_strava() -> dict:
                 )
             conn.commit()
 
-        # ── Recompute fitness scores (CTL) for all activities ─────────
-        _recompute_fitness(conn)
+        # ── Recompute fitness scores (CTL) ───────────────────────────
+        # Runs in a separate connection/transaction so a failure here
+        # doesn't roll back the already-committed activity upserts.
+        try:
+            with get_conn() as fitness_conn:
+                _recompute_fitness(fitness_conn)
+        except Exception as fit_err:
+            logging.warning("Fitness recompute failed (activities saved): %s", fit_err)
 
+        logging.info("Strava sync complete: %d activities", synced)
         return {"synced": synced}
 
     except Exception as e:

@@ -7,7 +7,7 @@ from http.server import BaseHTTPRequestHandler
 
 import psycopg2.extras
 
-from _db import get_conn, send_json, verify_token
+from _db import get_conn, send_json, validate, verify_token
 
 
 class handler(BaseHTTPRequestHandler):
@@ -37,13 +37,21 @@ class handler(BaseHTTPRequestHandler):
             length = int(self.headers.get("Content-Length", 0))
             payload = json.loads(self.rfile.read(length))
 
-            competition = payload["competition"]
-            date = payload["date"]
-            distance = payload["distance"]
-            location = payload.get("location") or None
-            time = payload.get("time") or None
-            rank = payload.get("rank") or None
-            link = payload.get("link") or None
+            errs = validate(payload, {
+                "competition": {"required": True, "type": str, "min_len": 1},
+                "date": {"required": True, "type": str, "min_len": 1},
+                "distance": {"required": True, "type": str, "min_len": 1},
+            })
+            if errs:
+                return send_json(self, 400, {"error": "; ".join(errs)})
+
+            competition = payload["competition"].strip()
+            date = payload["date"].strip()
+            distance = payload["distance"].strip()
+            location = (payload.get("location") or "").strip() or None
+            time = (payload.get("time") or "").strip() or None
+            rank = (payload.get("rank") or "").strip() or None
+            link = (payload.get("link") or "").strip() or None
 
             with get_conn() as conn:
                 with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
@@ -71,14 +79,23 @@ class handler(BaseHTTPRequestHandler):
             length = int(self.headers.get("Content-Length", 0))
             payload = json.loads(self.rfile.read(length))
 
+            errs = validate(payload, {
+                "id": {"required": True, "type": (int,)},
+                "competition": {"required": True, "type": str, "min_len": 1},
+                "date": {"required": True, "type": str, "min_len": 1},
+                "distance": {"required": True, "type": str, "min_len": 1},
+            })
+            if errs:
+                return send_json(self, 400, {"error": "; ".join(errs)})
+
             record_id = payload["id"]
-            competition = payload["competition"]
-            date = payload["date"]
-            distance = payload["distance"]
-            location = payload.get("location") or None
-            time = payload.get("time") or None
-            rank = payload.get("rank") or None
-            link = payload.get("link") or None
+            competition = payload["competition"].strip()
+            date = payload["date"].strip()
+            distance = payload["distance"].strip()
+            location = (payload.get("location") or "").strip() or None
+            time = (payload.get("time") or "").strip() or None
+            rank = (payload.get("rank") or "").strip() or None
+            link = (payload.get("link") or "").strip() or None
 
             with get_conn() as conn:
                 with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:

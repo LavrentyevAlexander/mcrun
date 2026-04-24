@@ -4,6 +4,13 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [sync_garmin] %(levelname)s %(message)s",
+    datefmt="%Y-%m-%dT%H:%M:%SZ",
+)
 
 import garminconnect
 
@@ -59,6 +66,20 @@ TYPE_ID_MAP = {
     5: ("Half marathon", 21097),
     6: ("Marathon", 42195),
 }
+
+
+def _retry(fn, retries: int = 2, delay: float = 2.0):
+    """Retry fn up to `retries` times with exponential backoff. Never retries on 429."""
+    import time
+    for attempt in range(retries + 1):
+        try:
+            return fn()
+        except Exception as e:
+            if attempt == retries or "429" in str(e):
+                raise
+            wait = delay * (2 ** attempt)
+            logging.warning("Transient error (attempt %d/%d), retrying in %.0fs: %s", attempt + 1, retries + 1, wait, e)
+            time.sleep(wait)
 
 
 TOKEN_FILES = ("oauth1_token.json", "oauth2_token.json")
@@ -315,7 +336,7 @@ def sync_garmin() -> dict:
         client = get_garmin_client()
 
         # ── Personal records ─────────────────────────────────────────
-        prs = client.get_personal_record()
+        prs = _retry(client.get_personal_record)
         records = []
         for pr in prs:
             if pr.get("activityType") != "running":
@@ -362,26 +383,24 @@ def sync_garmin() -> dict:
         today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
         vo2_max = fitness_age = None
-        debug_vo2max = None
         try:
             from datetime import timedelta
             for days_back in range(3):
                 check_date = (datetime.now(timezone.utc) - timedelta(days=days_back)).strftime("%Y-%m-%d")
                 raw = client.get_max_metrics(check_date)
                 entry = raw[0] if isinstance(raw, list) and raw else (raw if isinstance(raw, dict) else {})
-                debug_vo2max = {"date": check_date, "raw": raw}
                 g = (entry or {}).get("generic") or {}
                 vo2_max = _num(g.get("vo2MaxPreciseValue") or g.get("vo2MaxValue"))
                 fitness_age = _num(g.get("fitnessAge"))
                 if vo2_max is not None:
+                    logging.info("VO2 max fetched from %s: %s", check_date, vo2_max)
                     break
         except Exception as e:
-            debug_vo2max = {"error": str(e)}
+            logging.warning("VO2 max fetch failed: %s", e)
 
         if fitness_age is None:
             try:
                 raw_fa = client.get_fitnessage_data(today)
-                debug_vo2max = {**(debug_vo2max or {}), "fitnessage_raw": raw_fa}
                 if isinstance(raw_fa, dict):
                     fitness_age = _num(
                         raw_fa.get("fitnessAge") or raw_fa.get("fitness_age")
@@ -422,10 +441,8 @@ def sync_garmin() -> dict:
         training_readiness = readiness_level = readiness_feedback = None
         sleep_score = recovery_time = acwr_feedback = None
         sleep_score_feedback = recovery_time_feedback = None
-        debug_readiness = None
         try:
             raw_tr = client.get_training_readiness(today)
-            debug_readiness = raw_tr
             entry_tr = None
             if isinstance(raw_tr, list) and raw_tr:
                 # Use most recent entry (API returns descending by timestamp)
@@ -452,13 +469,11 @@ def sync_garmin() -> dict:
         # ── Resting HR (today + 7-day list) ─────────────────────────
         resting_hr = None
         resting_hr_7day = None
-        debug_rhr = None
         try:
             from datetime import timedelta
             import json as _json
             seven_days_ago = (datetime.now(timezone.utc) - timedelta(days=6)).strftime("%Y-%m-%d")
             raw_rhr = client.get_rhr_day(today)
-            debug_rhr = raw_rhr
             if isinstance(raw_rhr, dict):
                 # Try direct keys first
                 resting_hr = _num(
@@ -492,10 +507,8 @@ def sync_garmin() -> dict:
 
         # ── Race Predictions ─────────────────────────────────────────
         race_5k = race_10k = race_hm = race_marathon = None
-        debug_race = None
         try:
             raw_race = client.get_race_predictions()
-            debug_race = raw_race
             if isinstance(raw_race, list) and raw_race:
                 raw_race = raw_race[0]
             if isinstance(raw_race, dict):
@@ -700,16 +713,8 @@ def sync_garmin() -> dict:
         except Exception:
             pass
 
-        return {
-            "synced": len(records),
-            "planned_synced": planned_synced,
-            "metrics_debug": {
-                "vo2max_raw": debug_vo2max,
-                "training_readiness_raw": debug_readiness,
-                "rhr_raw": debug_rhr,
-                "race_raw": debug_race,
-            },
-        }
+        logging.info("Sync complete: %d records, %d planned activities", len(records), planned_synced)
+        return {"synced": len(records), "planned_synced": planned_synced}
 
     except Exception as e:
         try:

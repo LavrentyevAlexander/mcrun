@@ -33,9 +33,41 @@ def verify_token(headers):
         raise PermissionError("Forbidden")
 
 
-def send_json(handler, status, data):
+def send_json(handler, status, data, extra_headers: dict | None = None):
     body = json.dumps(data, default=str).encode()
     handler.send_response(status)
     handler.send_header("Content-Type", "application/json")
+    if extra_headers:
+        for k, v in extra_headers.items():
+            handler.send_header(k, v)
     handler.end_headers()
     handler.wfile.write(body)
+
+
+def validate(payload: dict, rules: dict) -> list[str]:
+    """Return list of validation error strings.
+
+    rules: { field_name: {"required": bool, "type": type, "min_len": int, "min": number} }
+    """
+    errors = []
+    for field, opts in rules.items():
+        val = payload.get(field)
+        if opts.get("required") and (val is None or val == ""):
+            errors.append(f"'{field}' is required")
+            continue
+        if val is None:
+            continue
+        expected_type = opts.get("type")
+        if expected_type and not isinstance(val, expected_type):
+            type_name = (
+                " or ".join(t.__name__ for t in expected_type)
+                if isinstance(expected_type, tuple)
+                else expected_type.__name__
+            )
+            errors.append(f"'{field}' must be {type_name}")
+            continue
+        if opts.get("min_len") and isinstance(val, str) and len(val.strip()) < opts["min_len"]:
+            errors.append(f"'{field}' must not be empty")
+        if opts.get("min") is not None and isinstance(val, (int, float)) and val < opts["min"]:
+            errors.append(f"'{field}' must be >= {opts['min']}")
+    return errors

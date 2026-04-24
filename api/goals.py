@@ -7,7 +7,7 @@ from http.server import BaseHTTPRequestHandler
 
 import psycopg2.extras
 
-from _db import get_conn, send_json, verify_token
+from _db import get_conn, send_json, validate, verify_token
 
 
 class handler(BaseHTTPRequestHandler):
@@ -34,6 +34,15 @@ class handler(BaseHTTPRequestHandler):
         try:
             length = int(self.headers.get("Content-Length", 0))
             body = json.loads(self.rfile.read(length))
+
+            errs = validate(body, {
+                "year": {"required": True, "type": (int, float), "min": 2000},
+                "description": {"required": True, "type": str, "min_len": 1},
+            })
+            if errs:
+                send_json(self, 400, {"error": "; ".join(errs)})
+                return
+
             year = int(body["year"])
             description = body["description"].strip()
             achieved = bool(body.get("achieved", False))

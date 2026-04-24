@@ -1284,3 +1284,131 @@ tbody tr:hover {
     flex-direction: column;
   }
 }
+
+/* ════════════════════════════════════════
+   Skeleton loaders
+   ════════════════════════════════════════ */
+@keyframes skeleton-shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 800px 100%;
+  animation: skeleton-shimmer 1.4s infinite linear;
+  border-radius: 6px;
+}
+
+.skeleton-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem 0;
+}
+
+.skeleton-line {
+  height: 18px;
+  border-radius: 4px;
+}
+
+.skeleton-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem 0;
+}
+
+.skeleton-row {
+  height: 40px;
+  border-radius: 6px;
+}
+
+/* ════════════════════════════════════════
+   Home stats (weekly/monthly progress)
+   ════════════════════════════════════════ */
+.home-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.home-stat-card {
+  background: var(--clr-surface);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius-md);
+  padding: 0.9rem 1rem;
+}
+
+.home-stat-label {
+  font-size: var(--font-sm);
+  color: var(--clr-muted);
+  margin-bottom: 0.25rem;
+}
+
+.home-stat-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--clr-text);
+}
+
+.home-stat-delta {
+  font-size: var(--font-sm);
+  margin-top: 0.15rem;
+}
+
+.home-stat-delta.pos { color: #2e7d32; }
+.home-stat-delta.neg { color: #c62828; }
+.home-stat-delta.neu { color: var(--clr-muted); }
+
+/* ════════════════════════════════════════
+   HR zone distribution (RunsTab)
+   ════════════════════════════════════════ */
+.hr-zones {
+  margin-top: 1.25rem;
+}
+
+.hr-zones-title {
+  font-size: var(--font-sm);
+  font-weight: 600;
+  color: var(--clr-muted);
+  margin-bottom: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.hr-zone-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.45rem;
+}
+
+.hr-zone-label {
+  width: 120px;
+  font-size: var(--font-sm);
+  color: var(--clr-muted);
+  flex-shrink: 0;
+}
+
+.hr-zone-bar-wrap {
+  flex: 1;
+  background: #f0f0f0;
+  border-radius: 4px;
+  height: 10px;
+  overflow: hidden;
+}
+
+.hr-zone-bar {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.hr-zone-count {
+  width: 36px;
+  text-align: right;
+  font-size: var(--font-sm);
+  color: var(--clr-muted);
+}
