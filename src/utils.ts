@@ -12,7 +12,7 @@ export function formatDuration(totalSec: number): string {
 
 export function friendlyError(msg: string): string {
   const m = msg.toLowerCase();
-  if (m.includes("token expired") || m.includes("exp") && m.includes("<"))
+  if (m.includes("token expired") || m.includes("exp") && m.includes("<") || m.includes("certificate for key id"))
     return "Session expired. Please sign in again.";
   if (m.includes("unauthorized") || m.includes("forbidden"))
     return "Access denied.";

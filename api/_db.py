@@ -20,15 +20,31 @@ def get_conn():
 
 
 def verify_token(headers):
-    # Lazy import to avoid module-level failures if google-auth is slow to load
     from google.auth.transport import requests as google_requests
     from google.oauth2 import id_token
+    import requests as _requests
 
     auth = headers.get("Authorization", "")
     if not auth.startswith("Bearer "):
         raise PermissionError("Unauthorized")
     token = auth[7:]
-    idinfo = id_token.verify_oauth2_token(token, google_requests.Request(), GOOGLE_CLIENT_ID)
+
+    # Always use a fresh session so we fetch current Google signing certificates
+    # rather than relying on a potentially stale module-level cache.
+    # Retried once in case of a transient cert-not-found during key rotation.
+    last_err = None
+    for _ in range(2):
+        try:
+            request = google_requests.Request(session=_requests.Session())
+            idinfo = id_token.verify_oauth2_token(token, request, GOOGLE_CLIENT_ID)
+            break
+        except ValueError as e:
+            last_err = e
+            if "Certificate for key id" not in str(e):
+                raise PermissionError(str(e))
+    else:
+        raise PermissionError(str(last_err))
+
     if ALLOWED_EMAIL and idinfo.get("email") != ALLOWED_EMAIL:
         raise PermissionError("Forbidden")
 
