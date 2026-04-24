@@ -1,4 +1,6 @@
+import csv
 import hashlib
+import io
 import os
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
@@ -9,7 +11,7 @@ from urllib.parse import parse_qs, urlparse
 
 import psycopg2.extras
 
-from _db import get_conn, send_json
+from _db import get_conn, send_json, verify_token
 
 
 def format_pace(moving_sec, distance_km):
@@ -26,6 +28,14 @@ class handler(BaseHTTPRequestHandler):
             after_date = query.get("after_date", [None])[0]
             if after_date is None:
                 after_date = f"{datetime.now().year}-01-01"
+            fmt = query.get("format", [None])[0]
+
+            # CSV export requires auth
+            if fmt == "csv":
+                try:
+                    verify_token(self.headers)
+                except PermissionError as e:
+                    return send_json(self, 401, {"error": str(e)})
 
             with get_conn() as conn:
                 with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
@@ -103,6 +113,31 @@ class handler(BaseHTTPRequestHandler):
                 }
                 for g in gear_rows
             }
+
+            if fmt == "csv":
+                buf = io.StringIO()
+                writer = csv.writer(buf)
+                writer.writerow([
+                    "date", "name", "strava_id", "distance_km", "moving_sec",
+                    "elapsed_sec", "avg_hr", "elevation_m", "relative_effort",
+                    "fitness_score", "gear",
+                ])
+                for a in activities:
+                    writer.writerow([
+                        a["date"], a["name"], a["strava_id"], a["km"],
+                        a["elapsed_sec"], a["elapsed_sec"],
+                        a["avg_hr"] or "", a["elevation"] or "",
+                        a["relative_effort"] or "", a["fitness_score"] or "",
+                        a["gear"],
+                    ])
+                body = buf.getvalue().encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "text/csv; charset=utf-8")
+                self.send_header("Content-Disposition", 'attachment; filename="activities.csv"')
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+                return
 
             send_json(self, 200, {"activities": activities, "gear_summary": gear_summary},
                       extra_headers={"ETag": etag, "Cache-Control": "private, no-cache"})

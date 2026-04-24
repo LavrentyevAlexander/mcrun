@@ -89,10 +89,9 @@ export default function RunsTab({
 
   function handleExport() {
     const date = allTime ? "1970-01-01" : afterDate;
-    const url = `/api/export?after_date=${date}`;
+    const url = `/api/stats?after_date=${date}&format=csv`;
     const a = document.createElement("a");
     a.href = url;
-    // Include auth header via a fetch + blob approach since <a href> can't send headers
     fetch(url, { headers: { Authorization: `Bearer ${googleCredential ?? ""}` } })
       .then((res) => res.blob())
       .then((blob) => {
