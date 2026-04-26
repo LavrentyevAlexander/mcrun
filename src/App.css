@@ -869,6 +869,10 @@ tbody tr:hover {
     gap: 0.75rem;
   }
 
+  .home-card {
+    width: min(calc(100vw - 2rem), 360px);
+  }
+
   .photo-carousel {
     max-height: 38vh;
   }
@@ -888,6 +892,10 @@ tbody tr:hover {
 
   .home-quote-author {
     font-size: 0.82rem;
+  }
+
+  .home-stat-card {
+    padding: 0.65rem 0.75rem;
   }
 }
 
@@ -1283,6 +1291,13 @@ tbody tr:hover {
   .goal-edit-fields {
     flex-direction: column;
   }
+
+  /* Prevent iOS auto-zoom on input focus (requires font-size >= 16px) */
+  input,
+  select,
+  textarea {
+    font-size: max(1rem, 16px) !important;
+  }
 }
 
 /* ════════════════════════════════════════
@@ -1389,8 +1404,8 @@ tbody tr:hover {
 }
 
 .hr-zone-label {
-  width: 120px;
-  font-size: var(--font-sm);
+  width: clamp(76px, 22vw, 120px);
+  font-size: clamp(0.72rem, 2.5vw, var(--font-sm));
   color: var(--clr-muted);
   flex-shrink: 0;
 }

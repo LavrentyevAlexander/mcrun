@@ -16,7 +16,7 @@ function isoWeekStart(d: Date): string {
 }
 
 function deltaLabel(curr: number, prev: number): { text: string; cls: string } {
-  if (prev === 0) return { text: "no data last period", cls: "neu" };
+  if (prev === 0) return { text: "no prev data", cls: "neu" };
   const pct = Math.round(((curr - prev) / prev) * 100);
   if (pct > 0) return { text: `+${pct}% vs prev`, cls: "pos" };
   if (pct < 0) return { text: `${pct}% vs prev`, cls: "neg" };

@@ -138,7 +138,7 @@ export default function App() {
       });
       let json: { error?: string; synced?: number } = {};
       try { json = await res.json(); } catch { /* non-JSON response */ }
-      if (res.status === 401 || res.status === 403) { handleLogout(); pendingSyncRef.current = source; openLoginPanel(); return; }
+      if (res.status === 401 || res.status === 403) { pendingSyncRef.current = source; handleAuthExpired(); return; }
       if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
       await fetchSyncStatus();
       // Refresh data after sync
@@ -225,6 +225,16 @@ export default function App() {
     }
   }
 
+  function handleAuthExpired() {
+    handleLogout();
+    openLoginPanel();
+  }
+
+  function isAuthMsg(msg: string): boolean {
+    const m = friendlyError(msg);
+    return m === "Session expired. Please sign in again." || m === "Access denied.";
+  }
+
   function handleGoogleSuccess(credentialResponse: { credential?: string }) {
     const token = credentialResponse.credential ?? null;
     setGoogleCredential(token);
@@ -250,8 +260,7 @@ export default function App() {
 
   function handle401(res: Response): boolean {
     if (res.status === 401 || res.status === 403) {
-      handleLogout();
-      openLoginPanel();
+      handleAuthExpired();
       return true;
     }
     return false;
@@ -269,7 +278,9 @@ export default function App() {
       if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
       setCompetitions(json);
     } catch (e: unknown) {
-      setAddError(e instanceof Error ? friendlyError(e.message) : "Unknown error");
+      const msg = e instanceof Error ? e.message : "Unknown error";
+      if (isAuthMsg(msg)) { handleAuthExpired(); return; }
+      setAddError(friendlyError(msg));
     } finally {
       setCompetitionsLoading(false);
     }
@@ -292,7 +303,9 @@ export default function App() {
       if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
       setCompetitions((prev) => [...(prev ?? []), json]);
     } catch (e: unknown) {
-      setAddError(e instanceof Error ? friendlyError(e.message) : "Unknown error");
+      const msg = e instanceof Error ? e.message : "Unknown error";
+      if (isAuthMsg(msg)) { handleAuthExpired(); return; }
+      setAddError(friendlyError(msg));
     } finally {
       setAddLoading(false);
     }
@@ -314,7 +327,9 @@ export default function App() {
       if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
       setCompetitions((prev) => prev?.map((c) => c.id === id ? json : c) ?? null);
     } catch (e: unknown) {
-      setAddError(e instanceof Error ? friendlyError(e.message) : "Unknown error");
+      const msg = e instanceof Error ? e.message : "Unknown error";
+      if (isAuthMsg(msg)) { handleAuthExpired(); return; }
+      setAddError(friendlyError(msg));
     }
   }
 
@@ -336,7 +351,9 @@ export default function App() {
       if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
       fetchAllTime();
     } catch (e: unknown) {
-      setGearError(e instanceof Error ? friendlyError(e.message) : "Unknown error");
+      const msg = e instanceof Error ? e.message : "Unknown error";
+      if (isAuthMsg(msg)) { handleAuthExpired(); return; }
+      setGearError(friendlyError(msg));
     }
   }
 
@@ -357,7 +374,9 @@ export default function App() {
       if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
       fetchAllTime();
     } catch (e: unknown) {
-      setGearError(e instanceof Error ? friendlyError(e.message) : "Unknown error");
+      const msg = e instanceof Error ? e.message : "Unknown error";
+      if (isAuthMsg(msg)) { handleAuthExpired(); return; }
+      setGearError(friendlyError(msg));
     }
   }
 
@@ -398,7 +417,9 @@ export default function App() {
         return updated.sort((a, b) => b.year - a.year || a.sort_order - b.sort_order);
       });
     } catch (e: unknown) {
-      setGoalsError(e instanceof Error ? friendlyError(e.message) : "Unknown error");
+      const msg = e instanceof Error ? e.message : "Unknown error";
+      if (isAuthMsg(msg)) { handleAuthExpired(); return; }
+      setGoalsError(friendlyError(msg));
     } finally {
       setGoalsAddLoading(false);
     }
@@ -417,7 +438,9 @@ export default function App() {
       if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
       setGoals((prev) => prev?.map((g) => g.id === id ? (json as Goal) : g) ?? null);
     } catch (e: unknown) {
-      setGoalsError(e instanceof Error ? friendlyError(e.message) : "Unknown error");
+      const msg = e instanceof Error ? e.message : "Unknown error";
+      if (isAuthMsg(msg)) { handleAuthExpired(); return; }
+      setGoalsError(friendlyError(msg));
     }
   }
 
