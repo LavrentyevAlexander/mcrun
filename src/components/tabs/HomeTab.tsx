@@ -8,7 +8,8 @@ export default function HomeTab() {
   return (
     <div className="home">
       <div className="home-card">
-        <div className="photo-carousel" onClick={cycleLogo}>
+        <div className="photo-carousel"
+          onClick={(e) => { cycleLogo(); (e.currentTarget as HTMLElement).blur(); }}>
           {LOGOS.map((src, i) => (
             <img key={src} src={src} alt="McRun"
               className={`home-photo${i === logoIdx ? " home-photo--active" : ""}`} />

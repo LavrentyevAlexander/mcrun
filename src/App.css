@@ -357,8 +357,14 @@
   overflow: hidden;
   cursor: pointer;
   outline: none;
-  -webkit-tap-highlight-color: transparent;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
   user-select: none;
+}
+
+.photo-carousel:focus,
+.photo-carousel:focus-visible {
+  outline: none;
+  background: none;
 }
 
 .home-photo {
@@ -882,10 +888,6 @@ tbody tr:hover {
   .home-card {
     width: min(calc(100vw - 2rem), 360px);
     gap: 0.5rem;
-  }
-
-  .photo-carousel {
-    max-width: 200px;
   }
 
   .home-quote {
