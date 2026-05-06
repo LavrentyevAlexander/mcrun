@@ -80,11 +80,13 @@ export interface Competition {
   link: string | null;
 }
 
+export type GoalStatus = "in_progress" | "achieved" | "failed";
+
 export interface Goal {
   id: number;
   year: number;
   description: string;
-  achieved: boolean;
+  status: GoalStatus;
   result: string | null;
   sort_order: number;
 }

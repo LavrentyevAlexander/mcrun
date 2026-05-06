@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { googleLogout } from "@react-oauth/google";
 import "./App.css";
-import type { GarminActivity, GarminMetrics, GarminRecord, Competition, Goal, StatsResponse, Tab } from "./types";
+import type { GarminActivity, GarminMetrics, GarminRecord, Competition, Goal, GoalStatus, StatsResponse, Tab } from "./types";
 import { localDateStr, friendlyError, defaultDate } from "./utils";
 
 import HomeTab from "./components/tabs/HomeTab";
@@ -395,7 +395,7 @@ export default function App() {
     }
   }
 
-  async function addGoal(data: { year: string; description: string; achieved: boolean; result: string }) {
+  async function addGoal(data: { year: string; description: string; status: GoalStatus; result: string }) {
     setGoalsAddLoading(true);
     setGoalsError("");
     try {
@@ -405,7 +405,7 @@ export default function App() {
         body: JSON.stringify({
           year: Number(data.year),
           description: data.description,
-          achieved: data.achieved,
+          status: data.status,
           result: data.result || null,
         }),
       });
@@ -425,7 +425,7 @@ export default function App() {
     }
   }
 
-  async function saveGoalEdit(id: number, data: { description: string; achieved: boolean; result: string }) {
+  async function saveGoalEdit(id: number, data: { description: string; status: GoalStatus; result: string }) {
     setGoalsError("");
     try {
       const res = await fetch("/api/goals", {
@@ -511,7 +511,7 @@ export default function App() {
 
           {/* ── HOME ── */}
           {activeTab === "home" && (
-            <HomeTab allTimeData={allTimeData} allTimeLoading={allTimeLoading} />
+            <HomeTab />
           )}
 
           {/* ── HEALTH ── */}

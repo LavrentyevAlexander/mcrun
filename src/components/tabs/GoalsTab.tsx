@@ -1,9 +1,9 @@
 import { useState } from "react";
-import type { Goal } from "../../types";
+import type { Goal, GoalStatus } from "../../types";
 import Skeleton from "../Skeleton";
 
-type GoalEditData = { description: string; achieved: boolean; result: string };
-type GoalAddData = { year: string; description: string; achieved: boolean; result: string };
+type GoalEditData = { description: string; status: GoalStatus; result: string };
+type GoalAddData = { year: string; description: string; status: GoalStatus; result: string };
 
 interface GoalsTabProps {
   goals: Goal[] | null;
@@ -13,6 +13,31 @@ interface GoalsTabProps {
   goalsAddLoading: boolean;
   onAddGoal: (data: GoalAddData) => Promise<void>;
   onSaveGoalEdit: (id: number, data: GoalEditData) => Promise<void>;
+}
+
+const STATUS_CYCLE: GoalStatus[] = ["in_progress", "achieved", "failed"];
+
+function nextStatus(s: GoalStatus): GoalStatus {
+  const i = STATUS_CYCLE.indexOf(s);
+  return STATUS_CYCLE[(i + 1) % STATUS_CYCLE.length];
+}
+
+function statusIcon(s: GoalStatus) {
+  if (s === "achieved") return "✓";
+  if (s === "failed") return "✕";
+  return "";
+}
+
+function cardClass(s: GoalStatus) {
+  if (s === "achieved") return " goal-card--done";
+  if (s === "failed") return " goal-card--failed";
+  return "";
+}
+
+function checkClass(s: GoalStatus) {
+  if (s === "achieved") return " goal-check--done";
+  if (s === "failed") return " goal-check--failed";
+  return "";
 }
 
 export default function GoalsTab({
@@ -25,8 +50,8 @@ export default function GoalsTab({
   onSaveGoalEdit,
 }: GoalsTabProps) {
   const [goalsEditingId, setGoalsEditingId] = useState<number | null>(null);
-  const [goalsEditForm, setGoalsEditForm] = useState<GoalEditData>({ description: "", achieved: false, result: "" });
-  const [goalsAddForm, setGoalsAddForm] = useState<GoalAddData>({ year: String(new Date().getFullYear()), description: "", achieved: false, result: "" });
+  const [goalsEditForm, setGoalsEditForm] = useState<GoalEditData>({ description: "", status: "in_progress", result: "" });
+  const [goalsAddForm, setGoalsAddForm] = useState<GoalAddData>({ year: String(new Date().getFullYear()), description: "", status: "in_progress", result: "" });
 
   const yearGroups: Record<number, Goal[]> = {};
   (goals ?? []).forEach((g) => {
@@ -38,7 +63,7 @@ export default function GoalsTab({
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     await onAddGoal(goalsAddForm);
-    setGoalsAddForm({ year: String(new Date().getFullYear()), description: "", achieved: false, result: "" });
+    setGoalsAddForm({ year: String(new Date().getFullYear()), description: "", status: "in_progress", result: "" });
   }
 
   async function handleSaveEdit(id: number) {
@@ -52,7 +77,7 @@ export default function GoalsTab({
       {goalsError && <p className="error">{goalsError}</p>}
       {sortedYears.map((yr) => {
         const items = yearGroups[yr];
-        const doneCount = items.filter((g) => g.achieved).length;
+        const doneCount = items.filter((g) => g.status === "achieved").length;
         const pct = items.length ? Math.round((doneCount / items.length) * 100) : 0;
         const allDone = doneCount === items.length;
         return (
@@ -66,11 +91,16 @@ export default function GoalsTab({
             </div>
             <div className="goals-list">
               {items.map((g) => goalsEditingId === g.id ? (
-                <div key={g.id} className="goal-card goal-card--editing">
-                  <label className="goal-check-wrap">
-                    <input type="checkbox" checked={goalsEditForm.achieved}
-                      onChange={(e) => setGoalsEditForm((f) => ({ ...f, achieved: e.target.checked }))} />
-                  </label>
+                <div key={g.id} className={`goal-card goal-card--editing${cardClass(goalsEditForm.status)}`}>
+                  <div className="goal-check-wrap">
+                    <button
+                      className={`goal-check${checkClass(goalsEditForm.status)}`}
+                      onClick={() => setGoalsEditForm((f) => ({ ...f, status: nextStatus(f.status) }))}
+                      title="Click to cycle: in progress → achieved → failed"
+                    >
+                      {statusIcon(goalsEditForm.status)}
+                    </button>
+                  </div>
                   <div className="goal-edit-fields">
                     <input value={goalsEditForm.description}
                       onChange={(e) => setGoalsEditForm((f) => ({ ...f, description: e.target.value }))}
@@ -85,16 +115,16 @@ export default function GoalsTab({
                   </div>
                 </div>
               ) : (
-                <div key={g.id} className={`goal-card${g.achieved ? " goal-card--done" : ""}`}>
-                  <div className={`goal-check${g.achieved ? " goal-check--done" : ""}`}>
-                    {g.achieved ? "✓" : ""}
+                <div key={g.id} className={`goal-card${cardClass(g.status)}`}>
+                  <div className={`goal-check${checkClass(g.status)}`}>
+                    {statusIcon(g.status)}
                   </div>
                   <span className="goal-desc">{g.description}</span>
                   {g.result && <span className="goal-result">{g.result}</span>}
                   {googleCredential && (
                     <button className="goal-edit-btn" onClick={() => {
                       setGoalsEditingId(g.id);
-                      setGoalsEditForm({ description: g.description, achieved: g.achieved, result: g.result ?? "" });
+                      setGoalsEditForm({ description: g.description, status: g.status, result: g.result ?? "" });
                     }}>✎</button>
                   )}
                 </div>
@@ -114,9 +144,12 @@ export default function GoalsTab({
             <input placeholder="Result (optional, e.g. 49:03)" value={goalsAddForm.result}
               onChange={(e) => setGoalsAddForm((f) => ({ ...f, result: e.target.value }))} />
             <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.9rem" }}>
-              <input type="checkbox" checked={goalsAddForm.achieved}
-                onChange={(e) => setGoalsAddForm((f) => ({ ...f, achieved: e.target.checked }))} />
-              Achieved
+              Status:
+              <select value={goalsAddForm.status} onChange={(e) => setGoalsAddForm((f) => ({ ...f, status: e.target.value as GoalStatus }))}>
+                <option value="in_progress">In progress</option>
+                <option value="achieved">Achieved</option>
+                <option value="failed">Failed</option>
+              </select>
             </label>
             <button type="submit" disabled={goalsAddLoading}>{goalsAddLoading ? "Saving…" : "Add"}</button>
           </form>

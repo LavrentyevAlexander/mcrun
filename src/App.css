@@ -358,6 +358,8 @@
   cursor: pointer;
   outline: none;
   -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  background: #111;
 }
 
 .home-photo {
@@ -899,21 +901,6 @@ tbody tr:hover {
     font-size: 0.74rem;
   }
 
-  .home-stats {
-    margin-top: 0.25rem;
-  }
-
-  .home-stat-card {
-    padding: 0.45rem 0.65rem;
-  }
-
-  .home-stat-label {
-    font-size: 0.72rem;
-  }
-
-  .home-stat-value {
-    font-size: 1rem;
-  }
 }
 
 /* ════════════════════════════════════════
@@ -1233,6 +1220,11 @@ tbody tr:hover {
   background: #f1f8f1;
 }
 
+.goal-card--failed {
+  border-left-color: #e53935;
+  background: #fff5f5;
+}
+
 .goal-check {
   width: 22px;
   height: 22px;
@@ -1245,11 +1237,27 @@ tbody tr:hover {
   font-weight: 700;
   color: transparent;
   flex-shrink: 0;
+  /* when used as a button inside edit mode */
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+button.goal-check:hover:not(:disabled) {
+  border-color: #888;
+  background: rgba(0, 0, 0, 0.05);
 }
 
 .goal-check--done {
   background: #4caf50;
   border-color: #4caf50;
+  color: #fff;
+}
+
+.goal-check--failed {
+  background: #e53935;
+  border-color: #e53935;
   color: #fff;
 }
 
@@ -1261,6 +1269,10 @@ tbody tr:hover {
 
 .goal-card--done .goal-desc {
   color: #2e7d32;
+}
+
+.goal-card--failed .goal-desc {
+  color: #b71c1c;
 }
 
 .goal-result {
@@ -1360,34 +1372,6 @@ tbody tr:hover {
   border-radius: 6px;
 }
 
-/* ════════════════════════════════════════
-   Home stats (weekly/monthly progress)
-   ════════════════════════════════════════ */
-.home-stats {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
-  margin-top: 1.25rem;
-}
-
-.home-stat-card {
-  background: var(--clr-surface);
-  border: 1px solid var(--clr-border);
-  border-radius: var(--radius-md);
-  padding: 0.9rem 1rem;
-}
-
-.home-stat-label {
-  font-size: var(--font-sm);
-  color: var(--clr-muted);
-  margin-bottom: 0.25rem;
-}
-
-.home-stat-value {
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: var(--clr-text);
-}
 
 
 /* ════════════════════════════════════════
