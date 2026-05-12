@@ -71,10 +71,10 @@ export default function GearTab({
 
                   if (googleCredential && gearEditingId === info.id) {
                     return (
-                      <tr key={name}>
-                        <td><input value={gearEditForm.name} onChange={(e) => setGearEditForm((f) => ({ ...f, name: e.target.value }))} style={{ width: "100%" }} /></td>
+                      <tr key={name} className="gear-edit-row">
+                        <td data-label="Shoe"><input value={gearEditForm.name} onChange={(e) => setGearEditForm((f) => ({ ...f, name: e.target.value }))} style={{ width: "100%" }} /></td>
                         <td>{info.total_km.toFixed(2)}</td>
-                        <td><input type="number" value={gearEditForm.limit_km} onChange={(e) => setGearEditForm((f) => ({ ...f, limit_km: e.target.value }))} style={{ width: 80 }} /></td>
+                        <td data-label="Limit, km"><input type="number" value={gearEditForm.limit_km} onChange={(e) => setGearEditForm((f) => ({ ...f, limit_km: e.target.value }))} style={{ width: "100%" }} /></td>
                         <td>—</td>
                         <td>—</td>
                         <td style={{ display: "flex", gap: "0.4rem" }}>

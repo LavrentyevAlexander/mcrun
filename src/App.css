@@ -1017,6 +1017,11 @@ tbody tr:hover {
     border-bottom: 2px solid #eee;
     justify-content: flex-start;
   }
+
+  .table-compact .gear-edit-row td:nth-child(4),
+  .table-compact .gear-edit-row td:nth-child(5) {
+    display: none;
+  }
 }
 
 /* ════════════════════════════════════════

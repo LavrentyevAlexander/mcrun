@@ -86,7 +86,7 @@ export default function Drawer({
         ) : (
           <div className="drawer-login">
             <p>Sign in to sync data</p>
-            <GoogleLogin onSuccess={(c) => { onGoogleSuccess(c); onClose(); }} onError={() => {/* handled by parent */}} />
+            <GoogleLogin type="icon" shape="circle" onSuccess={(c) => { onGoogleSuccess(c); onClose(); }} onError={() => {/* handled by parent */}} />
           </div>
         )}
       </div>
