@@ -5,7 +5,7 @@ Personal running stats dashboard. Pulls activities from Strava and personal reco
 ## Features
 
 | Tab            | Description                                                              |
-|----------------|--------------------------------------------------------------------------|
+| -------------- | ------------------------------------------------------------------------ |
 | Home           | Landing page                                                             |
 | Run History    | All runs with date, distance, pace, HR, elevation, relative effort, gear |
 | Yearly Mileage | SVG chart of km per year across all time                                 |
@@ -25,31 +25,39 @@ Authenticated users (single allowed email) can also sync Strava/Garmin, edit com
 ## Project structure
 
 ```
-api/              Python serverless endpoints (one file = one route)
-  _db.py          DB connection, token verification, JSON helper
-  stats.py        GET  /api/stats        — activities + gear summary
-  gear.py         POST /api/gear         — add shoe
-                  PATCH /api/gear        — edit shoe
-  competitions.py GET/POST/PATCH /api/competitions
-  records.py      GET  /api/records      — Garmin personal records
-  sync_strava.py  POST /api/sync_strava  — incremental Strava sync
-  sync_garmin.py  POST /api/sync_garmin  — Garmin records sync
-  sync_status.py  GET  /api/sync_status  — last sync timestamps
+api/                Python serverless endpoints (one file = one route)
+  _db.py            DB connection, token verification, JSON helper
+  stats.py          GET   /api/stats             — activities + gear summary
+  gear.py           POST  /api/gear              — add shoe
+                    PATCH /api/gear              — edit shoe
+  competitions.py   GET/POST/PATCH /api/competitions
+  goals.py          GET/POST/PATCH /api/goals
+  records.py        GET   /api/records           — Garmin personal records
+  garmin_metrics.py GET   /api/garmin_metrics    — health & fitness metrics
+  garmin_calendar.py GET  /api/garmin_calendar   — planned workouts
+  garmin_status.py  GET   /api/garmin_status     — Garmin device/sync status
+  sync_strava.py    POST  /api/sync_strava       — incremental Strava sync
+  sync_garmin.py    POST  /api/sync_garmin       — Garmin records + metrics sync
+  sync_status.py    GET   /api/sync_status       — last sync timestamps
+  cron_sync.py      POST  /api/cron_sync         — scheduled auto-sync
 
 src/
-  App.tsx         Entire frontend (single-file SPA)
-  App.css         All styles
+  App.tsx           Entire frontend (single-file SPA)
+  App.css           All styles
+  constants.tsx     Tab metadata, nav config
+  types.ts          Shared TypeScript types
+  utils.ts          Shared helpers
+  components/
+    tabs/           One component per tab (HomeTab, RunsTab, GearTab, …)
 
-migrations/       SQL files applied manually in order
-  001_schema.sql
-  002_gear_image_url.sql
-  003_gear_nullable_strava_id.sql
+migrations/         SQL files applied manually in order
+  001–014_*.sql
 ```
 
 ## Environment variables
 
 | Variable                            | Used by        | Purpose                                           |
-|-------------------------------------|----------------|---------------------------------------------------|
+| ----------------------------------- | -------------- | ------------------------------------------------- |
 | `mcrun_db_POSTGRES_URL`             | api            | PostgreSQL connection string                      |
 | `mcrun_db_POSTGRES_URL_NON_POOLING` | api            | Non-pooling URL (preferred for serverless)        |
 | `CLIENT_ID`                         | sync_strava    | Strava app client ID                              |
