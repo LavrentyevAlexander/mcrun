@@ -15,10 +15,6 @@ VALID_STATUSES = {"in_progress", "achieved", "failed"}
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
-            verify_token(self.headers)
-        except PermissionError as e:
-            return send_json(self, 401, {"error": str(e)})
-        try:
             with get_conn() as conn:
                 with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
                     cur.execute("""
