@@ -296,10 +296,15 @@ def sync_strava() -> dict:
 
                 # Decide whether a fitness recompute is worthwhile: only when the
                 # activity set actually grew, or some rows still lack a score.
+                # (cur is a RealDictCursor here — read by alias, not position.)
                 cur.execute(
-                    "SELECT COUNT(*), COUNT(*) FILTER (WHERE fitness_score IS NULL) FROM activities"
+                    "SELECT COUNT(*) AS total, "
+                    "COUNT(*) FILTER (WHERE fitness_score IS NULL) AS missing "
+                    "FROM activities"
                 )
-                count_after, missing_scores = cur.fetchone()
+                counts = cur.fetchone()
+                count_after = counts["total"]
+                missing_scores = counts["missing"]
             conn.commit()
 
         needs_recompute = count_after != count_before or missing_scores > 0

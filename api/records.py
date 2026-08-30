@@ -10,6 +10,8 @@ from _db import get_conn, send_error, send_json
 
 
 def format_seconds(total_sec):
+    if not total_sec:
+        return "—"
     total_sec = round(total_sec)
     h = total_sec // 3600
     m = (total_sec % 3600) // 60
