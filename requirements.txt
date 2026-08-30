@@ -1,7 +1,9 @@
-requests
-garminconnect
-garth
-curl-cffi
-pyotp
-psycopg2-binary
-google-auth
+# Pinned to compatible-release ranges (~=): patch updates allowed, minor/major
+# blocked so an upstream break can't reach production silently. Bump deliberately.
+requests~=2.32.5
+garminconnect==0.2.40
+garth==0.6.3
+curl-cffi~=0.7
+pyotp~=2.9
+psycopg2-binary~=2.9.11
+google-auth~=2.49

@@ -6,7 +6,7 @@ from http.server import BaseHTTPRequestHandler
 
 import psycopg2.extras
 
-from _db import get_conn, send_json
+from _db import get_conn, send_error, send_json
 
 
 class handler(BaseHTTPRequestHandler):
@@ -28,4 +28,4 @@ class handler(BaseHTTPRequestHandler):
             send_json(self, 200, result)
 
         except Exception as e:
-            send_json(self, 500, {"error": str(e)})
+            send_error(self, e)

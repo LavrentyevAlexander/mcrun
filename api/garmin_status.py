@@ -2,6 +2,7 @@ import os
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
 
+import logging
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler
 
@@ -24,5 +25,7 @@ class handler(BaseHTTPRequestHandler):
                 except (ValueError, TypeError):
                     pass
             send_json(self, 200, {"banned": False})
-        except Exception as e:
-            send_json(self, 200, {"banned": None, "error": str(e)})
+        except Exception:
+            # Status probe: always 200 so callers can treat "unknown" uniformly.
+            logging.getLogger("mcrun").exception("garmin_status check failed")
+            send_json(self, 200, {"banned": None})

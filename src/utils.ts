@@ -12,7 +12,7 @@ export function formatDuration(totalSec: number): string {
 
 export function friendlyError(msg: string): string {
   const m = msg.toLowerCase();
-  if (m.includes("token expired") || m.includes("exp") && m.includes("<") || m.includes("certificate for key id"))
+  if (m.includes("token expired") || m.includes("certificate for key id"))
     return "Session expired. Please sign in again.";
   if (m.includes("unauthorized") || m.includes("forbidden"))
     return "Access denied.";
@@ -30,10 +30,19 @@ export function defaultDate(): string {
   return `${now.getFullYear()}-01-01`;
 }
 
-export function decodeJwt(token: string): { picture?: string; name?: string } {
+export function decodeJwt(token: string): { picture?: string; name?: string; exp?: number } {
   try {
     return JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
   } catch {
     return {};
   }
+}
+
+/** True if the JWT is missing/malformed or its `exp` claim is in the past.
+ *  `skewSec` treats a token expiring very soon as already expired. */
+export function isTokenExpired(token: string | null | undefined, skewSec = 30): boolean {
+  if (!token) return true;
+  const { exp } = decodeJwt(token);
+  if (!exp) return true;
+  return Date.now() / 1000 >= exp - skewSec;
 }

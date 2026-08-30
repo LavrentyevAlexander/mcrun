@@ -6,12 +6,17 @@ from http.server import BaseHTTPRequestHandler
 
 import psycopg2.extras
 
-from _db import get_conn, send_json
+from _db import get_conn, send_error, send_json, verify_token
 
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
+            try:
+                verify_token(self.headers)
+            except PermissionError as e:
+                return send_json(self, 401, {"error": str(e)})
+
             with get_conn() as conn:
                 with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
                     cur.execute(
@@ -70,4 +75,4 @@ class handler(BaseHTTPRequestHandler):
             })
 
         except Exception as e:
-            send_json(self, 500, {"error": str(e)})
+            send_error(self, e)

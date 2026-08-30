@@ -4,11 +4,13 @@ import Skeleton from "../Skeleton";
 interface RecordsTabProps {
   records: GarminRecord[] | null;
   recordsLoading: boolean;
+  recordsError: string;
 }
 
-export default function RecordsTab({ records, recordsLoading }: RecordsTabProps) {
+export default function RecordsTab({ records, recordsLoading, recordsError }: RecordsTabProps) {
   return (
     <div className="table-compact">
+      {recordsError && <p className="error">{recordsError}</p>}
       {recordsLoading && <Skeleton variant="table" rows={8} />}
       {!recordsLoading && records && (
         <table>

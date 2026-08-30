@@ -14,7 +14,7 @@ logging.basicConfig(
 
 import garminconnect
 
-from _db import get_conn, send_json, verify_token
+from _db import get_conn, send_error, send_json, verify_token
 
 GARMIN_EMAIL = os.environ.get("GARMIN_EMAIL")
 GARMIN_PASSWORD = os.environ.get("GARMIN_PASSWORD")
@@ -742,4 +742,4 @@ class handler(BaseHTTPRequestHandler):
         except PermissionError as e:
             send_json(self, 401, {"error": str(e)})
         except Exception as e:
-            send_json(self, 500, {"error": str(e)})
+            send_error(self, e)

@@ -1,6 +1,6 @@
 # McRun
 
-Personal running stats dashboard. Pulls activities from Strava and personal records from Garmin, stores everything in PostgreSQL, displays it as a React SPA deployed on Vercel.
+Personal running stats dashboard. Pulls activities from Strava and health/records from Garmin, stores everything in PostgreSQL, displays it as a React SPA deployed on Vercel.
 
 ## Features
 
@@ -12,8 +12,10 @@ Personal running stats dashboard. Pulls activities from Strava and personal reco
 | Gear           | Shoes with total km, wear limit and wear % (colour-coded)                |
 | Records        | Garmin personal records: 1 km, 1 mi, 5k, 10k, Half, Marathon             |
 | Competitions   | Race log with results — visible and editable after Google sign-in        |
+| Health         | Garmin fitness/recovery metrics — visible after Google sign-in           |
+| Goals          | Season goals — visible after Google sign-in                              |
 
-Authenticated users (single allowed email) can also sync Strava/Garmin, edit competitions and manage gear directly in the UI.
+Authenticated users (single allowed email) can also sync Strava/Garmin, edit competitions/goals and manage gear directly in the UI.
 
 ## Stack
 
@@ -42,32 +44,39 @@ api/                Python serverless endpoints (one file = one route)
   cron_sync.py      POST  /api/cron_sync         — scheduled auto-sync
 
 src/
-  App.tsx           Entire frontend (single-file SPA)
+  App.tsx           All state, data fetching, routing
   App.css           All styles
   constants.tsx     Tab metadata, nav config
   types.ts          Shared TypeScript types
-  utils.ts          Shared helpers
+  utils.ts          Pure helpers (+ utils.test.ts)
   components/
-    tabs/           One component per tab (HomeTab, RunsTab, GearTab, …)
+    tabs/           One presentational component per tab (HomeTab, RunsTab, …)
 
+tests/              Python tests (pytest)
+conftest.py         Adds api/ to sys.path for tests
 migrations/         SQL files applied manually in order
   001–014_*.sql
 ```
 
 ## Environment variables
 
-| Variable                            | Used by        | Purpose                                           |
-| ----------------------------------- | -------------- | ------------------------------------------------- |
-| `mcrun_db_POSTGRES_URL`             | api            | PostgreSQL connection string                      |
-| `mcrun_db_POSTGRES_URL_NON_POOLING` | api            | Non-pooling URL (preferred for serverless)        |
-| `CLIENT_ID`                         | sync_strava    | Strava app client ID                              |
-| `CLIENT_SECRET`                     | sync_strava    | Strava app client secret                          |
-| `REFRESH_TOKEN`                     | sync_strava    | Strava refresh token                              |
-| `GOOGLE_CLIENT_ID`                  | api            | Google OAuth client ID (server-side verification) |
-| `ALLOWED_EMAIL`                     | api            | Only this email is granted write access           |
-| `VITE_GOOGLE_CLIENT_ID`             | frontend build | Google OAuth client ID (exposed to browser)       |
+| Variable                     | Used by        | Purpose                                                  |
+| ---------------------------- | -------------- | ------------------------------------------------------- |
+| `POSTGRES_URL`               | api            | PostgreSQL connection string                            |
+| `POSTGRES_URL_NON_POOLING`   | api            | Non-pooling URL — preferred; used when set               |
+| `CLIENT_ID`                  | sync_strava    | Strava app client ID                                    |
+| `CLIENT_SECRET`              | sync_strava    | Strava app client secret                                |
+| `REFRESH_TOKEN`              | sync_strava    | Strava refresh token                                    |
+| `GARMIN_EMAIL` / `GARMIN_PASSWORD` | sync_garmin | Garmin Connect credentials                          |
+| `GARMIN_TOTP_SECRET`         | sync_garmin    | Optional — only if Garmin MFA is enabled                 |
+| `GOOGLE_CLIENT_ID`           | api            | Google OAuth client ID (server-side verification)       |
+| `ALLOWED_EMAIL`              | api            | Only this email is granted access to authed endpoints   |
+| `VITE_GOOGLE_CLIENT_ID`      | frontend build | Google OAuth client ID (exposed to browser)             |
+| `CRON_SECRET` / `APP_URL`    | GitHub Actions | Auth + target for the hourly `/api/cron_sync` trigger    |
 
-Copy `.env.example` to `.env.local` for local development.
+Copy `.env.example` to `.env.local` for local development. If your Postgres env
+vars carry a provider prefix (e.g. Vercel's `mcrun_db_*`), also expose them
+un-prefixed as `POSTGRES_URL` / `POSTGRES_URL_NON_POOLING`.
 
 ## Local development
 
@@ -76,17 +85,30 @@ npm install
 vercel dev          # starts Vite + Python functions on http://localhost:3000
 ```
 
-Requires [Vercel CLI](https://vercel.com/docs/cli) and Python 3 with `psycopg2`, `requests`, and `google-auth` installed.
+Requires [Vercel CLI](https://vercel.com/docs/cli) and Python 3 (`pip install -r requirements-dev.txt`).
+
+`npm run dev` (Vite alone) proxies `/api` to `http://localhost:3000` — i.e. `vercel dev`
+must be running. To point the proxy at a deployed environment instead (read-only!),
+set `VITE_API_PROXY=https://…` before `npm run dev`.
+
+## Tests
+
+```bash
+npm test              # frontend (vitest)
+python -m pytest      # backend (pytest)
+```
+
+Both run in CI (`.github/workflows/ci.yml`) on every push and PR.
 
 ## Database setup
 
-Apply migrations in order against your PostgreSQL instance:
+Apply pending migrations (tracked in a `schema_migrations` table, safe to re-run):
 
 ```bash
-psql $DATABASE_URL -f migrations/001_schema.sql
-psql $DATABASE_URL -f migrations/002_gear_image_url.sql
-psql $DATABASE_URL -f migrations/003_gear_nullable_strava_id.sql
+DATABASE_URL=postgres://user:pass@host/db ./migrations/run.sh
 ```
+
+Or apply a single file by hand: `psql $DATABASE_URL -f migrations/001_schema.sql`.
 
 ## Deploy
 

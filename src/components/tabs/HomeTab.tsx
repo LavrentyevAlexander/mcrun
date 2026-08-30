@@ -115,7 +115,7 @@ function WeatherStrip() {
     if (cached && Date.now() - cached.fetchedAt < WEATHER_MAX_AGE_MS) return;
 
     let cancelled = false;
-    fetch(WEATHER_URL)
+    fetch(WEATHER_URL, { signal: AbortSignal.timeout(8000) })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
       .then((json) => {
         if (cancelled) return;

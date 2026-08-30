@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { googleLogout } from "@react-oauth/google";
 import "./App.css";
 import type { GarminActivity, GarminMetrics, GarminRecord, Competition, Goal, GoalStatus, StatsResponse, Tab } from "./types";
-import { localDateStr, friendlyError, defaultDate } from "./utils";
+import { localDateStr, friendlyError, defaultDate, isTokenExpired } from "./utils";
 
 import HomeTab from "./components/tabs/HomeTab";
 import RecordsTab from "./components/tabs/RecordsTab";
@@ -46,6 +46,7 @@ export default function App() {
   // Records
   const [records, setRecords] = useState<GarminRecord[] | null>(null);
   const [recordsLoading, setRecordsLoading] = useState(false);
+  const [recordsError, setRecordsError] = useState("");
 
   // Sync
   const [syncStatus, setSyncStatus] = useState<Record<string, { status: string; records_synced: number | null; finished_at: string | null }>>({});
@@ -54,9 +55,14 @@ export default function App() {
   const pendingSyncRef = useRef<"strava" | "garmin" | null>(null);
 
   // Competitions
-  const [googleCredential, setGoogleCredential] = useState<string | null>(
-    () => localStorage.getItem("google_credential")
-  );
+  const [googleCredential, setGoogleCredential] = useState<string | null>(() => {
+    const stored = localStorage.getItem("google_credential");
+    if (stored && isTokenExpired(stored)) {
+      localStorage.removeItem("google_credential");
+      return null;
+    }
+    return stored;
+  });
   const [competitions, setCompetitions] = useState<Competition[] | null>(null);
   const [competitionsLoading, setCompetitionsLoading] = useState(false);
   const [addLoading, setAddLoading] = useState(false);
@@ -78,8 +84,9 @@ export default function App() {
   // Track which tabs have been initialized to avoid redundant fetches
   const initializedTabs = useRef<Set<Tab>>(new Set());
 
-  // Sync URL hash when tab changes
+  // Sync URL hash when tab changes — but don't add "#home" to a clean URL.
   useEffect(() => {
+    if (activeTab === "home" && !window.location.hash) return;
     window.location.hash = activeTab;
   }, [activeTab]);
 
@@ -93,21 +100,21 @@ export default function App() {
     return () => window.removeEventListener("hashchange", onHashChange);
   }, []);
 
-  // Always-needed data fetched on mount
+  // On mount: fetch always-needed data and lazy-init the initial tab.
   useEffect(() => {
     fetchSyncStatus();
-    fetchGarminMetrics();
     fetchAllTime();
-  }, []);
-
-  // Lazy-initialize the initial tab's data on mount
-  useEffect(() => {
+    if (googleCredential) fetchGarminMetrics();
     initTab(activeTab);
   }, []);
 
-  async function fetchGarminMetrics() {
+  async function fetchGarminMetrics(token?: string | null) {
+    const t = token ?? googleCredential;
+    if (!t) return;
     try {
-      const res = await fetch("/api/garmin_metrics");
+      const res = await fetch("/api/garmin_metrics", {
+        headers: { Authorization: `Bearer ${t}` },
+      });
       if (res.ok) {
         const json = await res.json();
         if (json) setGarminMetrics(json);
@@ -144,7 +151,7 @@ export default function App() {
       // Refresh data after sync
       fetchAllTime();
       if (source === "strava") { setRunsData(null); }
-      if (source === "garmin") { setRecords(null); fetchGarminMetrics(); }
+      if (source === "garmin") { setRecords(null); fetchGarminMetrics(token); }
     } catch (e: unknown) {
       setSyncError(e instanceof Error ? friendlyError(e.message) : "Sync failed");
     } finally {
@@ -205,13 +212,14 @@ export default function App() {
 
   async function fetchRecords() {
     setRecordsLoading(true);
+    setRecordsError("");
     try {
       const res = await fetch("/api/records");
       const json = await res.json();
       if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
       setRecords(json);
     } catch (e: unknown) {
-      setAllTimeError(e instanceof Error ? friendlyError(e.message) : "Unknown error");
+      setRecordsError(e instanceof Error ? friendlyError(e.message) : "Unknown error");
     } finally {
       setRecordsLoading(false);
     }
@@ -241,6 +249,7 @@ export default function App() {
     setAddError("");
     setSyncError("");
     if (token) localStorage.setItem("google_credential", token);
+    if (token) fetchGarminMetrics(token);
     if (!competitions && !competitionsLoading) fetchCompetitions(token);
     const pending = pendingSyncRef.current;
     if (token && pending) {
@@ -255,6 +264,7 @@ export default function App() {
     googleLogout();
     setGoogleCredential(null);
     setCompetitions(null);
+    setGarminMetrics(null);
     localStorage.removeItem("google_credential");
   }
 
@@ -560,7 +570,7 @@ export default function App() {
 
           {/* ── RECORDS ── */}
           {activeTab === "records" && (
-            <RecordsTab records={records} recordsLoading={recordsLoading} />
+            <RecordsTab records={records} recordsLoading={recordsLoading} recordsError={recordsError} />
           )}
 
           {/* ── COMPETITIONS ── */}

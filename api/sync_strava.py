@@ -16,7 +16,7 @@ logging.basicConfig(
 import psycopg2.extras
 import requests
 
-from _db import get_conn, send_json, verify_token
+from _db import get_conn, send_error, send_json, verify_token
 
 
 _CTL_TAU = 42.0  # days — Chronic Training Load time constant
@@ -131,6 +131,7 @@ def get_access_token():
             "grant_type": "refresh_token",
             "refresh_token": REFRESH_TOKEN,
         },
+        timeout=30,
     )
     resp.raise_for_status()
     return resp.json()["access_token"]
@@ -145,6 +146,7 @@ def fetch_all_activities(token, after_timestamp=0):
             "https://www.strava.com/api/v3/athlete/activities",
             headers=headers,
             params={"after": after_timestamp, "per_page": 100, "page": page},
+            timeout=30,
         )
         resp.raise_for_status()
         data = resp.json()
@@ -159,6 +161,7 @@ def fetch_gear(token, gear_id):
     resp = requests.get(
         f"https://www.strava.com/api/v3/gear/{gear_id}",
         headers={"Authorization": f"Bearer {token}"},
+        timeout=30,
     )
     if resp.status_code == 200:
         d = resp.json()
@@ -171,6 +174,7 @@ def fetch_all_athlete_shoes(token):
     resp = requests.get(
         "https://www.strava.com/api/v3/athlete",
         headers={"Authorization": f"Bearer {token}"},
+        timeout=30,
     )
     if resp.status_code != 200:
         return []
@@ -189,10 +193,11 @@ def sync_strava() -> dict:
 
         with get_conn() as conn:
             with conn.cursor() as cur:
-                cur.execute("SELECT MAX(date) FROM activities")
+                cur.execute("SELECT MAX(date), COUNT(*) FROM activities")
                 row = cur.fetchone()
 
         latest_date = row[0]
+        count_before = row[1]
         if latest_date:
             cutoff = latest_date - timedelta(days=3)
             after_ts = int(datetime.combine(cutoff, datetime.min.time()).timestamp())
@@ -288,16 +293,30 @@ def sync_strava() -> dict:
                     """,
                     (synced, started_at),
                 )
+
+                # Decide whether a fitness recompute is worthwhile: only when the
+                # activity set actually grew, or some rows still lack a score.
+                cur.execute(
+                    "SELECT COUNT(*), COUNT(*) FILTER (WHERE fitness_score IS NULL) FROM activities"
+                )
+                count_after, missing_scores = cur.fetchone()
             conn.commit()
+
+        needs_recompute = count_after != count_before or missing_scores > 0
 
         # ── Recompute fitness scores (CTL) ───────────────────────────
         # Runs in a separate connection/transaction so a failure here
         # doesn't roll back the already-committed activity upserts.
-        try:
-            with get_conn() as fitness_conn:
-                _recompute_fitness(fitness_conn)
-        except Exception as fit_err:
-            logging.warning("Fitness recompute failed (activities saved): %s", fit_err)
+        # Skipped when nothing new arrived — avoids re-fetching the full
+        # Strava history on every (often no-op) hourly cron run.
+        if needs_recompute:
+            try:
+                with get_conn() as fitness_conn:
+                    _recompute_fitness(fitness_conn)
+            except Exception as fit_err:
+                logging.warning("Fitness recompute failed (activities saved): %s", fit_err)
+        else:
+            logging.info("Strava sync: no new activities, skipping fitness recompute")
 
         logging.info("Strava sync complete: %d activities", synced)
         return {"synced": synced}
@@ -328,4 +347,4 @@ class handler(BaseHTTPRequestHandler):
         except PermissionError as e:
             send_json(self, 401, {"error": str(e)})
         except Exception as e:
-            send_json(self, 500, {"error": str(e)})
+            send_error(self, e)

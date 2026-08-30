@@ -2,12 +2,11 @@ import os
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
 
-import json
 from http.server import BaseHTTPRequestHandler
 
 import psycopg2.extras
 
-from _db import get_conn, send_json, validate, verify_token
+from _db import BadRequest, get_conn, read_json_body, send_error, send_json, validate, verify_token
 
 
 class handler(BaseHTTPRequestHandler):
@@ -15,8 +14,7 @@ class handler(BaseHTTPRequestHandler):
         try:
             verify_token(self.headers)
 
-            length = int(self.headers.get("Content-Length", 0))
-            payload = json.loads(self.rfile.read(length))
+            payload = read_json_body(self)
 
             errs = validate(payload, {
                 "name": {"required": True, "type": str, "min_len": 1},
@@ -50,15 +48,16 @@ class handler(BaseHTTPRequestHandler):
 
         except PermissionError as e:
             send_json(self, 401, {"error": str(e)})
+        except BadRequest as e:
+            send_json(self, 400, {"error": str(e)})
         except Exception as e:
-            send_json(self, 500, {"error": str(e)})
+            send_error(self, e)
 
     def do_PATCH(self):
         try:
             verify_token(self.headers)
 
-            length = int(self.headers.get("Content-Length", 0))
-            payload = json.loads(self.rfile.read(length))
+            payload = read_json_body(self)
 
             errs = validate(payload, {
                 "id": {"required": True, "type": (int,)},
@@ -102,7 +101,9 @@ class handler(BaseHTTPRequestHandler):
 
         except PermissionError as e:
             send_json(self, 401, {"error": str(e)})
+        except BadRequest as e:
+            send_json(self, 400, {"error": str(e)})
         except KeyError as e:
             send_json(self, 404, {"error": str(e)})
         except Exception as e:
-            send_json(self, 500, {"error": str(e)})
+            send_error(self, e)

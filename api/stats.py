@@ -11,7 +11,7 @@ from urllib.parse import parse_qs, urlparse
 
 import psycopg2.extras
 
-from _db import get_conn, send_json, verify_token
+from _db import get_conn, send_error, send_json, verify_token
 
 
 def format_pace(moving_sec, distance_km):
@@ -122,13 +122,16 @@ class handler(BaseHTTPRequestHandler):
                     "elapsed_sec", "avg_hr", "elevation_m", "relative_effort",
                     "fitness_score", "gear",
                 ])
-                for a in activities:
+                for r in act_rows:
                     writer.writerow([
-                        a["date"], a["name"], a["strava_id"], a["km"],
-                        a["elapsed_sec"], a["elapsed_sec"],
-                        a["avg_hr"] or "", a["elevation"] or "",
-                        a["relative_effort"] or "", a["fitness_score"] or "",
-                        a["gear"],
+                        r["date"], r["name"], r["strava_id"],
+                        round(float(r["distance_km"]), 2),
+                        r["moving_sec"] or "", r["elapsed_sec"] or "",
+                        r["avg_hr"] or "",
+                        float(r["elevation_m"]) if r["elevation_m"] is not None else "",
+                        r["relative_effort"] or "",
+                        round(r["fitness_score"]) if r["fitness_score"] is not None else "",
+                        r["gear_name"] or "",
                     ])
                 body = buf.getvalue().encode()
                 self.send_response(200)
@@ -142,5 +145,7 @@ class handler(BaseHTTPRequestHandler):
             send_json(self, 200, {"activities": activities, "gear_summary": gear_summary},
                       extra_headers={"ETag": etag, "Cache-Control": "private, no-cache"})
 
+        except PermissionError as e:
+            send_json(self, 401, {"error": str(e)})
         except Exception as e:
-            send_json(self, 500, {"error": str(e)})
+            send_error(self, e)

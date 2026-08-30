@@ -1,8 +1,8 @@
-"""Tests for CTL fitness score calculation in sync_strava.py."""
+"""Tests for CTL fitness score calculation in sync_strava.py.
+
+`api/` is added to sys.path by the repo-root conftest.py.
+"""
 import math
-import sys
-import os
-sys.path.insert(0, os.path.dirname(__file__))
 
 from sync_strava import _CTL_TAU
 

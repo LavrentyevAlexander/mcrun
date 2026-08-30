@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { formatDuration, friendlyError, localDateStr, defaultDate } from "./utils";
+import { formatDuration, friendlyError, localDateStr, defaultDate, isTokenExpired } from "./utils";
+
+function makeJwt(payload: Record<string, unknown>): string {
+  const b64 = (o: unknown) =>
+    btoa(JSON.stringify(o)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  return `${b64({ alg: "none" })}.${b64(payload)}.sig`;
+}
 
 describe("formatDuration", () => {
   it("formats seconds under an hour as mm:ss", () => {
@@ -52,5 +58,30 @@ describe("defaultDate", () => {
   it("returns Jan 1 of the current year", () => {
     const year = new Date().getFullYear();
     expect(defaultDate()).toBe(`${year}-01-01`);
+  });
+});
+
+describe("isTokenExpired", () => {
+  it("treats null/empty/garbage as expired", () => {
+    expect(isTokenExpired(null)).toBe(true);
+    expect(isTokenExpired("")).toBe(true);
+    expect(isTokenExpired("not-a-jwt")).toBe(true);
+  });
+
+  it("treats a token with no exp claim as expired", () => {
+    expect(isTokenExpired(makeJwt({ sub: "123" }))).toBe(true);
+  });
+
+  it("returns false for a token expiring comfortably in the future", () => {
+    expect(isTokenExpired(makeJwt({ exp: Math.floor(Date.now() / 1000) + 3600 }))).toBe(false);
+  });
+
+  it("returns true for a token already past exp", () => {
+    expect(isTokenExpired(makeJwt({ exp: Math.floor(Date.now() / 1000) - 10 }))).toBe(true);
+  });
+
+  it("applies the clock-skew window", () => {
+    // expires in 10s, default skew is 30s → considered expired
+    expect(isTokenExpired(makeJwt({ exp: Math.floor(Date.now() / 1000) + 10 }))).toBe(true);
   });
 });
