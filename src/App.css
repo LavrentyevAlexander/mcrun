@@ -342,9 +342,9 @@
 .photo-carousel {
   display: grid;
   /* width = available_height × 2/3 so portrait 2:3 photos fit without cropping.
-     ~300px accounts for navbar + footer + quote + stats + margins. */
-  width: min(100%, max(160px, calc((100vh  - 300px) * 2 / 3)));
-  width: min(100%, max(160px, calc((100dvh - 300px) * 2 / 3)));
+     ~360px accounts for navbar + footer + quote + weather strip + margins. */
+  width: min(100%, max(160px, calc((100vh  - 360px) * 2 / 3)));
+  width: min(100%, max(160px, calc((100dvh - 360px) * 2 / 3)));
   aspect-ratio: 2 / 3;
   align-self: center;
   border-radius: var(--radius-lg);
@@ -411,6 +411,81 @@
   color: #888;
   letter-spacing: 0.03em;
   text-align: right;
+}
+
+/* ════════════════════════════════════════
+   Home weather strip
+   ════════════════════════════════════════ */
+.weather-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem 0.9rem;
+  width: clamp(280px, 92vw, 420px);
+  padding: 0.6rem 1.2rem;
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(6px);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.1);
+  font-family: 'Oswald', sans-serif;
+}
+
+.weather-strip-icon {
+  font-size: 2rem;
+  color: var(--clr-text);
+  flex-shrink: 0;
+}
+
+.weather-strip-temp {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #222;
+}
+
+.weather-strip-feels {
+  font-size: 0.85rem;
+  color: var(--clr-muted);
+}
+
+.weather-strip-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem 0.7rem;
+}
+
+.weather-chip {
+  font-size: 0.85rem;
+  color: var(--clr-text);
+  white-space: nowrap;
+}
+
+.weather-strip-meta {
+  flex-basis: 100%;
+  text-align: center;
+  font-size: 0.74rem;
+  font-style: italic;
+  color: #888;
+  letter-spacing: 0.03em;
+}
+
+.weather-strip--loading {
+  opacity: 0.55;
+}
+
+@media (max-width: 767px) {
+  .weather-strip {
+    width: min(calc(100vw - 2rem), 360px);
+    padding: 0.5rem 0.85rem;
+    gap: 0.35rem 0.7rem;
+  }
+
+  .weather-strip-icon { font-size: 1.7rem; }
+  .weather-strip-temp { font-size: 1.3rem; }
+  .weather-strip-feels,
+  .weather-chip { font-size: 0.8rem; }
 }
 
 /* ════════════════════════════════════════
