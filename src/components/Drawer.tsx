@@ -1,5 +1,5 @@
 import { GoogleLogin } from "@react-oauth/google";
-import { FaTrophy, FaArrowsRotate, FaRightFromBracket, FaBullseye, FaHeartPulse } from "react-icons/fa6";
+import { FaTrophy, FaArrowsRotate, FaRightFromBracket, FaBullseye, FaHeartPulse, FaSun, FaMoon } from "react-icons/fa6";
 import type { Tab } from "../types";
 import { TAB_META, NAV_TABS } from "../constants";
 
@@ -9,6 +9,8 @@ interface DrawerProps {
   googleCredential: string | null;
   syncLoading: Record<string, boolean>;
   syncError: string;
+  theme: "light" | "dark";
+  onToggleTheme: () => void;
   onClose: () => void;
   onTabClick: (tab: Tab) => void;
   onSync: (source: "strava" | "garmin") => void;
@@ -26,6 +28,8 @@ export default function Drawer({
   googleCredential,
   syncLoading,
   syncError,
+  theme,
+  onToggleTheme,
   onClose,
   onTabClick,
   onSync,
@@ -51,6 +55,23 @@ export default function Drawer({
             {TAB_META[tab].label}
           </button>
         ))}
+
+        <div className="drawer-divider" />
+
+        <button
+          type="button"
+          className="drawer-item theme-row"
+          role="switch"
+          aria-checked={theme === "dark"}
+          aria-label="Dark mode"
+          onClick={onToggleTheme}
+        >
+          {theme === "dark" ? <FaMoon /> : <FaSun />}
+          <span>Dark mode</span>
+          <span className={`theme-switch${theme === "dark" ? " on" : ""}`} aria-hidden="true">
+            <span className="theme-switch-knob" />
+          </span>
+        </button>
 
         <div className="drawer-divider" />
 

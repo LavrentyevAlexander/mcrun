@@ -27,6 +27,9 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>(tabFromHash);
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [theme, setTheme] = useState<"light" | "dark">(
+    () => (document.documentElement.dataset.theme === "dark" ? "dark" : "light")
+  );
 
   // Garmin fitness metrics (home page)
   const [garminMetrics, setGarminMetrics] = useState<GarminMetrics | null>(null);
@@ -83,6 +86,30 @@ export default function App() {
 
   // Track which tabs have been initialized to avoid redundant fetches
   const initializedTabs = useRef<Set<Tab>>(new Set());
+
+  // Mirror the theme choice onto <html> so CSS tokens switch.
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+  }, [theme]);
+
+  // Follow the OS theme until the user picks one explicitly.
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const onChange = (e: MediaQueryListEvent) => {
+      try { if (localStorage.getItem("theme")) return; } catch { /* ignore */ }
+      setTheme(e.matches ? "dark" : "light");
+    };
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+
+  function toggleTheme() {
+    setTheme((t) => {
+      const next = t === "dark" ? "light" : "dark";
+      try { localStorage.setItem("theme", next); } catch { /* ignore */ }
+      return next;
+    });
+  }
 
   // Sync URL hash when tab changes — but don't add "#home" to a clean URL.
   useEffect(() => {
@@ -488,6 +515,8 @@ export default function App() {
         profileOpen={profileOpen}
         syncLoading={syncLoading}
         syncError={syncError}
+        theme={theme}
+        onToggleTheme={toggleTheme}
         onTabClick={goTab}
         onProfileToggle={() => setProfileOpen((o) => !o)}
         onSync={triggerSync}
@@ -507,6 +536,8 @@ export default function App() {
         googleCredential={googleCredential}
         syncLoading={syncLoading}
         syncError={syncError}
+        theme={theme}
+        onToggleTheme={toggleTheme}
         onClose={() => setMenuOpen(false)}
         onTabClick={goTab}
         onSync={triggerSync}

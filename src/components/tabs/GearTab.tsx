@@ -64,10 +64,10 @@ export default function GearTab({
                 .map(([name, info]) => {
                   const wear = info.limit_km ? Math.round((info.total_km / info.limit_km) * 100) : null;
                   const wearColor = wear === null ? undefined
-                    : wear < 50 ? "#2e7d32"
-                    : wear < 70 ? "#f9a825"
-                    : wear < 80 ? "#e65100"
-                    : "#c62828";
+                    : wear < 50 ? "var(--stat-good-fg)"
+                    : wear < 70 ? "var(--scale-4)"
+                    : wear < 80 ? "var(--scale-5)"
+                    : "var(--stat-danger-fg)";
 
                   if (googleCredential && gearEditingId === info.id) {
                     return (
@@ -79,7 +79,7 @@ export default function GearTab({
                         <td>—</td>
                         <td style={{ display: "flex", gap: "0.4rem" }}>
                           <button onClick={() => handleSaveGearEdit(info.id)} style={{ padding: "0.25rem 0.6rem", fontSize: "0.8rem" }}>Save</button>
-                          <button onClick={() => setGearEditingId(null)} style={{ padding: "0.25rem 0.6rem", fontSize: "0.8rem", background: "#888" }}>✕</button>
+                          <button onClick={() => setGearEditingId(null)} style={{ padding: "0.25rem 0.6rem", fontSize: "0.8rem", background: "var(--clr-muted)" }}>✕</button>
                         </td>
                       </tr>
                     );
@@ -103,16 +103,16 @@ export default function GearTab({
                       </td>
                       <td data-label="Status">
                         {wear !== null && wear >= 100 ? (
-                          <span style={{ background: "#c62828", color: "#fff", borderRadius: 4, padding: "0.15rem 0.5rem", fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.04em" }}>Retired</span>
+                          <span style={{ background: "var(--bad)", color: "#fff", borderRadius: 4, padding: "0.15rem 0.5rem", fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.04em" }}>Retired</span>
                         ) : wear !== null ? (
-                          <span style={{ background: "#2e7d32", color: "#fff", borderRadius: 4, padding: "0.15rem 0.5rem", fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.04em" }}>Active</span>
+                          <span style={{ background: "var(--ok)", color: "#fff", borderRadius: 4, padding: "0.15rem 0.5rem", fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.04em" }}>Active</span>
                         ) : "—"}
                       </td>
                       {googleCredential && (
                         <td>
                           <button
                             onClick={() => { setGearEditingId(info.id); setGearEditForm({ name, limit_km: String(info.limit_km ?? ""), image_url: info.image_url ?? "" }); }}
-                            style={{ padding: "0.25rem 0.6rem", fontSize: "0.8rem", background: "transparent", color: "#888", border: "1px solid #ddd" }}
+                            style={{ padding: "0.25rem 0.6rem", fontSize: "0.8rem", background: "transparent", color: "var(--clr-muted)", border: "1px solid var(--clr-border-strong)" }}
                           >✎</button>
                         </td>
                       )}

@@ -31,10 +31,10 @@ export default function MonthlyChart({ data, year }: { data: Record<string, numb
     <svg viewBox={`0 0 ${W} ${H}`} className="yearly-chart">
       <defs>
         <marker id="arr-mx" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
-          <path d="M0,0 L0,6 L8,3 z" fill="#ccc" />
+          <path d="M0,0 L0,6 L8,3 z" className="chart-arrow" />
         </marker>
         <marker id="arr-my" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
-          <path d="M0,0 L0,6 L8,3 z" fill="#ccc" />
+          <path d="M0,0 L0,6 L8,3 z" className="chart-arrow" />
         </marker>
       </defs>
 
@@ -42,8 +42,9 @@ export default function MonthlyChart({ data, year }: { data: Record<string, numb
       {gridLines.map(({ km, y }) => (
         <g key={km}>
           <line x1={PAD.left} y1={y} x2={W - PAD.right} y2={y}
-            stroke={km === 0 ? "transparent" : "#e8e8e8"} strokeWidth="1" strokeDasharray="4 3" />
-          <text x={PAD.left - 8} y={y} textAnchor="end" dominantBaseline="middle" fontSize="11" fill="#aaa">
+            className="chart-grid" style={km === 0 ? { stroke: "transparent" } : undefined}
+            strokeWidth="1" strokeDasharray="4 3" />
+          <text x={PAD.left - 8} y={y} textAnchor="end" dominantBaseline="middle" fontSize="11" className="chart-label">
             {km}
           </text>
         </g>
@@ -51,14 +52,14 @@ export default function MonthlyChart({ data, year }: { data: Record<string, numb
 
       {/* Y axis */}
       <line x1={PAD.left} y1={axisBottom} x2={PAD.left} y2={PAD.top - 8}
-        stroke="#ccc" strokeWidth="1.5" markerEnd="url(#arr-my)" />
+        className="chart-axis" strokeWidth="1.5" markerEnd="url(#arr-my)" />
       {/* X axis */}
       <line x1={PAD.left} y1={axisBottom} x2={W - PAD.right + 8} y2={axisBottom}
-        stroke="#ccc" strokeWidth="1.5" markerEnd="url(#arr-mx)" />
+        className="chart-axis" strokeWidth="1.5" markerEnd="url(#arr-mx)" />
 
       {/* Y axis label */}
       <text transform="rotate(-90)" x={-(PAD.top + plotH / 2)} y={18}
-        textAnchor="middle" fontSize="12" fill="#aaa">km</text>
+        textAnchor="middle" fontSize="12" className="chart-label">km</text>
 
       {/* Bars */}
       {values.map((km, i) => {
@@ -70,13 +71,13 @@ export default function MonthlyChart({ data, year }: { data: Record<string, numb
           <g key={i}>
             <rect x={bx} y={km === 0 ? axisBottom - 2 : by}
               width={barW} height={km === 0 ? 2 : bh}
-              fill={km === 0 ? "#ececec" : "#fc4c02"} rx="3" />
+              className={km === 0 ? "chart-bar--zero" : "chart-bar"} rx="3" />
             {km > 0 && (
-              <text x={cx} y={by - 6} textAnchor="middle" fontSize="10" fontWeight="600" fill="#555">
+              <text x={cx} y={by - 6} textAnchor="middle" fontSize="10" fontWeight="600" className="chart-value">
                 {Math.round(km)}
               </text>
             )}
-            <text x={cx} y={axisBottom + 16} textAnchor="middle" fontSize="11" fill="#aaa">
+            <text x={cx} y={axisBottom + 16} textAnchor="middle" fontSize="11" className="chart-label">
               {MONTH_LABELS[i]}
             </text>
           </g>

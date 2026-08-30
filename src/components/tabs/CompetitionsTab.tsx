@@ -90,7 +90,7 @@ export default function CompetitionsTab({
                       <td data-label="Results"><input value={editForm.link} onChange={(e) => setEditForm((f) => ({ ...f, link: e.target.value }))} style={{ width: 120 }} /></td>
                       <td style={{ whiteSpace: "nowrap" }}>
                         <button onClick={() => handleSaveEdit(c.id)} style={{ padding: "0.25rem 0.6rem", fontSize: "0.8rem", marginRight: "0.3rem" }}>Save</button>
-                        <button onClick={() => setEditingId(null)} style={{ padding: "0.25rem 0.6rem", fontSize: "0.8rem", background: "#888" }}>✕</button>
+                        <button onClick={() => setEditingId(null)} style={{ padding: "0.25rem 0.6rem", fontSize: "0.8rem", background: "var(--clr-muted)" }}>✕</button>
                       </td>
                     </tr>
                   ) : (
@@ -110,7 +110,7 @@ export default function CompetitionsTab({
                       <td>
                         <button
                           onClick={() => { setEditingId(c.id); setEditForm({ competition: c.competition, location: c.location ?? "", date: c.date, distance: c.distance, time: c.time ?? "", rank: c.rank ?? "", link: c.link ?? "" }); }}
-                          style={{ padding: "0.25rem 0.6rem", fontSize: "0.8rem", background: "transparent", color: "#888", border: "1px solid #ddd" }}
+                          style={{ padding: "0.25rem 0.6rem", fontSize: "0.8rem", background: "transparent", color: "var(--clr-muted)", border: "1px solid var(--clr-border-strong)" }}
                         >✎</button>
                       </td>
                     </tr>

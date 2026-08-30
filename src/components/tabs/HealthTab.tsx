@@ -4,31 +4,31 @@ import React from "react";
 
 function trainingStatusStyle(status: string | null): React.CSSProperties {
   const s = (status ?? "").toLowerCase();
-  if (s === "productive")   return { background: "#e8f5e9", color: "#2e7d32" };
-  if (s === "peaking")      return { background: "#e3f2fd", color: "#1565c0" };
-  if (s === "maintaining")  return { background: "#f5f5f5", color: "#555" };
-  if (s === "recovery")     return { background: "#e0f7fa", color: "#00838f" };
-  if (s === "unproductive") return { background: "#fff3e0", color: "#e65100" };
-  if (s === "strained")     return { background: "#fff3e0", color: "#e65100" };
-  if (s === "overreaching") return { background: "#ffebee", color: "#c62828" };
-  return { background: "#f5f5f5", color: "#555" };
+  if (s === "productive")   return { background: "var(--stat-good-bg)", color: "var(--stat-good-fg)" };
+  if (s === "peaking")      return { background: "var(--stat-info-bg)", color: "var(--stat-info-fg)" };
+  if (s === "maintaining")  return { background: "var(--stat-neutral-bg)", color: "var(--stat-neutral-fg)" };
+  if (s === "recovery")     return { background: "var(--stat-cool-bg)", color: "var(--stat-cool-fg)" };
+  if (s === "unproductive") return { background: "var(--stat-warn-bg)", color: "var(--stat-warn-fg)" };
+  if (s === "strained")     return { background: "var(--stat-warn-bg)", color: "var(--stat-warn-fg)" };
+  if (s === "overreaching") return { background: "var(--stat-danger-bg)", color: "var(--stat-danger-fg)" };
+  return { background: "var(--stat-neutral-bg)", color: "var(--stat-neutral-fg)" };
 }
 
 function hrvStatusStyle(status: string | null): React.CSSProperties {
   const s = (status ?? "").toLowerCase();
-  if (s === "balanced")    return { background: "#e8f5e9", color: "#2e7d32" };
-  if (s === "unbalanced")  return { background: "#fff3e0", color: "#e65100" };
-  return { background: "#f5f5f5", color: "#555" };
+  if (s === "balanced")    return { background: "var(--stat-good-bg)", color: "var(--stat-good-fg)" };
+  if (s === "unbalanced")  return { background: "var(--stat-warn-bg)", color: "var(--stat-warn-fg)" };
+  return { background: "var(--stat-neutral-bg)", color: "var(--stat-neutral-fg)" };
 }
 
 function acwrFeedbackStyle(v: string | null): React.CSSProperties {
   const s = (v ?? "").toLowerCase();
-  if (s === "very good") return { background: "#e8f5e9", color: "#2e7d32" };
-  if (s === "good")      return { background: "#e8f5e9", color: "#2e7d32" };
-  if (s === "moderate" || s === "fair") return { background: "#e3f2fd", color: "#1565c0" };
-  if (s === "poor")      return { background: "#fff3e0", color: "#e65100" };
-  if (s === "very poor") return { background: "#ffebee", color: "#c62828" };
-  return { background: "#f5f5f5", color: "#555" };
+  if (s === "very good") return { background: "var(--stat-good-bg)", color: "var(--stat-good-fg)" };
+  if (s === "good")      return { background: "var(--stat-good-bg)", color: "var(--stat-good-fg)" };
+  if (s === "moderate" || s === "fair") return { background: "var(--stat-info-bg)", color: "var(--stat-info-fg)" };
+  if (s === "poor")      return { background: "var(--stat-warn-bg)", color: "var(--stat-warn-fg)" };
+  if (s === "very poor") return { background: "var(--stat-danger-bg)", color: "var(--stat-danger-fg)" };
+  return { background: "var(--stat-neutral-bg)", color: "var(--stat-neutral-fg)" };
 }
 
 function readinessLabel(v: number): string {
@@ -39,28 +39,28 @@ function readinessLabel(v: number): string {
 }
 
 function readinessStyle(v: number): React.CSSProperties {
-  if (v <= 25)  return { background: "#ffebee", color: "#c62828" };
-  if (v <= 50)  return { background: "#fff3e0", color: "#e65100" };
-  if (v <= 75)  return { background: "#e3f2fd", color: "#1565c0" };
-  return { background: "#e8f5e9", color: "#2e7d32" };
+  if (v <= 25)  return { background: "var(--stat-danger-bg)", color: "var(--stat-danger-fg)" };
+  if (v <= 50)  return { background: "var(--stat-warn-bg)", color: "var(--stat-warn-fg)" };
+  if (v <= 75)  return { background: "var(--stat-info-bg)", color: "var(--stat-info-fg)" };
+  return { background: "var(--stat-good-bg)", color: "var(--stat-good-fg)" };
 }
 
 function feedbackStyle(v: string | null): React.CSSProperties {
   const s = (v ?? "").toLowerCase();
-  if (s === "very good") return { background: "#e8f5e9", color: "#2e7d32" };
-  if (s === "good")      return { background: "#e8f5e9", color: "#2e7d32" };
-  if (s === "moderate")  return { background: "#e3f2fd", color: "#1565c0" };
-  if (s === "fair")      return { background: "#fff3e0", color: "#e65100" };
-  if (s === "poor")      return { background: "#fff3e0", color: "#e65100" };
-  if (s === "very poor") return { background: "#ffebee", color: "#c62828" };
-  return { background: "#f5f5f5", color: "#555" };
+  if (s === "very good") return { background: "var(--stat-good-bg)", color: "var(--stat-good-fg)" };
+  if (s === "good")      return { background: "var(--stat-good-bg)", color: "var(--stat-good-fg)" };
+  if (s === "moderate")  return { background: "var(--stat-info-bg)", color: "var(--stat-info-fg)" };
+  if (s === "fair")      return { background: "var(--stat-warn-bg)", color: "var(--stat-warn-fg)" };
+  if (s === "poor")      return { background: "var(--stat-warn-bg)", color: "var(--stat-warn-fg)" };
+  if (s === "very poor") return { background: "var(--stat-danger-bg)", color: "var(--stat-danger-fg)" };
+  return { background: "var(--stat-neutral-bg)", color: "var(--stat-neutral-fg)" };
 }
 
 function stressStyle(avg: number): React.CSSProperties {
-  if (avg <= 25) return { background: "#e8f5e9", color: "#2e7d32" };
-  if (avg <= 50) return { background: "#e3f2fd", color: "#1565c0" };
-  if (avg <= 75) return { background: "#fff3e0", color: "#e65100" };
-  return { background: "#ffebee", color: "#c62828" };
+  if (avg <= 25) return { background: "var(--stat-good-bg)", color: "var(--stat-good-fg)" };
+  if (avg <= 50) return { background: "var(--stat-info-bg)", color: "var(--stat-info-fg)" };
+  if (avg <= 75) return { background: "var(--stat-warn-bg)", color: "var(--stat-warn-fg)" };
+  return { background: "var(--stat-danger-bg)", color: "var(--stat-danger-fg)" };
 }
 
 function stressLabel(avg: number): string {
@@ -72,10 +72,10 @@ function stressLabel(avg: number): string {
 
 function enduranceStyle(label: string | null): React.CSSProperties {
   const s = (label ?? "").toLowerCase();
-  if (s === "elite" || s === "superior") return { background: "#e8f5e9", color: "#2e7d32" };
-  if (s === "expert" || s === "well trained") return { background: "#e3f2fd", color: "#1565c0" };
-  if (s === "trained") return { background: "#f5f5f5", color: "#555" };
-  return { background: "#fff3e0", color: "#e65100" };
+  if (s === "elite" || s === "superior") return { background: "var(--stat-good-bg)", color: "var(--stat-good-fg)" };
+  if (s === "expert" || s === "well trained") return { background: "var(--stat-info-bg)", color: "var(--stat-info-fg)" };
+  if (s === "trained") return { background: "var(--stat-neutral-bg)", color: "var(--stat-neutral-fg)" };
+  return { background: "var(--stat-warn-bg)", color: "var(--stat-warn-fg)" };
 }
 
 interface HealthTabProps {

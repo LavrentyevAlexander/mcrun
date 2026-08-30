@@ -5,12 +5,12 @@ import Skeleton from "../Skeleton";
 function effortColor(effort: number | null, avg: number | null): string | undefined {
   if (effort === null || avg === null) return undefined;
   const pct = (effort - avg) / avg * 100;
-  if (pct <= -30) return "#1565c0";
-  if (pct <= -15) return "#42a5f5";
+  if (pct <= -30) return "var(--scale-1)";
+  if (pct <= -15) return "var(--scale-2)";
   if (pct < 15) return undefined;
-  if (pct < 35) return "#f9a825";
-  if (pct < 55) return "#e65100";
-  return "#c62828";
+  if (pct < 35) return "var(--scale-4)";
+  if (pct < 55) return "var(--scale-5)";
+  return "var(--scale-6)";
 }
 
 const HR_ZONES = [

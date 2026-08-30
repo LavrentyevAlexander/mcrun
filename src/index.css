@@ -1,13 +1,75 @@
-/* ── Design tokens ── */
+/* ── Design tokens ──────────────────────────────────────────
+   Light theme lives on :root; dark theme overrides only the
+   colour tokens under :root[data-theme="dark"]. The active
+   theme is stamped onto <html data-theme> before first paint
+   by the inline script in index.html. */
 :root {
+  color-scheme: light;
+
+  /* Brand — constant across themes */
   --clr-brand:      #fc4c02;
   --clr-brand-dk:   #e04400;
+  --on-brand:       #fff;          /* text/icon on a brand-filled surface */
+
+  /* Text */
+  --clr-heading:    #222;
   --clr-text:       #333;
   --clr-muted:      #666;
   --clr-subtle:     #bbb;
+  --clr-danger:     #d32f2f;
+
+  /* Surfaces */
+  --clr-bg:         #fff;          /* page */
+  --clr-surface:    #fafafa;       /* table headers, chips, rows */
+  --clr-surface-2:  #f0f0f0;       /* nested wells, progress tracks */
+  --clr-elevated:   #fff;          /* dropdowns, modals, tooltips */
   --clr-border:     rgba(0, 0, 0, 0.07);
-  --clr-bg:         #fff;
-  --clr-surface:    #fafafa;
+  --clr-border-strong: #ccc;
+
+  /* Frosted panels (navbar, drawer, home cards, weather strip) */
+  --glass-bg:        rgba(255, 255, 255, 0.80);
+  --glass-bg-solid:  rgba(255, 255, 255, 0.96);
+
+  /* Scrims + washes */
+  --scrim:          rgba(0, 0, 0, 0.35);
+  --hover-wash:     rgba(0, 0, 0, 0.04);
+  --tint-brand:     rgba(252, 76, 2, 0.08);
+  --tint-brand-sm:  rgba(252, 76, 2, 0.05);
+  --row-hover:      rgba(252, 76, 2, 0.06);
+
+  /* Status pairs — badges (HealthTab), calendar chips, goal cards */
+  --stat-good-bg:    #e8f5e9;  --stat-good-fg:    #2e7d32;
+  --stat-info-bg:    #e3f2fd;  --stat-info-fg:    #1565c0;
+  --stat-cool-bg:    #e0f7fa;  --stat-cool-fg:    #00838f;
+  --stat-warn-bg:    #fff3e0;  --stat-warn-fg:    #e65100;
+  --stat-danger-bg:  #ffebee;  --stat-danger-fg:  #c62828;
+  --stat-neutral-bg: #f5f5f5;  --stat-neutral-fg: #555;
+  --stat-purple-bg:  #f3e5f5;  --stat-purple-fg:  #6a1b9a;
+  --stat-pink-bg:    #fce4ec;  --stat-pink-fg:    #c62828;
+
+  /* Solid success/danger fills that carry white text in both themes */
+  --ok:  #43a047;
+  --bad: #e53935;
+
+  /* Wear gauge (GearTab) + relative-effort scale (RunsTab) */
+  --scale-1: #1565c0;   /* far below / brand-new */
+  --scale-2: #42a5f5;
+  --scale-3: #2e7d32;   /* nominal */
+  --scale-4: #f9a825;
+  --scale-5: #e65100;
+  --scale-6: #c62828;   /* far above / retired */
+
+  /* Charts */
+  --chart-bar:      #fc4c02;
+  --chart-bar-zero: #ececec;
+  --chart-grid:     #e8e8e8;
+  --chart-axis:     #ccc;
+  --chart-label:    #aaa;
+  --chart-value:    #555;
+
+  /* Skeleton shimmer */
+  --skeleton-1: #f0f0f0;
+  --skeleton-2: #e0e0e0;
 
   --nav-h: 56px;
 
@@ -32,6 +94,62 @@
   --font-base: clamp(0.9rem, 2vw, 1rem);
 }
 
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --clr-heading:    #f4f2ef;
+  --clr-text:       #e6e3df;
+  --clr-muted:      #a7a19a;
+  --clr-subtle:     #6a655e;
+  --clr-danger:     #ff6b6b;
+
+  --clr-bg:         #16181c;
+  --clr-surface:    #1e2127;
+  --clr-surface-2:  #262a31;
+  --clr-elevated:   #23272e;
+  --clr-border:     rgba(255, 255, 255, 0.10);
+  --clr-border-strong: #454b54;
+
+  --glass-bg:        rgba(24, 27, 32, 0.82);
+  --glass-bg-solid:  rgba(24, 27, 32, 0.97);
+
+  --scrim:          rgba(0, 0, 0, 0.6);
+  --hover-wash:     rgba(255, 255, 255, 0.06);
+  --tint-brand:     rgba(252, 76, 2, 0.18);
+  --tint-brand-sm:  rgba(252, 76, 2, 0.11);
+  --row-hover:      rgba(252, 76, 2, 0.13);
+
+  --stat-good-bg:    rgba(76, 175, 80, 0.18);   --stat-good-fg:    #81c784;
+  --stat-info-bg:    rgba(33, 150, 243, 0.18);  --stat-info-fg:    #64b5f6;
+  --stat-cool-bg:    rgba(0, 172, 193, 0.18);   --stat-cool-fg:    #4dd0e1;
+  --stat-warn-bg:    rgba(255, 152, 0, 0.18);   --stat-warn-fg:    #ffb74d;
+  --stat-danger-bg:  rgba(244, 67, 54, 0.20);   --stat-danger-fg:  #ef9a9a;
+  --stat-neutral-bg: rgba(255, 255, 255, 0.08); --stat-neutral-fg: #b3ada6;
+  --stat-purple-bg:  rgba(171, 71, 188, 0.20);  --stat-purple-fg:  #ce93d8;
+  --stat-pink-bg:    rgba(236, 64, 122, 0.20);  --stat-pink-fg:    #f48fb1;
+
+  --scale-1: #64b5f6;
+  --scale-2: #90caf9;
+  --scale-3: #81c784;
+  --scale-4: #ffca28;
+  --scale-5: #ffa726;
+  --scale-6: #ef5350;
+
+  --chart-bar:      #fc4c02;
+  --chart-bar-zero: #2c313a;
+  --chart-grid:     #333941;
+  --chart-axis:     #464c55;
+  --chart-label:    #7c766e;
+  --chart-value:    #a7a19a;
+
+  --skeleton-1: #23262c;
+  --skeleton-2: #2e323a;
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 2px 6px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 6px 24px rgba(0, 0, 0, 0.65);
+}
+
 *,
 *::before,
 *::after {
@@ -49,6 +167,11 @@ body {
   line-height: 1.6;
   overflow-x: hidden;
   font-size: var(--font-base);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body { transition: none; }
 }
 
 #root {

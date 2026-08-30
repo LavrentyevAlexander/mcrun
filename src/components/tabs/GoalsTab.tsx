@@ -111,7 +111,7 @@ export default function GoalsTab({
                   </div>
                   <div style={{ display: "flex", gap: "0.4rem" }}>
                     <button onClick={() => handleSaveEdit(g.id)} style={{ padding: "0.25rem 0.6rem", fontSize: "0.8rem" }}>Save</button>
-                    <button onClick={() => setGoalsEditingId(null)} style={{ padding: "0.25rem 0.6rem", fontSize: "0.8rem", background: "#888" }}>✕</button>
+                    <button onClick={() => setGoalsEditingId(null)} style={{ padding: "0.25rem 0.6rem", fontSize: "0.8rem", background: "var(--clr-muted)" }}>✕</button>
                   </div>
                 </div>
               ) : (

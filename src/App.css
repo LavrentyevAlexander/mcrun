@@ -6,9 +6,9 @@
   top: 0;
   z-index: 100;
   height: var(--nav-h);
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--glass-bg-solid);
   backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid var(--clr-border);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -51,7 +51,7 @@
 
 .nav-tab:hover:not(:disabled) {
   background: transparent;
-  color: #333;
+  color: var(--clr-text);
 }
 
 .nav-tab.active {
@@ -81,7 +81,7 @@
   display: block;
   width: 22px;
   height: 2px;
-  background: #888;
+  background: var(--clr-muted);
   border-radius: 2px;
 }
 
@@ -102,7 +102,7 @@
 .profile-btn {
   background: transparent;
   border: none;
-  color: #888;
+  color: var(--clr-muted);
   padding: 0.4rem;
   font-size: 1rem;
   border-radius: 50%;
@@ -117,7 +117,7 @@
 
 .profile-btn:hover:not(:disabled),
 .profile-btn.active {
-  background: rgba(252, 76, 2, 0.08);
+  background: var(--tint-brand);
   color: var(--clr-brand);
 }
 
@@ -155,7 +155,7 @@
   background: transparent;
   border: none;
   border-radius: 0;
-  color: #333;
+  color: var(--clr-text);
   font-size: 0.9rem;
   padding: 0.6rem 1rem;
   text-align: left;
@@ -163,8 +163,8 @@
 }
 
 .profile-action:hover:not(:disabled) {
-  background: #f5f5f5;
-  color: #333;
+  background: var(--clr-surface-2);
+  color: var(--clr-text);
 }
 
 .profile-action:disabled {
@@ -172,17 +172,17 @@
 }
 
 .profile-signout {
-  color: #888;
+  color: var(--clr-muted);
 }
 
 
 .comp-past td {
-  background: #f0fff4;
+  background: var(--stat-good-bg);
 }
 
 .profile-divider {
   height: 1px;
-  background: #eee;
+  background: var(--clr-border);
   margin: 0.3rem 0;
 }
 
@@ -197,11 +197,11 @@
 .profile-login p {
   margin: 0;
   font-size: 0.85rem;
-  color: #888;
+  color: var(--clr-muted);
 }
 
 .profile-error {
-  color: #d32f2f;
+  color: var(--clr-danger);
   font-size: 0.82rem;
   padding: 0 1rem;
   margin: 0.25rem 0;
@@ -230,7 +230,7 @@
 .drawer-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.35);
+  background: var(--scrim);
   z-index: 200;
   animation: fadeInOverlay 0.2s ease;
 }
@@ -241,18 +241,18 @@
   right: 0;
   bottom: 0;
   width: clamp(200px, 60vw, 280px);
-  background: rgba(255, 255, 255, 0.96);
+  background: var(--glass-bg-solid);
   backdrop-filter: blur(12px);
   display: flex;
   flex-direction: column;
   padding: 1.5rem 0;
-  box-shadow: -2px 0 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-lg);
   animation: slideInRight 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .drawer-item {
   background: transparent;
-  color: #444;
+  color: var(--clr-text);
   border: none;
   border-left: 3px solid transparent;
   border-radius: 0;
@@ -263,19 +263,19 @@
 }
 
 .drawer-item:hover:not(:disabled) {
-  background: #f5f5f5;
-  color: #333;
+  background: var(--clr-surface-2);
+  color: var(--clr-text);
 }
 
 .drawer-item.active {
   color: var(--clr-brand);
   border-left-color: var(--clr-brand);
-  background: rgba(252, 76, 2, 0.05);
+  background: var(--tint-brand-sm);
 }
 
 .drawer-divider {
   height: 1px;
-  background: #eee;
+  background: var(--clr-border);
   margin: 0.5rem 0;
 }
 
@@ -289,11 +289,50 @@
 .drawer-login p {
   margin: 0;
   font-size: 0.85rem;
-  color: #888;
+  color: var(--clr-muted);
 }
 
 .drawer-signout {
-  color: #888;
+  color: var(--clr-muted);
+}
+
+/* Theme toggle row — used in the drawer and the desktop profile dropdown */
+.theme-row {
+  color: var(--clr-text);
+}
+
+.theme-row span:first-of-type {
+  flex: 1;
+}
+
+.theme-switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 40px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--clr-border-strong);
+  transition: background 0.2s ease;
+}
+
+.theme-switch.on {
+  background: var(--clr-brand);
+}
+
+.theme-switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s ease;
+}
+
+.theme-switch.on .theme-switch-knob {
+  transform: translateX(18px);
 }
 
 /* ════════════════════════════════════════
@@ -395,7 +434,7 @@
   margin: 0 0 0.4rem;
   font-size: clamp(1.1rem, 3vw, 1.4rem);
   font-weight: 700;
-  color: #222;
+  color: var(--clr-heading);
   line-height: 1.3;
   text-align: center;
 }
@@ -404,7 +443,7 @@
   display: block;
   font-size: clamp(0.82rem, 2vw, 0.95rem);
   font-weight: 400;
-  color: #888;
+  color: var(--clr-muted);
   letter-spacing: 0.03em;
   text-align: right;
 }
@@ -420,10 +459,10 @@
   gap: 0.4rem 0.9rem;
   width: clamp(280px, 92vw, 420px);
   padding: 0.6rem 1.2rem;
-  background: rgba(255, 255, 255, 0.75);
+  background: var(--glass-bg);
   backdrop-filter: blur(6px);
   border-radius: var(--radius-lg);
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
   font-family: 'Oswald', sans-serif;
   color: var(--clr-text);
 }
@@ -437,7 +476,7 @@
 .weather-strip-temp {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #222;
+  color: var(--clr-heading);
 }
 
 .weather-strip-feels {
@@ -464,7 +503,7 @@
   text-align: center;
   font-size: 0.74rem;
   font-style: italic;
-  color: #888;
+  color: var(--clr-muted);
   letter-spacing: 0.03em;
 }
 
@@ -517,10 +556,10 @@
 }
 
 .metric-card {
-  background: rgba(255, 255, 255, 0.8);
+  background: var(--glass-bg);
   backdrop-filter: blur(6px);
   border-radius: var(--radius-md);
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-sm);
   padding: 0.6rem 0.75rem;
   display: flex;
   flex-direction: column;
@@ -540,7 +579,7 @@
 .metric-value {
   font-size: 1.25rem;
   font-weight: 700;
-  color: #222;
+  color: var(--clr-heading);
   line-height: 1.1;
 }
 
@@ -607,7 +646,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  background: rgba(0, 0, 0, 0.04);
+  background: var(--hover-wash);
   border-radius: 8px;
   padding: 0.4rem 0.75rem;
   flex: 1;
@@ -647,7 +686,7 @@
   gap: 0.75rem;
   align-items: center;
   margin-bottom: 1.25rem;
-  background: rgba(255, 255, 255, 0.85);
+  background: var(--glass-bg);
   padding: 0.75rem 1rem;
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
@@ -663,7 +702,7 @@
 
 .controls input[type="date"] {
   padding: 0.35rem 0.5rem;
-  border: 1px solid #ccc;
+  border: 1px solid var(--clr-border-strong);
   border-radius: var(--radius-sm);
   font-size: var(--font-base);
 }
@@ -695,7 +734,7 @@
 button {
   padding: 0.45rem 1.1rem;
   background: var(--clr-brand);
-  color: #fff;
+  color: var(--on-brand);
   border: none;
   border-radius: var(--radius-sm);
   font-size: var(--font-base);
@@ -743,7 +782,7 @@ th {
 }
 
 tbody tr:hover {
-  background: rgba(252, 76, 2, 0.06);
+  background: var(--row-hover);
 }
 
 /* Compact tables (Gear, Records) */
@@ -788,14 +827,14 @@ tbody tr:hover {
 }
 
 .view-toggle button:hover:not(:disabled) {
-  background: rgba(252, 76, 2, 0.08);
+  background: var(--tint-brand);
   color: var(--clr-brand);
 }
 
 .view-toggle button.active {
-  background: #fff;
+  background: var(--clr-elevated);
   color: var(--clr-brand);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
 }
 
 .year-selector {
@@ -817,14 +856,14 @@ tbody tr:hover {
 }
 
 .year-selector button:hover:not(:disabled) {
-  background: rgba(252, 76, 2, 0.08);
+  background: var(--tint-brand);
   color: var(--clr-brand);
   border-color: var(--clr-brand);
 }
 
 .year-selector button.active {
   background: var(--clr-brand);
-  color: #fff;
+  color: var(--on-brand);
   border-color: var(--clr-brand);
 }
 
@@ -843,6 +882,15 @@ tbody tr:hover {
   overflow: visible;
 }
 
+/* Chart element colours (SVG can't resolve var() in bare fill/stroke attrs) */
+.chart-grid       { stroke: var(--chart-grid); }
+.chart-axis       { stroke: var(--chart-axis); }
+.chart-arrow      { fill: var(--chart-axis); }
+.chart-label      { fill: var(--chart-label); }
+.chart-value      { fill: var(--chart-value); }
+.chart-bar        { fill: var(--chart-bar); }
+.chart-bar--zero  { fill: var(--chart-bar-zero); }
+
 /* ════════════════════════════════════════
    Gear tooltip
    ════════════════════════════════════════ */
@@ -851,7 +899,7 @@ tbody tr:hover {
   z-index: 300;
   background: var(--clr-bg);
   border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  box-shadow: var(--shadow-lg);
   padding: 0.6rem;
   display: flex;
   flex-direction: column;
@@ -870,7 +918,7 @@ tbody tr:hover {
 
 .gear-tooltip span {
   font-size: 0.78rem;
-  color: #888;
+  color: var(--clr-muted);
   text-align: center;
   max-width: 180px;
 }
@@ -897,12 +945,12 @@ tbody tr:hover {
    Utility
    ════════════════════════════════════════ */
 .error {
-  color: #d32f2f;
+  color: var(--clr-danger);
   margin-bottom: 1rem;
 }
 
 .loading-box {
-  background: rgba(255, 255, 255, 0.85);
+  background: var(--glass-bg);
   border-radius: var(--radius-md);
   padding: 2rem;
   text-align: center;
@@ -984,7 +1032,7 @@ tbody tr:hover {
   }
 
   .table-wrap tr {
-    border: 1px solid #eee;
+    border: 1px solid var(--clr-border);
     border-radius: var(--radius-md);
     margin-bottom: 0.75rem;
     box-shadow: var(--shadow-sm);
@@ -994,7 +1042,7 @@ tbody tr:hover {
     display: flex;
     justify-content: space-between;
     padding: 0.5rem 1rem;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid var(--clr-border);
     text-align: right;
     white-space: normal;
     word-break: break-word;
@@ -1019,7 +1067,7 @@ tbody tr:hover {
     font-weight: 600;
     font-size: 1rem;
     background: var(--clr-surface);
-    border-bottom: 2px solid #eee;
+    border-bottom: 2px solid var(--clr-border);
     justify-content: flex-start;
   }
 
@@ -1041,7 +1089,7 @@ tbody tr:hover {
   }
 
   .table-compact tr {
-    border: 1px solid #eee;
+    border: 1px solid var(--clr-border);
     border-radius: var(--radius-md);
     margin-bottom: 0.75rem;
     box-shadow: var(--shadow-sm);
@@ -1051,7 +1099,7 @@ tbody tr:hover {
     display: flex;
     justify-content: space-between;
     padding: 0.5rem 1rem;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid var(--clr-border);
     text-align: right;
     white-space: normal;
     word-break: break-word;
@@ -1076,7 +1124,7 @@ tbody tr:hover {
     font-weight: 600;
     font-size: 1rem;
     background: var(--clr-surface);
-    border-bottom: 2px solid #eee;
+    border-bottom: 2px solid var(--clr-border);
     justify-content: flex-start;
   }
 
@@ -1108,7 +1156,7 @@ tbody tr:hover {
   grid-template-columns: 72px 1fr;
   gap: 0.75rem;
   padding: 0.7rem 0;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--clr-border);
   align-items: flex-start;
 }
 
@@ -1195,11 +1243,11 @@ tbody tr:hover {
   margin-left: 1.45rem;
 }
 
-.cal-run      { background: #e8f5e9; color: #2e7d32; }
-.cal-bike     { background: #e3f2fd; color: #1565c0; }
-.cal-swim     { background: #e0f7fa; color: #00695c; }
-.cal-strength { background: #fce4ec; color: #c62828; }
-.cal-other    { background: #f3e5f5; color: #6a1b9a; }
+.cal-run      { background: var(--stat-good-bg);   color: var(--stat-good-fg); }
+.cal-bike     { background: var(--stat-info-bg);   color: var(--stat-info-fg); }
+.cal-swim     { background: var(--stat-cool-bg);   color: var(--stat-cool-fg); }
+.cal-strength { background: var(--stat-pink-bg);   color: var(--stat-pink-fg); }
+.cal-other    { background: var(--stat-purple-bg); color: var(--stat-purple-fg); }
 
 @media (max-width: 480px) {
   .home-quote-text {
@@ -1248,7 +1296,7 @@ tbody tr:hover {
 .goals-progress {
   flex: 1;
   height: 6px;
-  background: #eee;
+  background: var(--clr-surface-2);
   border-radius: 3px;
   overflow: hidden;
 }
@@ -1277,27 +1325,27 @@ tbody tr:hover {
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 1rem;
-  background: var(--clr-surface, #fafafa);
+  background: var(--clr-surface);
   border-radius: var(--radius-md);
-  border-left: 3px solid #e0e0e0;
+  border-left: 3px solid var(--clr-border-strong);
   transition: border-color 0.2s;
 }
 
 .goal-card--done {
-  border-left-color: #4caf50;
-  background: #f1f8f1;
+  border-left-color: var(--ok);
+  background: var(--stat-good-bg);
 }
 
 .goal-card--failed {
-  border-left-color: #e53935;
-  background: #fff5f5;
+  border-left-color: var(--bad);
+  background: var(--stat-danger-bg);
 }
 
 .goal-check {
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  border: 2px solid #ccc;
+  border: 2px solid var(--clr-border-strong);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1313,20 +1361,20 @@ tbody tr:hover {
 }
 
 button.goal-check:hover:not(:disabled) {
-  border-color: #888;
-  background: rgba(0, 0, 0, 0.05);
+  border-color: var(--clr-muted);
+  background: var(--hover-wash);
 }
 
 .goal-check--done {
-  background: #4caf50;
-  border-color: #4caf50;
-  color: #fff;
+  background: var(--ok);
+  border-color: var(--ok);
+  color: var(--on-brand);
 }
 
 .goal-check--failed {
-  background: #e53935;
-  border-color: #e53935;
-  color: #fff;
+  background: var(--bad);
+  border-color: var(--bad);
+  color: var(--on-brand);
 }
 
 .goal-desc {
@@ -1336,18 +1384,18 @@ button.goal-check:hover:not(:disabled) {
 }
 
 .goal-card--done .goal-desc {
-  color: #2e7d32;
+  color: var(--stat-good-fg);
 }
 
 .goal-card--failed .goal-desc {
-  color: #b71c1c;
+  color: var(--stat-danger-fg);
 }
 
 .goal-result {
   font-size: 0.8rem;
   font-weight: 700;
-  background: #4caf50;
-  color: #fff;
+  background: var(--ok);
+  color: var(--on-brand);
   padding: 0.15rem 0.55rem;
   border-radius: 999px;
   white-space: nowrap;
@@ -1355,7 +1403,7 @@ button.goal-check:hover:not(:disabled) {
 
 .goal-edit-btn {
   background: transparent;
-  border: 1px solid #ddd;
+  border: 1px solid var(--clr-border-strong);
   color: var(--clr-muted);
   padding: 0.2rem 0.5rem;
   border-radius: var(--radius-sm);
@@ -1410,7 +1458,7 @@ button.goal-check:hover:not(:disabled) {
 }
 
 .skeleton {
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background: linear-gradient(90deg, var(--skeleton-1) 25%, var(--skeleton-2) 50%, var(--skeleton-1) 75%);
   background-size: 800px 100%;
   animation: skeleton-shimmer 1.4s infinite linear;
   border-radius: 6px;
@@ -1474,7 +1522,7 @@ button.goal-check:hover:not(:disabled) {
 
 .hr-zone-bar-wrap {
   flex: 1;
-  background: #f0f0f0;
+  background: var(--clr-surface-2);
   border-radius: 4px;
   height: 10px;
   overflow: hidden;

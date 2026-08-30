@@ -1,5 +1,5 @@
 import { GoogleLogin } from "@react-oauth/google";
-import { FaTrophy, FaUser, FaArrowsRotate, FaRightFromBracket, FaBullseye, FaHeartPulse } from "react-icons/fa6";
+import { FaTrophy, FaUser, FaArrowsRotate, FaRightFromBracket, FaBullseye, FaHeartPulse, FaSun, FaMoon } from "react-icons/fa6";
 import type { Tab } from "../types";
 import { TAB_META, NAV_TABS } from "../constants";
 import { decodeJwt } from "../utils";
@@ -10,6 +10,8 @@ interface NavbarProps {
   profileOpen: boolean;
   syncLoading: Record<string, boolean>;
   syncError: string;
+  theme: "light" | "dark";
+  onToggleTheme: () => void;
   onTabClick: (tab: Tab) => void;
   onProfileToggle: () => void;
   onSync: (source: "strava" | "garmin") => void;
@@ -29,6 +31,8 @@ export default function Navbar({
   profileOpen,
   syncLoading,
   syncError,
+  theme,
+  onToggleTheme,
   onTabClick,
   onProfileToggle,
   onSync,
@@ -73,6 +77,21 @@ export default function Navbar({
           </button>
           {profileOpen && (
             <div className="profile-dropdown">
+              <button
+                type="button"
+                className="profile-action theme-row"
+                role="switch"
+                aria-checked={theme === "dark"}
+                aria-label="Dark mode"
+                onClick={onToggleTheme}
+              >
+                {theme === "dark" ? <FaMoon /> : <FaSun />}
+                <span>Dark mode</span>
+                <span className={`theme-switch${theme === "dark" ? " on" : ""}`} aria-hidden="true">
+                  <span className="theme-switch-knob" />
+                </span>
+              </button>
+              <div className="profile-divider" />
               {googleCredential ? (
                 <>
                   {syncError && <p className="profile-error">{syncError}</p>}
