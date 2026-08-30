@@ -1,6 +1,7 @@
 import { GoogleLogin } from "@react-oauth/google";
 import type { GarminMetrics } from "../../types";
 import React from "react";
+import { googleBtnTheme } from "../../utils";
 
 function trainingStatusStyle(status: string | null): React.CSSProperties {
   const s = (status ?? "").toLowerCase();
@@ -90,6 +91,8 @@ export default function HealthTab({ garminMetrics, googleCredential, onGoogleSuc
       <div style={{ textAlign: "center", padding: "2rem" }}>
         <p style={{ marginBottom: "1rem" }}>Sign in to view health metrics</p>
         <GoogleLogin
+          key={googleBtnTheme()}
+          theme={googleBtnTheme()}
           onSuccess={onGoogleSuccess}
           onError={() => {/* error handled by parent */}}
         />

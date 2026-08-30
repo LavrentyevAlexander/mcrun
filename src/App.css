@@ -22,6 +22,14 @@
   left: var(--container-pad);
 }
 
+/* The logo art is a black-outlined circle on an opaque white square. In dark
+   mode, clip it to a circle and back it with white so it reads as a badge
+   instead of a white block. */
+:root[data-theme="dark"] .navbar .logo {
+  background: #fff;
+  border-radius: 50%;
+}
+
 /* Nav tabs — hidden on mobile, shown on desktop */
 .nav-tabs {
   display: none;
@@ -398,6 +406,16 @@
 .photo-carousel:focus-visible {
   outline: none;
   background: none;
+}
+
+/* The home illustrations are drawn on solid white. In dark mode, frame the
+   carousel as a deliberate art card and knock the glare down a little. */
+:root[data-theme="dark"] .photo-carousel {
+  box-shadow: 0 0 0 1px var(--clr-border-strong), var(--shadow-lg);
+}
+
+:root[data-theme="dark"] .home-photo {
+  filter: brightness(0.92);
 }
 
 .home-photo {
@@ -914,6 +932,10 @@ tbody tr:hover {
   height: 120px;
   object-fit: contain;
   border-radius: 6px;
+  /* Shoe photos are usually shot on white — give them a consistent white
+     mat so they read as a product shot in both themes. */
+  background: #fff;
+  padding: 4px;
 }
 
 .gear-tooltip span {

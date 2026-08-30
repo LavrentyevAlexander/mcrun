@@ -2,6 +2,7 @@ import { GoogleLogin } from "@react-oauth/google";
 import { FaTrophy, FaArrowsRotate, FaRightFromBracket, FaBullseye, FaHeartPulse, FaSun, FaMoon } from "react-icons/fa6";
 import type { Tab } from "../types";
 import { TAB_META, NAV_TABS } from "../constants";
+import { googleBtnTheme } from "../utils";
 
 interface DrawerProps {
   open: boolean;
@@ -115,7 +116,7 @@ export default function Drawer({
         ) : (
           <div className="drawer-login">
             <p>Sign in to sync data</p>
-            <GoogleLogin type="icon" shape="circle" onSuccess={(c) => { onGoogleSuccess(c); onClose(); }} onError={() => {/* handled by parent */}} />
+            <GoogleLogin key={theme} theme={googleBtnTheme()} type="icon" shape="circle" onSuccess={(c) => { onGoogleSuccess(c); onClose(); }} onError={() => {/* handled by parent */}} />
           </div>
         )}
       </div>

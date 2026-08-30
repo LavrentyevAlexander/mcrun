@@ -2,7 +2,7 @@ import { GoogleLogin } from "@react-oauth/google";
 import { FaTrophy, FaUser, FaArrowsRotate, FaRightFromBracket, FaBullseye, FaHeartPulse, FaSun, FaMoon } from "react-icons/fa6";
 import type { Tab } from "../types";
 import { TAB_META, NAV_TABS } from "../constants";
-import { decodeJwt } from "../utils";
+import { decodeJwt, googleBtnTheme } from "../utils";
 
 interface NavbarProps {
   activeTab: Tab;
@@ -125,7 +125,7 @@ export default function Navbar({
               ) : (
                 <div className="profile-login">
                   <p>Sign in to sync data</p>
-                  <GoogleLogin onSuccess={onGoogleSuccess} onError={() => {/* handled by parent */}} />
+                  <GoogleLogin key={theme} theme={googleBtnTheme()} onSuccess={onGoogleSuccess} onError={() => {/* handled by parent */}} />
                 </div>
               )}
             </div>

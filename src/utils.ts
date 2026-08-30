@@ -38,6 +38,12 @@ export function decodeJwt(token: string): { picture?: string; name?: string; exp
   }
 }
 
+/** `theme` for @react-oauth/google's <GoogleLogin>, matched to the app theme.
+ *  Reads the attribute set on <html> (pre-paint + on every toggle). */
+export function googleBtnTheme(): "outline" | "filled_black" {
+  return document.documentElement.dataset.theme === "dark" ? "filled_black" : "outline";
+}
+
 /** True if the JWT is missing/malformed or its `exp` claim is in the past.
  *  `skewSec` treats a token expiring very soon as already expired. */
 export function isTokenExpired(token: string | null | undefined, skewSec = 30): boolean {

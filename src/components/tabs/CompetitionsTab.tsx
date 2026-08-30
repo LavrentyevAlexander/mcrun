@@ -2,7 +2,7 @@ import { useState } from "react";
 import { GoogleLogin } from "@react-oauth/google";
 import { FaArrowUpRightFromSquare } from "react-icons/fa6";
 import type { Competition } from "../../types";
-import { localDateStr } from "../../utils";
+import { localDateStr, googleBtnTheme } from "../../utils";
 import Skeleton from "../Skeleton";
 
 type CompFormData = { competition: string; location: string; date: string; distance: string; time: string; rank: string; link: string };
@@ -53,6 +53,8 @@ export default function CompetitionsTab({
         <div style={{ textAlign: "center", padding: "2rem" }}>
           <p style={{ marginBottom: "1rem" }}>Sign in to view competitions</p>
           <GoogleLogin
+            key={googleBtnTheme()}
+            theme={googleBtnTheme()}
             onSuccess={onGoogleSuccess}
             onError={() => {/* error handled by parent */}}
           />
