@@ -301,7 +301,7 @@ export default function App() {
       const json = await res.json();
       if (handle401(res)) return;
       if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
-      setCompetitions((prev) => [...(prev ?? []), json]);
+      setCompetitions((prev) => [...(prev ?? []), json].sort((a, b) => a.date.localeCompare(b.date)));
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Unknown error";
       if (isAuthMsg(msg)) { handleAuthExpired(); return; }
@@ -325,7 +325,7 @@ export default function App() {
       const json = await res.json();
       if (handle401(res)) return;
       if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
-      setCompetitions((prev) => prev?.map((c) => c.id === id ? json : c) ?? null);
+      setCompetitions((prev) => prev?.map((c) => c.id === id ? json : c).sort((a, b) => a.date.localeCompare(b.date)) ?? null);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Unknown error";
       if (isAuthMsg(msg)) { handleAuthExpired(); return; }
@@ -483,6 +483,7 @@ export default function App() {
         onSync={triggerSync}
         onGoCompetitions={() => goTab("competitions")}
         onGoGoals={() => goTab("goals")}
+        onGoHealth={() => goTab("health")}
         onLogout={handleLogout}
         onGoogleSuccess={handleGoogleSuccess}
         syncLabel={syncLabel}
@@ -501,6 +502,7 @@ export default function App() {
         onSync={triggerSync}
         onGoCompetitions={() => goTab("competitions")}
         onGoGoals={() => goTab("goals")}
+        onGoHealth={() => goTab("health")}
         onLogout={handleLogout}
         onGoogleSuccess={handleGoogleSuccess}
         syncLabel={syncLabel}
@@ -515,7 +517,13 @@ export default function App() {
           )}
 
           {/* ── HEALTH ── */}
-          {activeTab === "health" && <HealthTab garminMetrics={garminMetrics} />}
+          {activeTab === "health" && (
+            <HealthTab
+              garminMetrics={garminMetrics}
+              googleCredential={googleCredential}
+              onGoogleSuccess={handleGoogleSuccess}
+            />
+          )}
 
           {/* ── GEAR ── */}
           {activeTab === "gear" && (

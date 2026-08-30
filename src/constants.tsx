@@ -14,6 +14,6 @@ export const TAB_META: Record<string, { label: string; icon: React.ReactNode }> 
   records:      { label: "Records",        icon: <FaBolt /> },
 };
 
-export const NAV_TABS: Tab[] = ["home", "runs", "yearly", "gear", "health", "calendar", "records"];
+export const NAV_TABS: Tab[] = ["home", "runs", "yearly", "gear", "calendar", "records"];
 
 export const LOGOS = ["/logo.png", "/logo-2.png", "/logo-3.jpg", "/logo-4.png"];

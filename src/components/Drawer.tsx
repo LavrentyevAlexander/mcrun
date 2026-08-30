@@ -1,5 +1,5 @@
 import { GoogleLogin } from "@react-oauth/google";
-import { FaTrophy, FaArrowsRotate, FaRightFromBracket, FaBullseye } from "react-icons/fa6";
+import { FaTrophy, FaArrowsRotate, FaRightFromBracket, FaBullseye, FaHeartPulse } from "react-icons/fa6";
 import type { Tab } from "../types";
 import { TAB_META, NAV_TABS } from "../constants";
 
@@ -14,6 +14,7 @@ interface DrawerProps {
   onSync: (source: "strava" | "garmin") => void;
   onGoCompetitions: () => void;
   onGoGoals: () => void;
+  onGoHealth: () => void;
   onLogout: () => void;
   onGoogleSuccess: (resp: { credential?: string }) => void;
   syncLabel: (src: "strava" | "garmin") => string;
@@ -30,6 +31,7 @@ export default function Drawer({
   onSync,
   onGoCompetitions,
   onGoGoals,
+  onGoHealth,
   onLogout,
   onGoogleSuccess,
   syncLabel,
@@ -66,6 +68,12 @@ export default function Drawer({
               onClick={() => onSync("garmin")}>
               <FaArrowsRotate className={syncLoading["garmin"] ? "spin" : ""} />
               {syncLabel("garmin")}
+            </button>
+            <button
+              className={`drawer-item${activeTab === "health" ? " active" : ""}`}
+              onClick={() => { onGoHealth(); onClose(); }}
+            >
+              <FaHeartPulse />Health
             </button>
             <button
               className={`drawer-item${activeTab === "competitions" ? " active" : ""}`}

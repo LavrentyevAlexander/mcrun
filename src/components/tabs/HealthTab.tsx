@@ -1,3 +1,4 @@
+import { GoogleLogin } from "@react-oauth/google";
 import type { GarminMetrics } from "../../types";
 import React from "react";
 
@@ -79,9 +80,23 @@ function enduranceStyle(label: string | null): React.CSSProperties {
 
 interface HealthTabProps {
   garminMetrics: GarminMetrics | null;
+  googleCredential: string | null;
+  onGoogleSuccess: (resp: { credential?: string }) => void;
 }
 
-export default function HealthTab({ garminMetrics }: HealthTabProps) {
+export default function HealthTab({ garminMetrics, googleCredential, onGoogleSuccess }: HealthTabProps) {
+  if (!googleCredential) {
+    return (
+      <div style={{ textAlign: "center", padding: "2rem" }}>
+        <p style={{ marginBottom: "1rem" }}>Sign in to view health metrics</p>
+        <GoogleLogin
+          onSuccess={onGoogleSuccess}
+          onError={() => {/* error handled by parent */}}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="health-tiles">
       {!garminMetrics && <p className="health-empty">No data yet — sync Garmin to populate.</p>}

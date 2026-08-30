@@ -1,5 +1,5 @@
 import { GoogleLogin } from "@react-oauth/google";
-import { FaTrophy, FaUser, FaArrowsRotate, FaRightFromBracket, FaBullseye } from "react-icons/fa6";
+import { FaTrophy, FaUser, FaArrowsRotate, FaRightFromBracket, FaBullseye, FaHeartPulse } from "react-icons/fa6";
 import type { Tab } from "../types";
 import { TAB_META, NAV_TABS } from "../constants";
 import { decodeJwt } from "../utils";
@@ -15,6 +15,7 @@ interface NavbarProps {
   onSync: (source: "strava" | "garmin") => void;
   onGoCompetitions: () => void;
   onGoGoals: () => void;
+  onGoHealth: () => void;
   onLogout: () => void;
   onGoogleSuccess: (resp: { credential?: string }) => void;
   syncLabel: (src: "strava" | "garmin") => string;
@@ -33,6 +34,7 @@ export default function Navbar({
   onSync,
   onGoCompetitions,
   onGoGoals,
+  onGoHealth,
   onLogout,
   onGoogleSuccess,
   syncLabel,
@@ -87,6 +89,9 @@ export default function Navbar({
                     <span>{syncLabel("garmin")}</span>
                   </button>
                   <div className="profile-divider" />
+                  <button className="profile-action" onClick={() => { onGoHealth(); onProfileToggle(); }}>
+                    <FaHeartPulse /><span>Health</span>
+                  </button>
                   <button className="profile-action" onClick={() => { onGoCompetitions(); onProfileToggle(); }}>
                     <FaTrophy /><span>Competitions</span>
                   </button>
