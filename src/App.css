@@ -386,11 +386,7 @@
 
 .home-quote {
   margin: 0;
-  padding: 0.8rem 1.4rem;
-  background: rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(6px);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.1);
+  padding: 0.2rem 0.5rem;
   font-family: 'Oswald', sans-serif;
   font-style: italic;
 }
@@ -429,6 +425,7 @@
   border-radius: var(--radius-lg);
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.1);
   font-family: 'Oswald', sans-serif;
+  color: var(--clr-text);
 }
 
 .weather-strip-icon {
@@ -957,10 +954,6 @@ tbody tr:hover {
   .home-card {
     width: min(calc(100vw - 2rem), 360px);
     gap: 0.5rem;
-  }
-
-  .home-quote {
-    padding: 0.45rem 0.8rem;
   }
 
   .home-quote-text {
