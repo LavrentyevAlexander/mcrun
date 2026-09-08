@@ -22,11 +22,9 @@
   left: var(--container-pad);
 }
 
-/* The logo art is a black-outlined circle on an opaque white square. In dark
-   mode, clip it to a circle and back it with white so it reads as a badge
-   instead of a white block. */
+/* The dark logo variant still has white corners around its circle — clip to
+   a circle so only the disc shows on the dark navbar. */
 :root[data-theme="dark"] .navbar .logo {
-  background: #fff;
   border-radius: 50%;
 }
 
@@ -408,15 +406,8 @@
   background: none;
 }
 
-/* The home illustrations are drawn on solid white. In dark mode, frame the
-   carousel as a deliberate art card and knock the glare down a little. */
-:root[data-theme="dark"] .photo-carousel {
-  box-shadow: 0 0 0 1px var(--clr-border-strong), var(--shadow-lg);
-}
-
-:root[data-theme="dark"] .home-photo {
-  filter: brightness(0.92);
-}
+/* Dark theme swaps in the dark-background illustrations (see LOGOS_DARK), so
+   the carousel needs no special framing. */
 
 .home-photo {
   grid-area: 1 / 1;

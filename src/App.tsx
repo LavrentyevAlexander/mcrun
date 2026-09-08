@@ -554,7 +554,7 @@ export default function App() {
 
           {/* ── HOME ── */}
           {activeTab === "home" && (
-            <HomeTab />
+            <HomeTab theme={theme} />
           )}
 
           {/* ── HEALTH ── */}

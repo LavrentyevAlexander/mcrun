@@ -3,7 +3,7 @@ import {
   WiDaySunny, WiNightClear, WiDayCloudy, WiNightAltCloudy, WiCloudy,
   WiFog, WiSprinkle, WiRain, WiSnow, WiShowers, WiThunderstorm, WiCloud,
 } from "react-icons/wi";
-import { LOGOS } from "../../constants";
+import { LOGOS, LOGOS_DARK } from "../../constants";
 
 const PODGORICA = { lat: 42.4411, lon: 19.2636 };
 const WEATHER_CACHE_KEY = "weather:podgorica";
@@ -156,16 +156,17 @@ function WeatherStrip() {
   );
 }
 
-export default function HomeTab() {
+export default function HomeTab({ theme }: { theme: "light" | "dark" }) {
   const [logoIdx, setLogoIdx] = useState(0);
-  const cycleLogo = () => setLogoIdx((i) => (i + 1) % LOGOS.length);
+  const logos = theme === "dark" ? LOGOS_DARK : LOGOS;
+  const cycleLogo = () => setLogoIdx((i) => (i + 1) % logos.length);
 
   return (
     <div className="home">
       <div className="home-card">
         <div className="photo-carousel"
           onClick={(e) => { cycleLogo(); (e.currentTarget as HTMLElement).blur(); }}>
-          {LOGOS.map((src, i) => (
+          {logos.map((src, i) => (
             <img key={src} src={src} alt="McRun"
               className={`home-photo${i === logoIdx ? " home-photo--active" : ""}`} />
           ))}

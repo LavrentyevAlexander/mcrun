@@ -2,6 +2,7 @@ import { GoogleLogin } from "@react-oauth/google";
 import { FaTrophy, FaUser, FaArrowsRotate, FaRightFromBracket, FaBullseye, FaHeartPulse, FaSun, FaMoon } from "react-icons/fa6";
 import type { Tab } from "../types";
 import { TAB_META, NAV_TABS } from "../constants";
+import { NAV_LOGO, NAV_LOGO_DARK } from "../constants";
 import { decodeJwt, googleBtnTheme } from "../utils";
 
 interface NavbarProps {
@@ -50,7 +51,7 @@ export default function Navbar({
   return (
     <>
       <nav className="navbar">
-        <img src="/sneaker.png" alt="McRun" className="logo logo--link" onClick={onLogoClick} />
+        <img src={theme === "dark" ? NAV_LOGO_DARK : NAV_LOGO} alt="McRun" className="logo logo--link" onClick={onLogoClick} />
         <div className="nav-tabs">
           {NAV_TABS.map((tab) => (
             <button
