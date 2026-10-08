@@ -1,9 +1,13 @@
+"""UTMB Index sync logic — shared helper, not a deployed endpoint.
+
+Underscore-prefixed like _db.py so Vercel doesn't count it as a Serverless
+Function (Hobby plan caps at 12 total). Imported by cron_sync.py (hourly
+cron) and utmb.py (manual trigger + read)."""
 import os
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
 
 from datetime import datetime, timezone
-from http.server import BaseHTTPRequestHandler
 import logging
 
 logging.basicConfig(
@@ -14,7 +18,7 @@ logging.basicConfig(
 
 import requests
 
-from _db import get_conn, send_error, send_json, verify_token
+from _db import get_conn
 
 # Public, unauthenticated API backing https://utmb.world — no API key needed,
 # just the tenant header the website itself sends. Runner URI is the slug
@@ -171,15 +175,3 @@ def sync_utmb() -> dict:
         except Exception:
             pass
         raise
-
-
-class handler(BaseHTTPRequestHandler):
-    def do_POST(self):
-        try:
-            verify_token(self.headers)
-            result = sync_utmb()
-            send_json(self, 200, result)
-        except PermissionError as e:
-            send_json(self, 401, {"error": str(e)})
-        except Exception as e:
-            send_error(self, e)

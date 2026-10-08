@@ -13,6 +13,20 @@ _RACES_LIMIT = 20
 
 
 class handler(BaseHTTPRequestHandler):
+    # Combines read (GET) and manual sync trigger (POST) in one file — unlike
+    # the Strava/Garmin split (sync_*.py + *_metrics.py) — to stay within
+    # Vercel Hobby's 12-Serverless-Function cap. See api/_utmb.py.
+    def do_POST(self):
+        try:
+            verify_token(self.headers)
+            from _utmb import sync_utmb
+            result = sync_utmb()
+            send_json(self, 200, result)
+        except PermissionError as e:
+            send_json(self, 401, {"error": str(e)})
+        except Exception as e:
+            send_error(self, e)
+
     def do_GET(self):
         try:
             try:

@@ -1,5 +1,5 @@
 """Tests for the pure parsing helpers in api/sync_utmb.py."""
-from sync_utmb import _index_map, _parse_race
+from _utmb import _index_map, _parse_race
 
 
 def test_index_map_reads_known_categories():

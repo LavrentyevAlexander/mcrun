@@ -45,14 +45,16 @@ The frontend stores the Google credential JWT in `localStorage` and sends it as 
 | `src/utils.ts`           | Pure helpers (`friendlyError`, `isTokenExpired`, date/format).   |
 | `src/App.css`            | All styles. CSS variables defined at `:root` in `src/index.css`. |
 | `api/_db.py`             | Shared DB/auth/request helpers.                                  |
+| `api/_utmb.py`           | UTMB Index + race history sync logic (public UTMB World Series API). Not a deployed endpoint — see note below. |
 | `api/stats.py`           | Main read endpoint — activities + gear summary (+ CSV export).   |
 | `api/gear.py`            | Gear CRUD (POST add, PATCH update). Requires auth.               |
 | `api/competitions.py`    | Competition CRUD. Requires auth.                                 |
 | `api/sync_strava.py`     | Incremental Strava sync + CTL fitness recompute. Requires auth.  |
 | `api/sync_garmin.py`     | Garmin records + health metrics sync. Requires auth.             |
-| `api/sync_utmb.py`       | UTMB Index + race history sync (public UTMB World Series API). Requires auth. |
-| `api/utmb.py`            | Read endpoint for UTMB Index history + synced races. Requires auth. |
+| `api/utmb.py`            | GET: UTMB Index history + synced races. POST: manual sync trigger (calls `_utmb.sync_utmb`). Requires auth. |
 | `tests/`                 | Python tests (pytest). Frontend tests live next to `src/utils.ts`. |
+
+**Vercel Hobby plan caps a deployment at 12 Serverless Functions.** Every non-underscore-prefixed file directly in `api/` is one function (Vercel skips `_`-prefixed files, same convention as `_db.py`). The project sits exactly at 12 — before adding a new endpoint, either delete/merge an existing one or put the new logic in an underscore-prefixed shared module and reuse an existing route for any HTTP access it needs (this is why `_utmb.py` holds the sync logic but `utmb.py` — not a second file — exposes both GET read and POST manual-trigger).
 
 ## Database schema (summary)
 
@@ -90,10 +92,11 @@ Migrations are in `migrations/`, applied in filename order by `migrations/run.sh
 
 ## UTMB sync notes
 
-- `api/sync_utmb.py` calls the public, unauthenticated API that backs utmb.world — `GET https://api.utmb.world/runners/<UTMB_RUNNER_URI>` with header `x-tenant-id: worldseries`. No API key; `UTMB_RUNNER_URI` is just the slug from the runner's profile URL.
+- `api/_utmb.py` (`sync_utmb()`) calls the public, unauthenticated API that backs utmb.world — `GET https://api.utmb.world/runners/<UTMB_RUNNER_URI>` with header `x-tenant-id: worldseries`. No API key; `UTMB_RUNNER_URI` is just the slug from the runner's profile URL. It's an underscore-prefixed helper, not its own endpoint (see function-count note above) — reached via `cron_sync.py` (hourly) or `POST /api/utmb` (manual trigger).
 - This is **not** ITRA — ITRA's own site (`itra.run`) blocks server-side access with AWS WAF CAPTCHA on individual runner pages and encrypts its ranking API responses, so it isn't viable to sync from a serverless function. UTMB Index (`utmb.world`) replaced ITRA as the dashboard's source for "current performance index" and has no such protection.
 - One `utmb_index_history` row per calendar day (upsert on `date`); re-running the sync same-day just updates it. `utmb_races` upserts by `utmb_uri`, UTMB's own id for a race result, so re-syncing never duplicates rows.
 - Treated as non-critical in `cron_sync.py`/`sync.yml`: a UTMB sync failure is logged but does not fail the hourly cron job, unlike Strava/Garmin.
+- `api/garmin_status.py` was removed to make room for `utmb.py` under the 12-function cap — it was dead code (a Garmin-ban countdown endpoint no longer called from the frontend).
 
 ## Tests & CI
 

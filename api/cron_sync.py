@@ -37,7 +37,7 @@ class handler(BaseHTTPRequestHandler):
             results["garmin"] = {"error": str(e)}
 
         try:
-            from sync_utmb import sync_utmb
+            from _utmb import sync_utmb
             results["utmb"] = sync_utmb()
         except Exception as e:
             results["utmb"] = {"error": str(e)}
