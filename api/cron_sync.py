@@ -36,4 +36,10 @@ class handler(BaseHTTPRequestHandler):
         except Exception as e:
             results["garmin"] = {"error": str(e)}
 
+        try:
+            from sync_utmb import sync_utmb
+            results["utmb"] = sync_utmb()
+        except Exception as e:
+            results["utmb"] = {"error": str(e)}
+
         send_json(self, 200, results)

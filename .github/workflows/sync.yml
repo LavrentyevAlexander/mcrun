@@ -53,6 +53,14 @@ jobs:
             exit 1
           fi
 
+          # UTMB sync is a non-critical enrichment against an unofficial,
+          # undocumented API — a hiccup there shouldn't fail the whole run.
+          utmb_error=$(cat /tmp/response.json | jq -r '.utmb.error // empty')
+          if [ -n "$utmb_error" ]; then
+            echo "UTMB sync warning (non-fatal): $utmb_error"
+          fi
+
           echo "Sync completed successfully"
           echo "Strava: $(cat /tmp/response.json | jq -r '.strava.synced') activities"
           echo "Garmin: $(cat /tmp/response.json | jq -r '.garmin.synced') records"
+          echo "UTMB: $(cat /tmp/response.json | jq -r '.utmb.synced // "n/a"') races"

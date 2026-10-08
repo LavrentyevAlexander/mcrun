@@ -1,5 +1,5 @@
 import { GoogleLogin } from "@react-oauth/google";
-import { FaTrophy, FaArrowsRotate, FaRightFromBracket, FaBullseye, FaHeartPulse, FaSun, FaMoon } from "react-icons/fa6";
+import { FaTrophy, FaArrowsRotate, FaRightFromBracket, FaBullseye, FaHeartPulse, FaMountain, FaSun, FaMoon } from "react-icons/fa6";
 import type { Tab } from "../types";
 import { TAB_META, NAV_TABS } from "../constants";
 import { googleBtnTheme } from "../utils";
@@ -18,6 +18,7 @@ interface DrawerProps {
   onGoCompetitions: () => void;
   onGoGoals: () => void;
   onGoHealth: () => void;
+  onGoUtmb: () => void;
   onLogout: () => void;
   onGoogleSuccess: (resp: { credential?: string }) => void;
   syncLabel: (src: "strava" | "garmin") => string;
@@ -37,6 +38,7 @@ export default function Drawer({
   onGoCompetitions,
   onGoGoals,
   onGoHealth,
+  onGoUtmb,
   onLogout,
   onGoogleSuccess,
   syncLabel,
@@ -108,6 +110,12 @@ export default function Drawer({
               onClick={() => { onGoGoals(); onClose(); }}
             >
               <FaBullseye />Goals
+            </button>
+            <button
+              className={`drawer-item${activeTab === "utmb" ? " active" : ""}`}
+              onClick={() => { onGoUtmb(); onClose(); }}
+            >
+              <FaMountain />UTMB Index
             </button>
             <button className="drawer-item drawer-signout" onClick={() => { onLogout(); onClose(); }}>
               <FaRightFromBracket />Sign out

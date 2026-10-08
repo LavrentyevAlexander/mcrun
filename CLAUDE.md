@@ -50,6 +50,8 @@ The frontend stores the Google credential JWT in `localStorage` and sends it as 
 | `api/competitions.py`    | Competition CRUD. Requires auth.                                 |
 | `api/sync_strava.py`     | Incremental Strava sync + CTL fitness recompute. Requires auth.  |
 | `api/sync_garmin.py`     | Garmin records + health metrics sync. Requires auth.             |
+| `api/sync_utmb.py`       | UTMB Index + race history sync (public UTMB World Series API). Requires auth. |
+| `api/utmb.py`            | Read endpoint for UTMB Index history + synced races. Requires auth. |
 | `tests/`                 | Python tests (pytest). Frontend tests live next to `src/utils.ts`. |
 
 ## Database schema (summary)
@@ -61,6 +63,9 @@ activities    id, strava_id, date, name, distance_km, elapsed_sec, moving_sec,
 personal_records  label, distance_m, time_sec, date, garmin_activity_id, activity_name
 competitions  id, competition, date, distance, time, rank, link, created_at
 sync_log      source, status, records_synced, error_detail, started_at, finished_at
+utmb_index_history  date (unique), general_index, index_20k/50k/100k/100m, nationality, age_group, synced_at
+utmb_races    utmb_uri (unique), date, event_name, race_name, distance_km, elevation_m,
+              time, pi_category, rank, rank_gender, total_ranked, is_dnf, country
 ```
 
 Migrations are in `migrations/`, applied in filename order by `migrations/run.sh` (tracked in a `schema_migrations` table). When adding a schema change, create a new numbered migration file — never edit existing ones.
@@ -68,10 +73,10 @@ Migrations are in `migrations/`, applied in filename order by `migrations/run.sh
 ## Frontend conventions
 
 - `src/App.tsx` owns **all** state, effects and `fetch` calls. Tab components in `src/components/tabs/` are presentational — they receive data and callbacks as props and never fetch. Keep new data-fetching logic in `App.tsx`; add a component only when a tab needs its own markup.
-- Tabs: `home`, `runs`, `yearly`, `gear`, `health`, `calendar`, `competitions`, `goals`, `records`. Adding a tab requires updating `TAB_META`, the `Tab` type, `VALID_TABS`, and optionally `NAV_TABS`.
+- Tabs: `home`, `runs`, `yearly`, `gear`, `health`, `calendar`, `competitions`, `goals`, `records`, `utmb`. Adding a tab requires updating `TAB_META`, the `Tab` type, `VALID_TABS`, and optionally `NAV_TABS`.
 - All-time data (gear + yearly chart) is fetched once on mount via `fetchAllTime()` and stored in `allTimeData`. Runs tab has its own date-filtered fetch.
 - Error messages go through `friendlyError()` before being shown to the user. Each tab has its own `*Error` state — never reuse another tab's error setter.
-- Auth-only tabs (`competitions`, `goals`, `health`) live behind the profile menu, not `NAV_TABS`, and the tab body shows a sign-in prompt when `googleCredential` is unset.
+- Auth-only tabs (`competitions`, `goals`, `health`, `utmb`) live behind the profile menu, not `NAV_TABS`, and the tab body shows a sign-in prompt when `googleCredential` is unset. `goals`' GET is public (only writes need auth); `competitions`, `health` and `utmb` require auth on the GET itself too, so `App.tsx` only fetches them once a credential exists (on mount and in `handleGoogleSuccess`).
 - The stored Google credential is purged on mount when `isTokenExpired()` — reactive 401s via `handle401()` are the fallback.
 - `handleGoogleSuccess` must clear `addError` and `syncError` so stale messages disappear on re-login.
 
@@ -82,6 +87,13 @@ Migrations are in `migrations/`, applied in filename order by `migrations/run.sh
 - Manually added gear has `strava_id = NULL` (allowed after migration 003).
 - The CTL fitness recompute (`_recompute_fitness`) re-fetches the full Strava history, so it only runs when the activity count grew or some rows lack `fitness_score` — not on every no-op cron tick.
 - All outbound `requests` calls pass `timeout=30`.
+
+## UTMB sync notes
+
+- `api/sync_utmb.py` calls the public, unauthenticated API that backs utmb.world — `GET https://api.utmb.world/runners/<UTMB_RUNNER_URI>` with header `x-tenant-id: worldseries`. No API key; `UTMB_RUNNER_URI` is just the slug from the runner's profile URL.
+- This is **not** ITRA — ITRA's own site (`itra.run`) blocks server-side access with AWS WAF CAPTCHA on individual runner pages and encrypts its ranking API responses, so it isn't viable to sync from a serverless function. UTMB Index (`utmb.world`) replaced ITRA as the dashboard's source for "current performance index" and has no such protection.
+- One `utmb_index_history` row per calendar day (upsert on `date`); re-running the sync same-day just updates it. `utmb_races` upserts by `utmb_uri`, UTMB's own id for a race result, so re-syncing never duplicates rows.
+- Treated as non-critical in `cron_sync.py`/`sync.yml`: a UTMB sync failure is logged but does not fail the hourly cron job, unlike Strava/Garmin.
 
 ## Tests & CI
 

@@ -103,15 +103,15 @@
   --clr-subtle:     #6a655e;
   --clr-danger:     #ff6b6b;
 
-  --clr-bg:         #0d1016;   /* matched to the dark home illustrations' background */
-  --clr-surface:    #191d24;
-  --clr-surface-2:  #232830;
-  --clr-elevated:   #1f242b;
+  --clr-bg:         #16181c;
+  --clr-surface:    #1e2127;
+  --clr-surface-2:  #262a31;
+  --clr-elevated:   #23272e;
   --clr-border:     rgba(255, 255, 255, 0.10);
   --clr-border-strong: #454b54;
 
-  --glass-bg:        rgba(18, 21, 27, 0.82);
-  --glass-bg-solid:  rgba(18, 21, 27, 0.97);
+  --glass-bg:        rgba(24, 27, 32, 0.82);
+  --glass-bg-solid:  rgba(24, 27, 32, 0.97);
 
   --scrim:          rgba(0, 0, 0, 0.6);
   --hover-wash:     rgba(255, 255, 255, 0.06);

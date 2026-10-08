@@ -103,4 +103,37 @@ export interface GarminActivity {
   anaerobic_te: number | null;
 }
 
-export type Tab = "home" | "runs" | "yearly" | "gear" | "health" | "calendar" | "competitions" | "goals" | "records";
+export type Tab = "home" | "runs" | "yearly" | "gear" | "health" | "calendar" | "competitions" | "goals" | "records" | "utmb";
+
+export interface UtmbIndexSnapshot {
+  date: string;
+  general_index: number | null;
+  index_20k: number | null;
+  index_50k: number | null;
+  index_100k: number | null;
+  index_100m: number | null;
+  nationality?: string | null;
+  age_group?: string | null;
+  synced_at?: string | null;
+}
+
+export interface UtmbRace {
+  date: string;
+  event_name: string;
+  race_name: string;
+  distance_km: number | null;
+  elevation_m: number | null;
+  time: string | null;
+  pi_category: string | null;
+  rank: number | null;
+  rank_gender: number | null;
+  total_ranked: number | null;
+  is_dnf: boolean;
+  country: string | null;
+}
+
+export interface UtmbStats {
+  current: UtmbIndexSnapshot | null;
+  history: UtmbIndexSnapshot[];
+  races: UtmbRace[];
+}

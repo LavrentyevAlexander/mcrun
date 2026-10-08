@@ -1,5 +1,5 @@
 import { GoogleLogin } from "@react-oauth/google";
-import { FaTrophy, FaUser, FaArrowsRotate, FaRightFromBracket, FaBullseye, FaHeartPulse, FaSun, FaMoon } from "react-icons/fa6";
+import { FaTrophy, FaUser, FaArrowsRotate, FaRightFromBracket, FaBullseye, FaHeartPulse, FaMountain, FaSun, FaMoon } from "react-icons/fa6";
 import type { Tab } from "../types";
 import { TAB_META, NAV_TABS } from "../constants";
 import { NAV_LOGO, NAV_LOGO_DARK } from "../constants";
@@ -19,6 +19,7 @@ interface NavbarProps {
   onGoCompetitions: () => void;
   onGoGoals: () => void;
   onGoHealth: () => void;
+  onGoUtmb: () => void;
   onLogout: () => void;
   onGoogleSuccess: (resp: { credential?: string }) => void;
   syncLabel: (src: "strava" | "garmin") => string;
@@ -40,6 +41,7 @@ export default function Navbar({
   onGoCompetitions,
   onGoGoals,
   onGoHealth,
+  onGoUtmb,
   onLogout,
   onGoogleSuccess,
   syncLabel,
@@ -117,6 +119,9 @@ export default function Navbar({
                   </button>
                   <button className="profile-action" onClick={() => { onGoGoals(); onProfileToggle(); }}>
                     <FaBullseye /><span>Goals</span>
+                  </button>
+                  <button className="profile-action" onClick={() => { onGoUtmb(); onProfileToggle(); }}>
+                    <FaMountain /><span>UTMB Index</span>
                   </button>
                   <div className="profile-divider" />
                   <button className="profile-action profile-signout" onClick={() => { onLogout(); onProfileToggle(); }}>

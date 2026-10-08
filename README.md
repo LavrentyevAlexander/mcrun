@@ -55,7 +55,7 @@ src/
 tests/              Python tests (pytest)
 conftest.py         Adds api/ to sys.path for tests
 migrations/         SQL files applied manually in order
-  001–014_*.sql
+  001–016_*.sql
 ```
 
 ## Environment variables
@@ -69,6 +69,7 @@ migrations/         SQL files applied manually in order
 | `REFRESH_TOKEN`              | sync_strava    | Strava refresh token                                    |
 | `GARMIN_EMAIL` / `GARMIN_PASSWORD` | sync_garmin | Garmin Connect credentials                          |
 | `GARMIN_TOTP_SECRET`         | sync_garmin    | Optional — only if Garmin MFA is enabled                 |
+| `UTMB_RUNNER_URI`            | sync_utmb      | Runner URI slug from your utmb.world profile URL          |
 | `GOOGLE_CLIENT_ID`           | api            | Google OAuth client ID (server-side verification)       |
 | `ALLOWED_EMAIL`              | api            | Only this email is granted access to authed endpoints   |
 | `VITE_GOOGLE_CLIENT_ID`      | frontend build | Google OAuth client ID (exposed to browser)             |

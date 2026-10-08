@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { googleLogout } from "@react-oauth/google";
 import "./App.css";
-import type { GarminActivity, GarminMetrics, GarminRecord, Competition, Goal, GoalStatus, StatsResponse, Tab } from "./types";
+import type { GarminActivity, GarminMetrics, GarminRecord, Competition, Goal, GoalStatus, StatsResponse, Tab, UtmbStats } from "./types";
 import { localDateStr, friendlyError, defaultDate, isTokenExpired } from "./utils";
 
 import HomeTab from "./components/tabs/HomeTab";
@@ -13,10 +13,11 @@ import RunsTab from "./components/tabs/RunsTab";
 import GearTab from "./components/tabs/GearTab";
 import CompetitionsTab from "./components/tabs/CompetitionsTab";
 import GoalsTab from "./components/tabs/GoalsTab";
+import UtmbTab from "./components/tabs/UtmbTab";
 import Drawer from "./components/Drawer";
 import Navbar from "./components/Navbar";
 
-const VALID_TABS = new Set<Tab>(["home", "runs", "yearly", "gear", "health", "calendar", "competitions", "goals", "records"]);
+const VALID_TABS = new Set<Tab>(["home", "runs", "yearly", "gear", "health", "calendar", "competitions", "goals", "records", "utmb"]);
 
 function tabFromHash(): Tab {
   const hash = window.location.hash.slice(1) as Tab;
@@ -33,6 +34,9 @@ export default function App() {
 
   // Garmin fitness metrics (home page)
   const [garminMetrics, setGarminMetrics] = useState<GarminMetrics | null>(null);
+
+  // UTMB Index
+  const [utmbStats, setUtmbStats] = useState<UtmbStats | null>(null);
 
   // All-time data: Gear + Yearly + Home stats
   const [allTimeData, setAllTimeData] = useState<StatsResponse | null>(null);
@@ -131,7 +135,10 @@ export default function App() {
   useEffect(() => {
     fetchSyncStatus();
     fetchAllTime();
-    if (googleCredential) fetchGarminMetrics();
+    if (googleCredential) {
+      fetchGarminMetrics();
+      fetchUtmbStats();
+    }
     initTab(activeTab);
   }, []);
 
@@ -145,6 +152,22 @@ export default function App() {
       if (res.ok) {
         const json = await res.json();
         if (json) setGarminMetrics(json);
+      }
+    } catch {
+      // non-critical
+    }
+  }
+
+  async function fetchUtmbStats(token?: string | null) {
+    const t = token ?? googleCredential;
+    if (!t) return;
+    try {
+      const res = await fetch("/api/utmb", {
+        headers: { Authorization: `Bearer ${t}` },
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json) setUtmbStats(json);
       }
     } catch {
       // non-critical
@@ -277,6 +300,7 @@ export default function App() {
     setSyncError("");
     if (token) localStorage.setItem("google_credential", token);
     if (token) fetchGarminMetrics(token);
+    if (token) fetchUtmbStats(token);
     if (!competitions && !competitionsLoading) fetchCompetitions(token);
     const pending = pendingSyncRef.current;
     if (token && pending) {
@@ -292,6 +316,7 @@ export default function App() {
     setGoogleCredential(null);
     setCompetitions(null);
     setGarminMetrics(null);
+    setUtmbStats(null);
     localStorage.removeItem("google_credential");
   }
 
@@ -523,6 +548,7 @@ export default function App() {
         onGoCompetitions={() => goTab("competitions")}
         onGoGoals={() => goTab("goals")}
         onGoHealth={() => goTab("health")}
+        onGoUtmb={() => goTab("utmb")}
         onLogout={handleLogout}
         onGoogleSuccess={handleGoogleSuccess}
         syncLabel={syncLabel}
@@ -544,6 +570,7 @@ export default function App() {
         onGoCompetitions={() => goTab("competitions")}
         onGoGoals={() => goTab("goals")}
         onGoHealth={() => goTab("health")}
+        onGoUtmb={() => goTab("utmb")}
         onLogout={handleLogout}
         onGoogleSuccess={handleGoogleSuccess}
         syncLabel={syncLabel}
@@ -634,6 +661,15 @@ export default function App() {
           {/* ── CALENDAR ── */}
           {activeTab === "calendar" && (
             <CalendarTab calendarEvents={calendarEvents} calendarLoading={calendarLoading} calendarError={calendarError} />
+          )}
+
+          {/* ── UTMB ── */}
+          {activeTab === "utmb" && (
+            <UtmbTab
+              utmbStats={utmbStats}
+              googleCredential={googleCredential}
+              onGoogleSuccess={handleGoogleSuccess}
+            />
           )}
 
         </div>

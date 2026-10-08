@@ -1,4 +1,4 @@
-import { FaHouse, FaPersonRunning, FaCalendarDays, FaTrophy, FaBolt, FaHeartPulse, FaCalendarCheck, FaBullseye } from "react-icons/fa6";
+import { FaHouse, FaPersonRunning, FaCalendarDays, FaTrophy, FaBolt, FaHeartPulse, FaCalendarCheck, FaBullseye, FaMountain } from "react-icons/fa6";
 import { GiRunningShoe } from "react-icons/gi";
 import type { Tab } from "./types";
 
@@ -12,12 +12,13 @@ export const TAB_META: Record<string, { label: string; icon: React.ReactNode }> 
   competitions: { label: "Competitions",   icon: <FaTrophy /> },
   goals:        { label: "Goals",          icon: <FaBullseye /> },
   records:      { label: "Records",        icon: <FaBolt /> },
+  utmb:         { label: "UTMB Index",     icon: <FaMountain /> },
 };
 
 export const NAV_TABS: Tab[] = ["home", "runs", "yearly", "gear", "calendar", "records"];
 
 export const LOGOS = ["/logo.png", "/logo-2.png", "/logo-3.jpg", "/logo-4.png"];
-export const LOGOS_DARK = ["/logo_b.jpeg", "/logo-2_b.jpeg", "/logo-3_b.jpeg", "/logo-4_b.jpeg"];
+export const LOGOS_DARK = ["/logo_black.jpeg", "/logo-2_black.jpeg", "/logo-3_black.jpeg", "/logo-4_black.jpeg"];
 
 export const NAV_LOGO = "/sneaker.png";
-export const NAV_LOGO_DARK = "/sneaker_b.jpeg";
+export const NAV_LOGO_DARK = "/sneaker_black.jpeg";
